@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128" role="img" aria-labelledby="title">
+  <title id="title">NV – neutrales Platzhalterlogo</title>
+  <rect x="3" y="3" width="122" height="122" rx="24" fill="#e2e8f0" stroke="#475569" stroke-width="4"/>
+  <path fill="#334155" d="M24 88V40h9l22 32V40h9v48h-9L33 56v32zm48-48h10l12 34 12-34h10L99 88H89z"/>
+</svg>

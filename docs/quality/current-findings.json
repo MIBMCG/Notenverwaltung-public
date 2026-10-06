@@ -1,0 +1,1668 @@
+{
+  "schemaVersion": 2,
+  "sourceSnapshot": {
+    "algorithm": "sha256",
+    "normalization": "UTF-8 text with CRLF and CR normalized to LF",
+    "files": {
+      "Notenverwaltung.html": "ccb9ae01e2b661cfa611f3da62d99480ff9602ff3f4f9bf650499a70916ca93f",
+      "src/document.html": "0ddc5e4d268e94aced3fc18c9ebb45448a0c225c057e37499bd79f0c43d2225c",
+      "src/domain/assessments.js": "544ddb00b4ca92476ef93533e97daf1bdf7834ce06410b19fde4371c5919a32e",
+      "src/domain/course-settings.js": "2737d7b849788785a0ac5413476a59305dacf104a1c72f8d05413e0892fcad87",
+      "src/domain/course-symbols.js": "e1908cfa2a2c68647086630b67e29dfd9097354d324abd4335df6409891e07ba",
+      "src/domain/courses.js": "74561ab8b9c3fa015ee272d9217c1eaaaadcbaa47dea88c8e5ce718190b46824",
+      "src/domain/domain-model.js": "b048c5236d005b35dcb9398404d74d64e838207c7aaafdb9989ae063f9467af7",
+      "src/domain/grading-logic.js": "9ed7b34dff4c4cf7a04c7e7825f76d5e3b5b1da6869159936cc6b0bba5b00185",
+      "src/domain/grading.js": "7a42cf79d9d42d0b866414139995803711610042a56a8c5e314eeb1f15631ba8",
+      "src/domain/initial-assessments.js": "b262d724dd4898409e7f2c66bbb0bba2a68f69476a21e0903ff90e935df6a794",
+      "src/domain/initial-state.js": "a434df76323cdcda75d1f901b4fa63711997fdcf1dbcf2018923338de86560bd",
+      "src/domain/migrations.js": "94d5cde7f2a2dae4bba49fdea656144c182d1b69377156c4413f0fe8d5277afb",
+      "src/domain/state.js": "6152ec46647fce2a3e3d5a145742e474f35f72e2a9f16bc630fe46e71eaa98ed",
+      "src/domain/students.js": "6a5fddc1db7ba67dd26fd233c0d19d89d8571f0aca5873f8fd6a3f82ff35314b",
+      "src/domain/terms.js": "cb8301f5320d0bb5f526774a7181f34879d9dbf385cc3ea5be38c33584cc189d",
+      "src/entry.js": "00e4df480c71c4af8666a96ec649d9fc7ad2c0849adeb51478af537b9ad96004",
+      "src/formatting/date-time.js": "c7338b397ff11253b654cda35460449ed46b649d54b4cf4c0295d16b666144f9",
+      "src/formatting/numbers.js": "f9312fcc0752b8cfbabc16e27f619ddc6963e3c2923504ce9d1ab2bf1ddbf1b6",
+      "src/formatting/text.js": "f76e4fd5947a5c4ca41653da6517a36e6194b39bff84963c36468b536802ffd5",
+      "src/infrastructure/downloads.js": "c94dd13f38b9559005c544af63b5445472a75f56ae61d7e932e681caeec89648",
+      "src/infrastructure/encryption.js": "134aca20000b131b42cb9accee1afc26ea863b6b9e68e01d5d977dc7595f50b4",
+      "src/infrastructure/session-coordinator.js": "34488a6c3c3e0eb54e282b5edf57c64636ffd741d05d5682acecfbc378c67d2b",
+      "src/infrastructure/storage.js": "93de3e22a46e7dde39dc5b8f7e7b29c188f704c7d6152e542e2084b747f084c4",
+      "src/legacy/application.js": "9df7059255f4ed98ce4275194ea0f26ef89970e6f5aae3aae273b7c1bea1440b",
+      "src/legacy/early-errors.js": "36fc884f619ecf1fb7067866a492050553950a63f88d1fe072ee724fba911a0e",
+      "src/styles/legacy.css": "978d2244ec4841672a79ae847d2730f810c61f5bf69a3a5b5618e0357ea391b7",
+      "src/transfer/csv-decoding.js": "a4c4ea923c986d21ad0c4caabdb3639a004d379d89569e14f4bc7267e2ddf317",
+      "src/transfer/csv-format.js": "a5a32acb2984e7c8518fbb645b51e0e1567b0d98f94520c4f2a2dea1846e37de",
+      "src/transfer/csv-import-orchestrator.js": "bd6d753c8ad467a2f2d9dd31c60b7370952ca00b08911fa8b1e11929a25364f1",
+      "src/transfer/csv-import-rules.js": "28ca89637893dfddbc133d26fb8834373e5e0d938f6280720df6a1b3e2a1abde",
+      "src/transfer/excel-export.js": "c45356529ed0314c9a4ed7d3d2f27ca622357a2734f5137d0c25b57e25119cad",
+      "src/transfer/import-merge.js": "854429406782e79a65edd971ccec0bbd35e216aae585b04c7ac92c209cb822ab",
+      "src/transfer/import-validation.js": "e61f8628d83fa8811d2b3f2a161018db60114563d8f8210e8d8d444846ddfdca",
+      "src/ui/state-commit.js": "6ade88a9e040b222f18e92e352fe1615a86e2309b85363e101b29a4da93b6b9c",
+      "src/ui/course-cards.css": "1feb615b12e37639e8221be5fc0d193ed3861c175a1219b801a02bc6971333d2",
+      "src/ui/course-cards.js": "39cfb208e09080440e63e924b9d7e5376d98559418a284d04386f209fcd95f09",
+      "src/ui/course-symbol-picker.js": "ff33a4949cb5928dfa859b138149ce800331eaeb4400b900c558e71456490a0a",
+      "src/ui/dashboard-data.js": "15b52f19b8396aa94dae9f31f52661088f5cbfcedd431b78f2792ad0fd199f9e",
+      "src/ui/dashboard-transition.js": "f8000897219e0a91c8f70dba943b109dea4ea79f18d483653599456bbc557952",
+      "src/ui/persistence-boundary.js": "6278ec208b07d08b6466c5337a457ed49c148bbb98836029f0a4e30a932a78ca"
+    }
+  },
+  "anchorReferences": {
+    "getHwgLogoPath": {
+      "path": "src/legacy/application.js",
+      "text": "getSchoolLogoSources"
+    },
+    "DomainModel.recalcAssessmentTermsForState": {
+      "path": "Notenverwaltung.html",
+      "text": "recalcAssessmentTermsForCurrentState"
+    },
+    "persistScoreTransaction": {
+      "path": "Notenverwaltung.html",
+      "text": "persistScoreEntryWithRollback"
+    },
+    "queueScorePersistence": {
+      "path": "Notenverwaltung.html",
+      "text": "enqueueStatePersistenceTransaction"
+    },
+    "UiShell.showUnlockScreen": {
+      "path": "Notenverwaltung.html",
+      "text": "hasSessionPassword"
+    },
+    "renderLoadFailure": {
+      "path": "Notenverwaltung.html",
+      "text": "renderStartupFailure"
+    },
+    "validateAndPersistGradeInput": {
+      "path": "Notenverwaltung.html",
+      "text": "persistScoreEntryWithRollback"
+    },
+    "DomainModel.createSubcategory": {
+      "path": "Notenverwaltung.html",
+      "text": "getDefaultSubcategoryWeight"
+    },
+    "StatisticsLogic.computeDistribution": {
+      "path": "Notenverwaltung.html",
+      "text": "buildDistribution"
+    },
+    "syncDebugArtifacts": {
+      "path": "Notenverwaltung.html",
+      "text": "removeDebugModeArtifacts"
+    },
+    "validateCsvIdentity": {
+      "path": "Notenverwaltung.html",
+      "text": "validateCsvStudentIdentity"
+    },
+    "calculateGradeFromPercentage": {
+      "path": "Notenverwaltung.html",
+      "text": "pointsReachPercentageThreshold"
+    },
+    "closeSessionSensitiveOverlays": {
+      "path": "Notenverwaltung.html",
+      "text": "removeSessionSensitiveOverlays"
+    },
+    "exportCourseExcel": {
+      "path": "Notenverwaltung.html",
+      "text": "exportTransferExcel"
+    },
+    "exportCourseCsv": {
+      "path": "Notenverwaltung.html",
+      "text": "exportTransferCsv"
+    },
+    "validateHalfYearSettings": {
+      "path": "Notenverwaltung.html",
+      "text": "validateHalfYearDateRange"
+    },
+    "resetAllData": {
+      "path": "Notenverwaltung.html",
+      "text": "resetState"
+    },
+    "enqueueStorageOperation": {
+      "path": "Notenverwaltung.html",
+      "text": "_enqueueLocalStorageOperation"
+    },
+    "bindGradeInputPersistence": {
+      "path": "Notenverwaltung.html",
+      "text": "persistScoreEntryWithRollback"
+    },
+    "Storage._deriveKey": {
+      "path": "Notenverwaltung.html",
+      "text": "_deriveKey"
+    },
+    "Storage.clearSession": {
+      "path": "Notenverwaltung.html",
+      "text": "_clearSessionPassword"
+    },
+    "DomainModel.normalizeScore": {
+      "path": "Notenverwaltung.html",
+      "text": "score.valueRaw = String(normalized)"
+    },
+    "getCourseReferencedStudentIds": {
+      "path": "Notenverwaltung.html",
+      "text": "listReferencedStudentIdsForCourse"
+    },
+    "openSchoolYearChangeDialog": {
+      "path": "Notenverwaltung.html",
+      "text": "openSchoolYearAssistant"
+    },
+    "resolveUpperSecCourseContext": {
+      "path": "Notenverwaltung.html",
+      "text": "resolveUpperSecGradingContext"
+    },
+    "formatUpperSecResult": {
+      "path": "Notenverwaltung.html",
+      "text": "buildUpperSecResultPresentation"
+    },
+    "parseCsvText": {
+      "path": "Notenverwaltung.html",
+      "text": "parseSemicolonCsv"
+    },
+    "showCsvImportIssues": {
+      "path": "Notenverwaltung.html",
+      "text": "isFatalCsvImportIssue"
+    },
+    "createCsvIssue": {
+      "path": "Notenverwaltung.html",
+      "text": "isFatalCsvImportIssue"
+    },
+    "exportExamTable": {
+      "path": "Notenverwaltung.html",
+      "text": "exportCsvSek1"
+    },
+    "promoteCourseNameClassLabel": {
+      "path": "Notenverwaltung.html",
+      "text": "replaceStandaloneClassLabel"
+    },
+    "migrateLegacyWeightTemplates": {
+      "path": "Notenverwaltung.html",
+      "text": "legacyTemplateBaseName"
+    },
+    "exportArchivedCourse": {
+      "path": "Notenverwaltung.html",
+      "text": "notenverwaltung_archiv_"
+    },
+    "document head": {
+      "path": "Notenverwaltung.html",
+      "text": "<meta charset=\"utf-8\">"
+    },
+    "password input": {
+      "path": "Notenverwaltung.html",
+      "text": "input.type = 'password'"
+    }
+  },
+  "findings": [
+    {
+      "id": "K1",
+      "sourceLabel": "K1 - Archivierte Leistungen werden bei jedem Start mit aktuellen Stichtagen ueberschrieben",
+      "severity": "critical",
+      "status": "closed",
+      "summary": "Archivierte Leistungen behalten beim Laden ihr gespeichertes Halbjahr.",
+      "evidence": {
+        "commits": [],
+        "tests": [
+          "tests/terms.test.js"
+        ],
+        "codeAnchors": [
+          "DomainModel.recalcAssessmentTermsForState"
+        ]
+      },
+      "targetWave": null,
+      "notes": "Phase 1 Wave 1; aktueller Regressionstest gruen."
+    },
+    {
+      "id": "K2",
+      "sourceLabel": "K2 - Archivierte Kurse liefern grundsaetzlich keine Gesamtnote",
+      "severity": "critical",
+      "status": "closed",
+      "summary": "Archivierte Kurse leiten den Bezugsterm aus ihren eigenen gespeicherten Daten ab.",
+      "evidence": {
+        "commits": [],
+        "tests": [
+          "tests/grading.test.js",
+          "tests/reporting.test.js"
+        ],
+        "codeAnchors": [
+          "GradingLogic.computeOverallGrade"
+        ]
+      },
+      "targetWave": null,
+      "notes": "Phase 1 Wave 5."
+    },
+    {
+      "id": "K3",
+      "sourceLabel": "K3 - Merge zerstoert Kategoriedurchschnitte des lokalen Bestands",
+      "severity": "critical",
+      "status": "closed",
+      "summary": "Unzugeordnete lokale Leistungen bleiben im flachen Sicherheitsrueckfall wirksam.",
+      "evidence": {
+        "commits": [],
+        "tests": [
+          "tests/merge.test.js",
+          "tests/grading.test.js"
+        ],
+        "codeAnchors": [
+          "GradingLogic.computeCategoryAverage",
+          "mergeImportedStateIntoCurrent"
+        ]
+      },
+      "targetWave": null,
+      "notes": "Die Originalreproduktion ist gegen den aktuellen Mergehelfer abgesichert."
+    },
+    {
+      "id": "K4",
+      "sourceLabel": "K4 - Haupt-Notentabelle verschluckt Noten bei Speicherfehlern",
+      "severity": "critical",
+      "status": "closed",
+      "summary": "Notenaenderungen werden serialisiert und bei Speicherfehlern transaktional zurueckgerollt.",
+      "evidence": {
+        "commits": [],
+        "tests": [
+          "tests/gradesheet.test.js"
+        ],
+        "codeAnchors": [
+          "persistScoreTransaction",
+          "queueScorePersistence"
+        ]
+      },
+      "targetWave": null,
+      "notes": "Phase 1 Wave 5."
+    },
+    {
+      "id": "K5",
+      "sourceLabel": "K5 - Abbruch des Start-Passwortdialogs hinterlaesst eine leere Seite",
+      "severity": "critical",
+      "status": "closed",
+      "summary": "Passwortabbruch und Ladefehler fuehren in eine lokale Sperr- oder Wiederholungsansicht.",
+      "evidence": {
+        "commits": [],
+        "tests": [
+          "tests/load.test.js",
+          "tests/privacy.test.js"
+        ],
+        "codeAnchors": [
+          "UiShell.showUnlockScreen",
+          "renderLoadFailure"
+        ]
+      },
+      "targetWave": null,
+      "notes": "Startpfad und spaeter gefundener Ladefehler-Rest sind geschlossen."
+    },
+    {
+      "id": "H1",
+      "sourceLabel": "H1 - Leere Eingabe wird per Enter oder Tab gespeichert und loescht die Note",
+      "severity": "high",
+      "status": "closed",
+      "summary": "Leere Rohwerte werden vor Navigation und Persistenz abgewiesen.",
+      "evidence": {
+        "commits": [],
+        "tests": [
+          "tests/gradesheet.test.js"
+        ],
+        "codeAnchors": [
+          "validateAndPersistGradeInput"
+        ]
+      },
+      "targetWave": null,
+      "notes": "Phase 1 Wave 1."
+    },
+    {
+      "id": "H2",
+      "sourceLabel": "H2 - Eine neue Unterkategorie setzt eine ganze Kategorie auf null",
+      "severity": "high",
+      "status": "closed",
+      "summary": "Neue Unterkategorien erhalten sichere Gewichte und unvollstaendige Konfiguration faellt flach zurueck.",
+      "evidence": {
+        "commits": [],
+        "tests": [
+          "tests/domain.test.js",
+          "tests/grading.test.js"
+        ],
+        "codeAnchors": [
+          "DomainModel.createSubcategory",
+          "GradingLogic.computeCategoryAverage"
+        ]
+      },
+      "targetWave": null,
+      "notes": "Phase 1 Wave 4A."
+    },
+    {
+      "id": "H3",
+      "sourceLabel": "H3 - Bestehende Leistungen verschwinden rueckwirkend aus der Berechnung",
+      "severity": "high",
+      "status": "closed",
+      "summary": "Unzugeordnete und auf geloeschte Unterkategorien verweisende Leistungen bleiben wirksam.",
+      "evidence": {
+        "commits": [],
+        "tests": [
+          "tests/grading.test.js"
+        ],
+        "codeAnchors": [
+          "GradingLogic.computeCategoryAverage"
+        ]
+      },
+      "targetWave": null,
+      "notes": "Phase 1 Wave 4A."
+    },
+    {
+      "id": "H4",
+      "sourceLabel": "H4 - ensureStateShape wirft bei beschaedigtem Zustand",
+      "severity": "high",
+      "status": "closed",
+      "summary": "Beschaedigte Rootlisten und Eintraege werden defensiv normalisiert oder entfernt.",
+      "evidence": {
+        "commits": [],
+        "tests": [
+          "tests/domain.test.js",
+          "tests/load.test.js"
+        ],
+        "codeAnchors": [
+          "DomainModel.ensureStateShape"
+        ]
+      },
+      "targetWave": null,
+      "notes": "Wave 3A plus Abschlussremediation."
+    },
+    {
+      "id": "H5",
+      "sourceLabel": "H5 - settings als Array fuehrt zu stillem Totalverlust",
+      "severity": "high",
+      "status": "closed",
+      "summary": "Settings und objektfoermige Unterbloecke weisen Arrays ab und bleiben serialisierbar.",
+      "evidence": {
+        "commits": [],
+        "tests": [
+          "tests/domain.test.js"
+        ],
+        "codeAnchors": [
+          "DomainModel.ensureStateShape"
+        ]
+      },
+      "targetWave": null,
+      "notes": "Phase 1 Wave 3A."
+    },
+    {
+      "id": "H6",
+      "sourceLabel": "H6 - Statistik-Verteilung verliert Schuelerinnen und Schueler",
+      "severity": "high",
+      "status": "closed",
+      "summary": "Sek-I- und Sek-II-Verteilungen verwenden lueckenlose halboffene Intervalle.",
+      "evidence": {
+        "commits": [],
+        "tests": [
+          "tests/statistics.test.js"
+        ],
+        "codeAnchors": [
+          "StatisticsLogic.computeDistribution"
+        ]
+      },
+      "targetWave": null,
+      "notes": "Phase 1 Wave 3B."
+    },
+    {
+      "id": "H7",
+      "sourceLabel": "H7 - Sitzungs-Timeout wird gespeichert aber nie angewendet",
+      "severity": "high",
+      "status": "closed",
+      "summary": "Ein gueltiger gespeicherter Timeout wird nach dem Laden auf den Sitzungstimer angewandt.",
+      "evidence": {
+        "commits": [],
+        "tests": [
+          "tests/privacy.test.js",
+          "tests/storage.test.js"
+        ],
+        "codeAnchors": [
+          "Storage.setSessionTimeoutMinutes"
+        ]
+      },
+      "targetWave": null,
+      "notes": "Phase 1 Wave 2."
+    },
+    {
+      "id": "H8",
+      "sourceLabel": "H8 - Ungeschuetztes State-JSON in der Statistikansicht",
+      "severity": "high",
+      "status": "closed",
+      "summary": "Der State-Dump existiert nur im ausdruecklichen lokalen Debugmodus.",
+      "evidence": {
+        "commits": [],
+        "tests": [
+          "tests/privacy.test.js"
+        ],
+        "codeAnchors": [
+          "syncDebugArtifacts",
+          "renderStatsSection"
+        ]
+      },
+      "targetWave": null,
+      "notes": "Phase 1 Wave 2."
+    },
+    {
+      "id": "H9",
+      "sourceLabel": "H9 - Testfunktionen haengen ungeschuetzt am window und schreiben echte Daten",
+      "severity": "high",
+      "status": "closed",
+      "summary": "Schreibende Testhooks werden nur im ausdruecklichen Debugmodus gebunden und wieder entfernt.",
+      "evidence": {
+        "commits": [],
+        "tests": [
+          "tests/privacy.test.js"
+        ],
+        "codeAnchors": [
+          "syncDebugArtifacts"
+        ]
+      },
+      "targetWave": null,
+      "notes": "Phase 1 Wave 2."
+    },
+    {
+      "id": "H10",
+      "sourceLabel": "H10 - CSV doppelte SchuelerID ueberschreibt oder verschluckt eine Person",
+      "severity": "high",
+      "status": "closed",
+      "summary": "Widerspruechliche CSV-Identitaeten brechen vor Persistenz ab.",
+      "evidence": {
+        "commits": [],
+        "tests": [
+          "tests/csv-transfer.test.js"
+        ],
+        "codeAnchors": [
+          "importCsvText",
+          "validateCsvIdentity"
+        ]
+      },
+      "targetWave": null,
+      "notes": "Abschlussremediation; keine erfundene Teiluebernahme."
+    },
+    {
+      "id": "H11",
+      "sourceLabel": "H11 - Sichtbarkeits-Schalter wirkt in drei Ansichten unterschiedlich",
+      "severity": "high",
+      "status": "closed",
+      "summary": "visible steuert einheitlich nur PDF-Berichte und nicht interne Berechnungen.",
+      "evidence": {
+        "commits": [],
+        "tests": [
+          "tests/reporting.test.js"
+        ],
+        "codeAnchors": [
+          "filterPdfAssessments"
+        ]
+      },
+      "targetWave": null,
+      "notes": "Phase 1 Wave 7."
+    },
+    {
+      "id": "H12",
+      "sourceLabel": "H12 - Klausurnotenrechner kippt exakte Grenzwerte eine Stufe nach unten",
+      "severity": "high",
+      "status": "closed",
+      "summary": "Grenzvergleiche sind exakt und nutzen validierte Prozentstufen.",
+      "evidence": {
+        "commits": [],
+        "tests": [
+          "tests/exam-calculator.test.js"
+        ],
+        "codeAnchors": [
+          "calculateGradeFromPercentage"
+        ]
+      },
+      "targetWave": null,
+      "notes": "Gemeinsam mit N1 nach Abschlussreview geschlossen."
+    },
+    {
+      "id": "H13",
+      "sourceLabel": "H13 - Archiv-Dialoge liegen ueber dem Sperrbildschirm",
+      "severity": "high",
+      "status": "closed",
+      "summary": "Sitzungssensible Overlays werden beim Sperren ueber ihren Cleanup-Pfad entfernt.",
+      "evidence": {
+        "commits": [],
+        "tests": [
+          "tests/privacy.test.js"
+        ],
+        "codeAnchors": [
+          "closeSessionSensitiveOverlays"
+        ]
+      },
+      "targetWave": null,
+      "notes": "Phase 1 Wave 2."
+    },
+    {
+      "id": "H14",
+      "sourceLabel": "H14 - deleteAssessment ohne await Rollback oder Fehlermeldung",
+      "severity": "high",
+      "status": "closed",
+      "summary": "Leistungsloeschung wartet auf Persistenz und rollt bei Fehler zurueck.",
+      "evidence": {
+        "commits": [],
+        "tests": [
+          "tests/gradesheet.test.js"
+        ],
+        "codeAnchors": [
+          "deleteAssessment"
+        ]
+      },
+      "targetWave": null,
+      "notes": "Abschlussremediation."
+    },
+    {
+      "id": "M1",
+      "sourceLabel": "M1 - Inaktive Kategorien zaehlen weiter mit",
+      "severity": "medium",
+      "status": "closed",
+      "summary": "Vorlagenbasierte Berechnung filtert inaktive Kategorien und renormalisiert.",
+      "evidence": {
+        "commits": [],
+        "tests": [
+          "tests/grading.test.js"
+        ],
+        "codeAnchors": [
+          "GradingLogic.computeWeightedOverallForAssessments"
+        ]
+      },
+      "targetWave": null,
+      "notes": "Waves 3B und 6A."
+    },
+    {
+      "id": "M2",
+      "sourceLabel": "M2 - Null und negative Gewichte werden falsch behandelt",
+      "severity": "medium",
+      "status": "closed",
+      "summary": "Null bleibt Null; negative und nicht endliche Gewichte tragen nicht bei. Auch Kategoriegewichte werden defensiv berechnet und neue Profileingaben auf 0 bis 100 geprueft.",
+      "evidence": {
+        "commits": [],
+        "tests": [
+          "tests/grading.test.js",
+          "tests/domain.test.js",
+          "tests/domain-grading-module.test.js",
+          "tests/import-validation.test.js",
+          "tests/settings-concept-view.test.js"
+        ],
+        "codeAnchors": [
+          "DomainModel.createAssessment",
+          "GradingLogic.computeCategoryAverage",
+          "computeWeightedOverallForAssessments"
+        ]
+      },
+      "targetWave": null,
+      "notes": "Phase 1 Wave 3B. Release-Review R05/T4 erweitert den Nachweis auf Kategoriegewichte; ungueltige Altwerte bleiben zur Korrektur sichtbar. Aktuelle Belege: genannte Regressionstests und docs/quality/PUBLICATION.md."
+    },
+    {
+      "id": "M3",
+      "sourceLabel": "M3 - Nicht schuljahrbewusste Term-Ableitung in GradingLogic",
+      "severity": "medium",
+      "status": "closed",
+      "summary": "Termableitung verwendet den zentralen schuljahrbewussten Pfad.",
+      "evidence": {
+        "commits": [],
+        "tests": [
+          "tests/terms.test.js",
+          "tests/gradesheet.test.js"
+        ],
+        "codeAnchors": [
+          "deriveTermFromDateValue"
+        ]
+      },
+      "targetWave": null,
+      "notes": "Term consistency wave."
+    },
+    {
+      "id": "M4",
+      "sourceLabel": "M4 - Tote Kopie deriveTermFromDateWithCutoffs",
+      "severity": "medium",
+      "status": "closed",
+      "summary": "Die tote kalenderjahrbasierte Termkopie wurde aus dem Produktionspfad entfernt.",
+      "evidence": {
+        "commits": [],
+        "tests": [
+          "tests/terms.test.js"
+        ],
+        "codeAnchors": [
+          "deriveTermFromDateValue"
+        ]
+      },
+      "targetWave": null,
+      "notes": "Term consistency wave; zentraler Ableiter ist der verbleibende Vertrag."
+    },
+    {
+      "id": "M5",
+      "sourceLabel": "M5 - ensureStateShape nutzt abweichende H2-Regel und immer Sek I",
+      "severity": "medium",
+      "status": "closed",
+      "summary": "Fehlende Terme werden zentral schema- und schuljahrbewusst abgeleitet.",
+      "evidence": {
+        "commits": [],
+        "tests": [
+          "tests/terms.test.js",
+          "tests/domain.test.js"
+        ],
+        "codeAnchors": [
+          "deriveTermFromDateValue",
+          "DomainModel.ensureStateShape"
+        ]
+      },
+      "targetWave": null,
+      "notes": "Term consistency wave."
+    },
+    {
+      "id": "M6",
+      "sourceLabel": "M6 - Off-by-one bei h1EndYear",
+      "severity": "medium",
+      "status": "closed",
+      "summary": "Fallbacks verwenden das Folgejahr des Schuljahresstarts.",
+      "evidence": {
+        "commits": [],
+        "tests": [
+          "tests/domain.test.js"
+        ],
+        "codeAnchors": [
+          "DomainModel.ensureStateShape"
+        ]
+      },
+      "targetWave": null,
+      "notes": "Phase 1 Wave 3A."
+    },
+    {
+      "id": "M7",
+      "sourceLabel": "M7 - Gradesheet liest globale statt archivierte Halbjahreseinstellungen",
+      "severity": "medium",
+      "status": "closed",
+      "summary": "Notentabellen verwenden snapshot-bewusste Kurseinstellungen.",
+      "evidence": {
+        "commits": [],
+        "tests": [
+          "tests/gradesheet.test.js",
+          "tests/terms.test.js"
+        ],
+        "codeAnchors": [
+          "getSettingsForCourse",
+          "renderGradesheetSection"
+        ]
+      },
+      "targetWave": null,
+      "notes": "Term consistency wave."
+    },
+    {
+      "id": "M8",
+      "sourceLabel": "M8 - Archivierte Terme werden in Dropdowns global benannt",
+      "severity": "medium",
+      "status": "closed",
+      "summary": "Termlabels werden mit Kurs- und Schemakontext erzeugt.",
+      "evidence": {
+        "commits": [],
+        "tests": [
+          "tests/terms.test.js",
+          "tests/reporting.test.js"
+        ],
+        "codeAnchors": [
+          "formatTermLabel"
+        ]
+      },
+      "targetWave": null,
+      "notes": "Term consistency wave."
+    },
+    {
+      "id": "M9",
+      "sourceLabel": "M9 - ensureStateShape repariert keine referenzielle Integritaet",
+      "severity": "medium",
+      "status": "closed",
+      "summary": "Mehrdeutige IDs und ungueltige Root-, Settings- und Archivreferenzen werden repariert.",
+      "evidence": {
+        "commits": [],
+        "tests": [
+          "tests/domain.test.js",
+          "tests/load.test.js"
+        ],
+        "codeAnchors": [
+          "DomainModel.ensureStateShape"
+        ]
+      },
+      "targetWave": null,
+      "notes": "Referential integrity wave inklusive Reviewfix."
+    },
+    {
+      "id": "M10",
+      "sourceLabel": "M10 - Excel-Export mischt verschiedene Leistungsmengen",
+      "severity": "medium",
+      "status": "closed",
+      "summary": "Kategorie- und Gesamtmittel im Excel-Export verwenden denselben Scope.",
+      "evidence": {
+        "commits": [],
+        "tests": [
+          "tests/reporting.test.js"
+        ],
+        "codeAnchors": [
+          "exportCourseExcel"
+        ]
+      },
+      "targetWave": null,
+      "notes": "M10 Excel consistency wave."
+    },
+    {
+      "id": "M11",
+      "sourceLabel": "M11 - CSV-Export ohne Formel-Injektionsschutz",
+      "severity": "medium",
+      "status": "closed",
+      "summary": "Tabellenkritische CSV-Zellen werden an der Weitergabegrenze neutralisiert.",
+      "evidence": {
+        "commits": [],
+        "tests": [
+          "tests/csv-transfer.test.js"
+        ],
+        "codeAnchors": [
+          "csvCell"
+        ]
+      },
+      "targetWave": null,
+      "notes": "Im aktuellen Abschlussledger als geschlossen belegt."
+    },
+    {
+      "id": "M12",
+      "sourceLabel": "M12 - CSV-Importer zeigt Erfolg auch nach Abbruch",
+      "severity": "medium",
+      "status": "closed",
+      "summary": "CSV-Abschlussmeldungen folgen dem tatsaechlich entschiedenen Persistenzergebnis.",
+      "evidence": {
+        "commits": [],
+        "tests": [
+          "tests/csv-transfer.test.js"
+        ],
+        "codeAnchors": [
+          "importCsvText"
+        ]
+      },
+      "targetWave": null,
+      "notes": "CSV feedback wave inklusive Race-Fixes."
+    },
+    {
+      "id": "M13",
+      "sourceLabel": "M13 - Korrigierte CSV-Zaehler werden verworfen",
+      "severity": "medium",
+      "status": "closed",
+      "summary": "Angezeigte Importzaehler beziehen sich auf den neu berechneten Kandidaten.",
+      "evidence": {
+        "commits": [],
+        "tests": [
+          "tests/csv-transfer.test.js",
+          "tests/csv-decision-refresh.test.js"
+        ],
+        "codeAnchors": [
+          "prepareCsvImport",
+          "importCsvText"
+        ]
+      },
+      "targetWave": null,
+      "notes": "CSV feedback wave; die Skip-Zaehler stammen aus dem Replay der verbleibenden Records."
+    },
+    {
+      "id": "M14",
+      "sourceLabel": "M14 - CSV verwechselt Kursklasse und persoenliche Stammklasse",
+      "severity": "medium",
+      "status": "closed",
+      "summary": "CSV trennt Kursmerkmal und persoenliche Stammklasse rundlaufkompatibel.",
+      "evidence": {
+        "commits": [],
+        "tests": [
+          "tests/csv-transfer.test.js"
+        ],
+        "codeAnchors": [
+          "exportCourseCsv",
+          "importCsvText"
+        ]
+      },
+      "targetWave": null,
+      "notes": "M14 CSV roundtrip wave."
+    },
+    {
+      "id": "M15",
+      "sourceLabel": "M15 - Halbjahres-Stichtage werden nicht gegen das Schuljahr geprueft",
+      "severity": "medium",
+      "status": "closed",
+      "summary": "Stichtage muessen innerhalb des gewaehlten Schuljahres liegen; Zuordnung und Auswertung verwenden dieselben relativen Jahresgrenzen.",
+      "evidence": {
+        "commits": [],
+        "tests": [
+          "tests/half-year-settings.test.js",
+          "tests/domain-terms-module.test.js",
+          "tests/terms.test.js",
+          "tests/settings-concept-view.test.js"
+        ],
+        "codeAnchors": [
+          "validateHalfYearSettings",
+          "resolveSchoolYearBoundaries",
+          "recalcAssessmentTermsForCurrentState"
+        ]
+      },
+      "targetWave": null,
+      "notes": "Term consistency wave. Release-Review R10/T5 erweitert den Nachweis auf Jahresoffsets, partielle Archivgrenzen und Kurs-Overrides; H2-Beginn entscheidet, H1-Ende ist informativ. Aktuelle Belege: genannte Regressionstests und docs/quality/PUBLICATION.md."
+    },
+    {
+      "id": "M16",
+      "sourceLabel": "M16 - Datenreset hinter einer einzigen Bestaetigung",
+      "severity": "medium",
+      "status": "closed",
+      "summary": "Der vollstaendige Datenreset verlangt einen bewusst getrennten Zwei-Dialog-Ablauf.",
+      "evidence": {
+        "commits": [],
+        "tests": [
+          "tests/storage.test.js",
+          "tests/load.test.js"
+        ],
+        "codeAnchors": [
+          "resetAllData"
+        ]
+      },
+      "targetWave": null,
+      "notes": "UI safety wave."
+    },
+    {
+      "id": "M17",
+      "sourceLabel": "M17 - Wiederherstellen vernichtet den Archiv-Snapshot",
+      "severity": "medium",
+      "status": "closed",
+      "summary": "Archivhistorie und Snapshot bleiben bei Wiederherstellung und erneutem Archivieren erhalten.",
+      "evidence": {
+        "commits": [],
+        "tests": [
+          "tests/domain.test.js",
+          "tests/merge.test.js"
+        ],
+        "codeAnchors": [
+          "DomainModel.restoreCourse",
+          "archiveHistory"
+        ]
+      },
+      "targetWave": null,
+      "notes": "UI safety archive history wave."
+    },
+    {
+      "id": "M18",
+      "sourceLabel": "M18 - Header-Backup nutzt eine data URL",
+      "severity": "medium",
+      "status": "closed",
+      "summary": "Header-Backups laden den verschluesselten Payload ueber Blob-URLs mit Cleanup.",
+      "evidence": {
+        "commits": [],
+        "tests": [
+          "tests/backup-download.test.js"
+        ],
+        "codeAnchors": [
+          "downloadBlobFile",
+          "renderHeader"
+        ]
+      },
+      "targetWave": null,
+      "notes": "PR 22; MIME text/json;charset=utf-8 bleibt erhalten."
+    },
+    {
+      "id": "M19",
+      "sourceLabel": "M19 - Schreibvorgaenge sind nicht serialisiert",
+      "severity": "medium",
+      "status": "closed",
+      "summary": "Speicher- und Credential-Uebergaenge laufen ueber eine FIFO-Warteschlange mit Session-Epoch.",
+      "evidence": {
+        "commits": [],
+        "tests": [
+          "tests/storage.test.js",
+          "tests/gradesheet.test.js"
+        ],
+        "codeAnchors": [
+          "Storage.saveState",
+          "enqueueStorageOperation"
+        ]
+      },
+      "targetWave": null,
+      "notes": "Storage efficiency wave; ehemaliger Partialstatus abschliessend geschlossen."
+    },
+    {
+      "id": "M20",
+      "sourceLabel": "M20 - Enter oder Tab speichert jede Note doppelt",
+      "severity": "medium",
+      "status": "closed",
+      "summary": "Tastaturbestaetigung und nachfolgendes Change-Ereignis werden dedupliziert.",
+      "evidence": {
+        "commits": [],
+        "tests": [
+          "tests/gradesheet.test.js"
+        ],
+        "codeAnchors": [
+          "bindGradeInputPersistence"
+        ]
+      },
+      "targetWave": null,
+      "notes": "Storage efficiency wave; ehemaliger Partialstatus geschlossen."
+    },
+    {
+      "id": "M21",
+      "sourceLabel": "M21 - Abgeleiteter Verschluesselungsschluessel wird nicht gecacht",
+      "severity": "medium",
+      "status": "closed",
+      "summary": "Der Sitzungsschluessel wird sicher gecacht und bei allen Sessionuebergaengen verworfen.",
+      "evidence": {
+        "commits": [],
+        "tests": [
+          "tests/storage.test.js"
+        ],
+        "codeAnchors": [
+          "Storage._deriveKey",
+          "Storage.clearSession"
+        ]
+      },
+      "targetWave": null,
+      "notes": "Storage efficiency wave."
+    },
+    {
+      "id": "M22",
+      "sourceLabel": "M22 - enableEncryption setzt Sitzungspasswort vor erfolgreichem Schreiben",
+      "severity": "medium",
+      "status": "closed",
+      "summary": "Sitzungspasswort wird erst nach erfolgreicher Persistenz gesetzt und Teilschreiben werden zurueckgerollt.",
+      "evidence": {
+        "commits": [],
+        "tests": [
+          "tests/storage.test.js"
+        ],
+        "codeAnchors": [
+          "Storage.enableEncryption"
+        ]
+      },
+      "targetWave": null,
+      "notes": "Phase 1 Wave 9."
+    },
+    {
+      "id": "M23",
+      "sourceLabel": "M23 - changePassword ohne Mindestlaenge oder Salt-Rotation",
+      "severity": "medium",
+      "status": "closed",
+      "summary": "Passwortwechsel erzwingt Mindestlaenge, rotiert Salt und ist rollback-sicher.",
+      "evidence": {
+        "commits": [],
+        "tests": [
+          "tests/storage.test.js"
+        ],
+        "codeAnchors": [
+          "Storage.changePassword"
+        ]
+      },
+      "targetWave": null,
+      "notes": "Phase 1 Wave 9."
+    },
+    {
+      "id": "M24",
+      "sourceLabel": "M24 - Durchschnittszeilen bleiben nach Archivtabellen-Eingabe veraltet",
+      "severity": "medium",
+      "status": "closed",
+      "summary": "Betroffene Zeilen werden nach gespeicherten Aenderungen aus aktuellem State neu gerendert.",
+      "evidence": {
+        "commits": [],
+        "tests": [
+          "tests/gradesheet.test.js"
+        ],
+        "codeAnchors": [
+          "updateAffectedAverages"
+        ]
+      },
+      "targetWave": null,
+      "notes": "UI safety wave."
+    },
+    {
+      "id": "M25",
+      "sourceLabel": "M25 - Zellfarbe der Haupttabelle bleibt nach Speichern veraltet",
+      "severity": "medium",
+      "status": "closed",
+      "summary": "Zellpraesentation und Durchschnittswerte werden nach erfolgreicher Persistenz aktualisiert.",
+      "evidence": {
+        "commits": [],
+        "tests": [
+          "tests/gradesheet.test.js"
+        ],
+        "codeAnchors": [
+          "updateCellPresentation",
+          "updateAveragesForRow"
+        ]
+      },
+      "targetWave": null,
+      "notes": "UI safety wave."
+    },
+    {
+      "id": "M26",
+      "sourceLabel": "M26 - Ungueltiger Rohwert wird ueber Statuswechsel persistiert",
+      "severity": "medium",
+      "status": "closed",
+      "summary": "Nicht valide Sek-I-Rohwerte werden vor Statuspersistenz normalisiert.",
+      "evidence": {
+        "commits": [],
+        "tests": [
+          "tests/domain.test.js",
+          "tests/gradesheet.test.js"
+        ],
+        "codeAnchors": [
+          "DomainModel.normalizeScore"
+        ]
+      },
+      "targetWave": null,
+      "notes": "Abschlussremediation; nicht erneut zu implementieren."
+    },
+    {
+      "id": "M27",
+      "sourceLabel": "M27 - Kurslinie und importKey werden beim Merge nicht remappt oder geprueft",
+      "severity": "medium",
+      "status": "closed",
+      "summary": "Kurslinien und Importschluessel werden validiert und beim Merge remappt.",
+      "evidence": {
+        "commits": [],
+        "tests": [
+          "tests/merge.test.js",
+          "tests/load.test.js"
+        ],
+        "codeAnchors": [
+          "validateImportedState",
+          "mergeImportedStateIntoCurrent"
+        ]
+      },
+      "targetWave": null,
+      "notes": "Referential integrity wave."
+    },
+    {
+      "id": "M28",
+      "sourceLabel": "M28 - Kursarchiv zaehlt referenzierte Personen uneinheitlich",
+      "severity": "medium",
+      "status": "closed",
+      "summary": "Archivuebersicht und Detailansicht verwenden dieselbe zentrale Referenzmenge.",
+      "evidence": {
+        "commits": [],
+        "tests": [
+          "tests/archive-ui.test.js"
+        ],
+        "codeAnchors": [
+          "getCourseReferencedStudentIds"
+        ]
+      },
+      "targetWave": null,
+      "notes": "PR 23."
+    },
+    {
+      "id": "M29",
+      "sourceLabel": "M29 - Schuljahreswechsel-Assistent ist nicht vollstaendig modal bedienbar",
+      "severity": "medium",
+      "status": "closed",
+      "summary": "Der Assistent besitzt Fokusfalle, Escape, Cleanup und Fokuswiederherstellung.",
+      "evidence": {
+        "commits": [],
+        "tests": [
+          "tests/school-year-dialog.test.js"
+        ],
+        "codeAnchors": [
+          "openSchoolYearChangeDialog"
+        ]
+      },
+      "targetWave": null,
+      "notes": "PR 24; letzter offener mittlerer Befund geschlossen."
+    },
+    {
+      "id": "M30",
+      "sourceLabel": "M30 - Berliner Profile fehlen nach umbenannten Kategorien",
+      "severity": "medium",
+      "status": "closed",
+      "summary": "Profile erkennen normalisierte Aliasnamen und belegte historische Vorlagen-IDs.",
+      "evidence": {
+        "commits": [],
+        "tests": [
+          "tests/domain.test.js"
+        ],
+        "codeAnchors": [
+          "createDefaultWeightTemplates"
+        ]
+      },
+      "targetWave": null,
+      "notes": "Wave 3A plus Legacy-Label-Reviewhaertung."
+    },
+    {
+      "id": "M31",
+      "sourceLabel": "M31 - Sek-II-Kurskontext und Q1 bis Q4 fehlen",
+      "severity": "medium",
+      "status": "closed",
+      "summary": "Sek-II-Kontext, Q-Phasen, Gewichtung und personenspezifisches Q4-Fach sind durchgaengig modelliert.",
+      "evidence": {
+        "commits": [],
+        "tests": [
+          "tests/uppersec-context.test.js",
+          "tests/course-context-ui.test.js"
+        ],
+        "codeAnchors": [
+          "DomainModel.createCourse",
+          "resolveUpperSecCourseContext"
+        ]
+      },
+      "targetWave": null,
+      "notes": "Wave 11 ueber PR 12 integriert."
+    },
+    {
+      "id": "M32",
+      "sourceLabel": "M32 - Dezimaler Rechenwert wird als Zeugnis-Punktzahl bezeichnet",
+      "severity": "medium",
+      "status": "closed",
+      "summary": "Dezimalwerte heissen Rechenwert; optionale festgesetzte ganze Punkte werden separat gespeichert und ausgegeben.",
+      "evidence": {
+        "commits": [],
+        "tests": [
+          "tests/term-results.test.js",
+          "tests/reporting.test.js"
+        ],
+        "codeAnchors": [
+          "course.termResults",
+          "formatUpperSecResult"
+        ]
+      },
+      "targetWave": null,
+      "notes": "Phase 1 Wave 8."
+    },
+    {
+      "id": "M33",
+      "sourceLabel": "M33 - Detail- und Druckpfade beruecksichtigen inaktive Kategorien",
+      "severity": "medium",
+      "status": "closed",
+      "summary": "Alle Ausgaben verwenden die zentrale gewichtete Gesamtberechnung mit aktiven Kategorien.",
+      "evidence": {
+        "commits": [],
+        "tests": [
+          "tests/grading.test.js",
+          "tests/reporting.test.js",
+          "tests/gradesheet.test.js"
+        ],
+        "codeAnchors": [
+          "GradingLogic.computeWeightedOverallForAssessments"
+        ]
+      },
+      "targetWave": null,
+      "notes": "Phase 1 Wave 6A."
+    },
+    {
+      "id": "L01",
+      "sourceLabel": "Produktions-Debugausgaben",
+      "severity": "low",
+      "status": "closed",
+      "summary": "Normale Produktionspfade protokollieren keine entschluesselten Einstellungen mehr.",
+      "evidence": {
+        "commits": [],
+        "tests": [
+          "tests/privacy.test.js",
+          "tests/half-year-settings.test.js"
+        ],
+        "codeAnchors": [
+          "DEBUG_PREVTERM"
+        ]
+      },
+      "targetWave": null,
+      "notes": "PR 25."
+    },
+    {
+      "id": "L02",
+      "sourceLabel": "Kursnamengesteuertes Debuglogging",
+      "severity": "low",
+      "status": "closed",
+      "summary": "Kursnamen aktivieren kein Debuglogging; nur der explizite Schalter tut dies.",
+      "evidence": {
+        "commits": [],
+        "tests": [
+          "tests/privacy.test.js"
+        ],
+        "codeAnchors": [
+          "DEBUG_PREVTERM"
+        ]
+      },
+      "targetWave": null,
+      "notes": "PR 25."
+    },
+    {
+      "id": "L03",
+      "sourceLabel": "7347-7391 applyScoreChange",
+      "severity": "low",
+      "status": "closed",
+      "summary": "Der unbenutzte zweite Score-Persistenzpfad wurde entfernt.",
+      "evidence": {
+        "commits": [],
+        "tests": [
+          "tests/gradesheet.test.js"
+        ],
+        "codeAnchors": [
+          "persistScoreTransaction"
+        ]
+      },
+      "targetWave": null,
+      "notes": "PR 27."
+    },
+    {
+      "id": "L04",
+      "sourceLabel": "2157-2169 disableEncryption",
+      "severity": "low",
+      "status": "closed",
+      "summary": "Der tote Klartext-Downgradepfad wurde entfernt.",
+      "evidence": {
+        "commits": [],
+        "tests": [
+          "tests/storage.test.js"
+        ],
+        "codeAnchors": [
+          "Storage"
+        ]
+      },
+      "targetWave": null,
+      "notes": "PR 26."
+    },
+    {
+      "id": "L05",
+      "sourceLabel": "1996-2013 vs. 3095/4639 Backupformat-Dokumentation",
+      "severity": "low",
+      "status": "closed",
+      "summary": "Backup-Dokumentation ordnet UI- und API-Schreibwege, Importformate und Salt-Voraussetzungen eindeutig zu.",
+      "evidence": {
+        "commits": [],
+        "tests": [
+          "tests/backup-download.test.js",
+          "tests/storage.test.js",
+          "tests/archive-ui.test.js"
+        ],
+        "codeAnchors": [
+          "Storage.exportStateEncrypted",
+          "Storage._decryptPayload",
+          "renderHeader"
+        ]
+      },
+      "targetWave": null,
+      "notes": "DOKUMENTATION.md, Backup-Formate: Header und Archiv schreiben portables Raw; strukturierte API und UI-Import sind getrennt beschrieben. Legacy Raw benoetigt lokalen Salt. Kein Runtimeeingriff. Veralteter negativer Doku-Sentinel entfernt, Verhaltenstests erhalten. Details: DOKUMENTATION.md (Backup-Formate) und tests/backup-download.test.js."
+    },
+    {
+      "id": "L06",
+      "sourceLabel": "12092 CSV-Quotes nach fuehrendem Leerraum",
+      "severity": "low",
+      "status": "closed",
+      "summary": "Ein Quote nach fuehrendem Feldleerraum startet korrekt ein gequotetes CSV-Feld.",
+      "evidence": {
+        "commits": [],
+        "tests": [
+          "tests/csv-transfer.test.js"
+        ],
+        "codeAnchors": [
+          "parseCsvText"
+        ]
+      },
+      "targetWave": null,
+      "notes": "Low CSV Task 1, PR 28."
+    },
+    {
+      "id": "L07",
+      "sourceLabel": "12495 12630-12633 fataler CSV-Dialogaufbau",
+      "severity": "low",
+      "status": "closed",
+      "summary": "Scheitert der fatale Fehlerdialog, bricht der Import fail-closed ab.",
+      "evidence": {
+        "commits": [],
+        "tests": [
+          "tests/csv-transfer.test.js"
+        ],
+        "codeAnchors": [
+          "showCsvImportIssues"
+        ]
+      },
+      "targetWave": null,
+      "notes": "Low CSV Task 2, PR 28."
+    },
+    {
+      "id": "L08",
+      "sourceLabel": "12494 Fatalitaet ueber deutschen Meldungstext",
+      "severity": "low",
+      "status": "closed",
+      "summary": "Fatalitaet wird ueber strukturierte Issue-Metadaten entschieden.",
+      "evidence": {
+        "commits": [],
+        "tests": [
+          "tests/csv-transfer.test.js"
+        ],
+        "codeAnchors": [
+          "createCsvIssue"
+        ]
+      },
+      "targetWave": null,
+      "notes": "Low CSV Task 2, PR 28."
+    },
+    {
+      "id": "L09",
+      "sourceLabel": "12712-12735 CSV-Kandidat nach Ueberspringen",
+      "severity": "low",
+      "status": "closed",
+      "summary": "Der Skip-Replaykandidat bleibt getrennt vom veroeffentlichten Bestand; ein Save-Fehler verwirft ihn.",
+      "evidence": {
+        "commits": [],
+        "tests": [
+          "tests/csv-transfer.test.js",
+          "tests/csv-decision-refresh.test.js"
+        ],
+        "codeAnchors": [
+          "prepareCsvImport",
+          "commitCsvOutcome"
+        ]
+      },
+      "targetWave": null,
+      "notes": "Der fruehere Pruning-Pfad wurde durch Replay ersetzt; M12/M13 bleiben separat geschlossen."
+    },
+    {
+      "id": "L10",
+      "sourceLabel": "11808-11810 Archivmerge-Konfliktzaehler und Personenbereinigung",
+      "severity": "low",
+      "status": "closed",
+      "summary": "Identische Archiveinschreibungen zaehlen nicht als Konflikt und Personenbereinigung beruecksichtigt alle Beziehungsarten.",
+      "evidence": {
+        "commits": [],
+        "tests": [
+          "tests/merge.test.js"
+        ],
+        "codeAnchors": [
+          "mergeImportedStateIntoCurrent",
+          "archiveConflicts"
+        ]
+      },
+      "targetWave": null,
+      "notes": "PR 37."
+    },
+    {
+      "id": "L11",
+      "sourceLabel": "2233-2249 Grade-Mapping-Lookup",
+      "severity": "low",
+      "status": "closed",
+      "summary": "Nur endliche nichtnegative Zahlen fliessen aus dem Grade Mapping in Berechnungen ein.",
+      "evidence": {
+        "commits": [],
+        "tests": [
+          "tests/grading.test.js",
+          "tests/grade-mapping-settings.test.js"
+        ],
+        "codeAnchors": [
+          "GradingLogic.parseGradeLabel"
+        ]
+      },
+      "targetWave": null,
+      "notes": "PR 29."
+    },
+    {
+      "id": "L12",
+      "sourceLabel": "13312-13323 Klausurtabellenexport nach geaenderten Grenzen",
+      "severity": "low",
+      "status": "closed",
+      "summary": "Export wird bei von der letzten Berechnung abweichenden Grenzen oder Maximalpunkten blockiert.",
+      "evidence": {
+        "commits": [],
+        "tests": [
+          "tests/exam-calculator.test.js"
+        ],
+        "codeAnchors": [
+          "exportExamTable"
+        ]
+      },
+      "targetWave": null,
+      "notes": "PR 30."
+    },
+    {
+      "id": "L13",
+      "sourceLabel": "1352-1355 removeStudentFromState Rueckgabevertrag",
+      "severity": "low",
+      "status": "closed",
+      "summary": "Ungueltige ID, Archivschutz und erfolgreiche Loeschung werden sichtbar unterschieden.",
+      "evidence": {
+        "commits": [],
+        "tests": [
+          "tests/domain.test.js",
+          "tests/csv-transfer.test.js"
+        ],
+        "codeAnchors": [
+          "DomainModel.removeStudentFromState"
+        ]
+      },
+      "targetWave": null,
+      "notes": "PR 31."
+    },
+    {
+      "id": "L14",
+      "sourceLabel": "1398-1419 1757-1763 feste Student- und Enrollment-Feldlisten",
+      "severity": "low",
+      "status": "closed",
+      "summary": "Unbekannte zukunftige Felder an Student- und Enrollment-Objekten gehen beim Laden verloren.",
+      "evidence": {
+        "commits": [],
+        "tests": [
+          "tests/domain.test.js"
+        ],
+        "codeAnchors": [
+          "DomainModel.ensureStateShape"
+        ]
+      },
+      "targetWave": null,
+      "notes": "Wave 0A normalisiert bekannte Student- und Enrollment-Felder in place; unbekannte serialisierbare Felder bleiben durch wiederholte Ladevorgaenge erhalten."
+    },
+    {
+      "id": "L15",
+      "sourceLabel": "4691 Klassenbezeichnung im Kursnamen hochstufen",
+      "severity": "low",
+      "status": "closed",
+      "summary": "Nur eigenstaendige Klassenbestandteile im Kursnamen werden hochgestuft.",
+      "evidence": {
+        "commits": [],
+        "tests": [
+          "tests/domain.test.js",
+          "tests/school-year-dialog.test.js"
+        ],
+        "codeAnchors": [
+          "promoteCourseNameClassLabel"
+        ]
+      },
+      "targetWave": null,
+      "notes": "PR 32."
+    },
+    {
+      "id": "L16",
+      "sourceLabel": "1445-1449 historische Gewichtungsvorlagen umbenennen",
+      "severity": "low",
+      "status": "closed",
+      "summary": "Historische Standardvorlagen erhalten deterministische kollisionsfreie Altbestand-Namen.",
+      "evidence": {
+        "commits": [],
+        "tests": [
+          "tests/domain.test.js"
+        ],
+        "codeAnchors": [
+          "migrateLegacyWeightTemplates"
+        ]
+      },
+      "targetWave": null,
+      "notes": "PR 35."
+    },
+    {
+      "id": "L17",
+      "sourceLabel": "10769-10782 Halbjahresdatum in negativen Zeitzonen",
+      "severity": "low",
+      "status": "closed",
+      "summary": "Halbjahres-Stichtage bleiben in negativen UTC-Zeitzonen auf dem Browser-Kalendertag.",
+      "evidence": {
+        "commits": [],
+        "tests": [
+          "tests/half-year-settings.test.js"
+        ],
+        "codeAnchors": [
+          "parseHalfYearDateValue"
+        ]
+      },
+      "targetWave": null,
+      "notes": "PR 36; andere Datumsstellen sind nicht pauschal mitgeschlossen."
+    },
+    {
+      "id": "L18",
+      "sourceLabel": "renderStudentsSection Inline-Bearbeitung der Stammdaten",
+      "severity": "low",
+      "status": "closed",
+      "summary": "Inline-Aenderungen speichern isoliert und lassen bei Fehlern den aktiven Bestand unveraendert.",
+      "evidence": {
+        "commits": [],
+        "tests": [
+          "tests/archive-ui.test.js"
+        ],
+        "codeAnchors": [
+          "renderStudentsSection"
+        ]
+      },
+      "targetWave": null,
+      "notes": "PR 33."
+    },
+    {
+      "id": "L19",
+      "sourceLabel": "renderCoursesSection Archivexport-Dateiname",
+      "severity": "low",
+      "status": "closed",
+      "summary": "Archivexport-Dateinamen enthalten nur einen sekundengenauen Zeitstempel und keine Kursdaten.",
+      "evidence": {
+        "commits": [],
+        "tests": [
+          "tests/archive-ui.test.js"
+        ],
+        "codeAnchors": [
+          "exportArchivedCourse"
+        ]
+      },
+      "targetWave": null,
+      "notes": "PR 34."
+    },
+    {
+      "id": "L20",
+      "sourceLabel": "Kein meta viewport und keine autocomplete-Attribute an Passwortfeldern",
+      "severity": "low",
+      "status": "closed",
+      "summary": "Mobiler Viewport ohne Zoomsperre und kontextabhaengige Passwort-Autocomplete-Hinweise sind vorhanden; Passwortdialog ist responsiv begrenzt.",
+      "evidence": {
+        "commits": [],
+        "tests": [
+          "tests/load.test.js",
+          "tests/privacy.test.js",
+          "tests/password-dialog.test.js"
+        ],
+        "codeAnchors": [
+          "document head",
+          "password input"
+        ]
+      },
+      "targetWave": null,
+      "notes": "L20-Aufgabenbranch: Standard-Viewport, current-password fuer bestehende und new-password fuer neue Passwoerter/Bestaetigung; Breiten-/Hoehenbegrenzung und Scrollbereich. Negativsentinel durch echte Dialog-/Dokumenttests ersetzt. Kein vollstaendiges mobiles UI; manuelle Geraeteabnahme separat. Aktuelle Pruefgrenzen: docs/ABNAHME.md; Regressionen: tests/password-dialog.test.js."
+    },
+    {
+      "id": "N1",
+      "sourceLabel": "N1 - Sechste Kalenderjahr-Termkopie im Live-Update-Pfad",
+      "severity": "high",
+      "status": "closed",
+      "summary": "Live-Durchschnitt nutzt die schuljahrbewusste kanonische Termableitung.",
+      "evidence": {
+        "commits": [],
+        "tests": [
+          "tests/gradesheet.test.js"
+        ],
+        "codeAnchors": [
+          "updateAffectedAverages",
+          "deriveTermFromDateValue"
+        ]
+      },
+      "targetWave": null,
+      "notes": "Im Nachpruefbericht ausdruecklich als HOCH eingestuft."
+    },
+    {
+      "id": "N2",
+      "sourceLabel": "N2 - Drucklogo langsames gueltiges Logo",
+      "severity": "high",
+      "status": "closed",
+      "summary": "Druck wartet innerhalb des Sicherheitsfensters auf ein langsam ladendes Logo.",
+      "evidence": {
+        "commits": [],
+        "tests": [
+          "tests/reporting.test.js"
+        ],
+        "codeAnchors": [
+          "printWhenAssetsReady"
+        ]
+      },
+      "targetWave": null,
+      "notes": "Im Nachpruefbericht ausdruecklich als HOCH eingestuft."
+    },
+    {
+      "id": "N3",
+      "sourceLabel": "N3 - Drucklogo Sicherheits-Timeout",
+      "severity": "medium",
+      "status": "closed",
+      "summary": "Nach Timeout werden offene Bilder ausgeblendet und der Druck sicher fortgesetzt.",
+      "evidence": {
+        "commits": [],
+        "tests": [
+          "tests/reporting.test.js"
+        ],
+        "codeAnchors": [
+          "printWhenAssetsReady"
+        ]
+      },
+      "targetWave": null,
+      "notes": "Im Nachpruefbericht ausdruecklich als MITTEL eingestuft."
+    },
+    {
+      "id": "N4",
+      "sourceLabel": "N4 - Drucklogo printWin.closed Guard",
+      "severity": "medium",
+      "status": "closed",
+      "summary": "Geschlossene Druckfenster werden vor spaeten Callback-Aktionen geprueft.",
+      "evidence": {
+        "commits": [],
+        "tests": [
+          "tests/reporting.test.js"
+        ],
+        "codeAnchors": [
+          "printWhenAssetsReady"
+        ]
+      },
+      "targetWave": null,
+      "notes": "Im Nachpruefbericht ausdruecklich als MITTEL eingestuft."
+    },
+    {
+      "id": "N5",
+      "sourceLabel": "N5 - Drucklogo-Tests pruefen den richtigen Pfad",
+      "severity": "medium",
+      "status": "closed",
+      "summary": "Regressionen fuehren den echten Drucklogo-Scheduler und seine Randfaelle aus.",
+      "evidence": {
+        "commits": [],
+        "tests": [
+          "tests/reporting.test.js"
+        ],
+        "codeAnchors": [
+          "buildPrintHeaderHtml",
+          "printWhenAssetsReady"
+        ]
+      },
+      "targetWave": null,
+      "notes": "Im Nachpruefbericht ausdruecklich als MITTEL eingestuft."
+    },
+    {
+      "id": "N6",
+      "sourceLabel": "N6 - Drucklogo Struktur",
+      "severity": "low",
+      "status": "closed",
+      "summary": "Gemeinsame Druckkopf-CSS, Logo-Pfad und Druckhelfer sind zentral ausserhalb des Schueler-Renderers bereitgestellt.",
+      "evidence": {
+        "commits": [],
+        "tests": [
+          "tests/reporting.test.js",
+          "tests/offline-artifact.test.js",
+          "tests/backup-download.test.js"
+        ],
+        "codeAnchors": [
+          "getHwgLogoPath",
+          "buildPrintHeaderHtml",
+          "buildPrintHeaderCss",
+          "printWhenAssetsReady"
+        ]
+      },
+      "targetWave": null,
+      "notes": "N6-Aufgabenbranch: Einzel-/Sammeldruck und Anwendungskopf nutzen gemeinsamen lokalen Logo-Pfad; CSS-Duplikation entfernt, Readiness-Verhalten erhalten. Veralteter negativer Sentinel entfernt, reale Verbraucher getestet. Nachweise: tests/reporting.test.js; manueller Abnahmestand: docs/ABNAHME.md."
+    }
+  ]
+}

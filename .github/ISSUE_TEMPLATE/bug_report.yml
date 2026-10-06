@@ -1,0 +1,40 @@
+name: Fehlerbericht mit synthetischen Daten
+description: Melde einen reproduzierbaren Programmfehler ohne persönliche Daten.
+title: "[Fehler] "
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: "Bitte ausschließlich erfundene Personen, Kurse und Noten verwenden. Keine Passwörter, Backups, echten Exporte oder privaten Screenshots hochladen. Sicherheitsprobleme nicht als öffentliches Issue melden; siehe SECURITY.md."
+  - type: input
+    id: version
+    attributes:
+      label: Programmversion
+      placeholder: "1.6.0"
+    validations:
+      required: true
+  - type: input
+    id: environment
+    attributes:
+      label: Browser, Browserversion und Betriebssystem
+    validations:
+      required: true
+  - type: dropdown
+    id: start
+    attributes:
+      label: Startart
+      options: ["Lokale HTML-Datei (file:)", "Andere Adresse"]
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Schritte mit erfundenen Daten
+    validations:
+      required: true
+  - type: textarea
+    id: result
+    attributes:
+      label: Erwartetes und beobachtetes Ergebnis
+    validations:
+      required: true

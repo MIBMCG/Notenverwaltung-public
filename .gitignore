@@ -1,0 +1,39 @@
+# Generated dependencies, logs and temporary files
+node_modules/
+coverage/
+.nyc_output/
+npm-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+*.bak
+*.tmp
+*.orig
+*.rej
+
+# Editor and operating-system files
+.vscode/
+.idea/
+*.code-workspace
+Thumbs.db
+desktop.ini
+.DS_Store
+~$*
+*.swp
+*.swo
+
+# Browser exports and backups may contain personal data
+*.enc.json
+notenverwaltung_kurs_export_*.csv
+notenverwaltung_kurs_export_*.xls
+notenverwaltung_kurs_export_*.xlsx
+notenverwaltung_csv_vorlage_*.csv
+klausurtabelle_sek1_*.csv
+klausurtabelle_sek2_*.csv
+csv_import_errors_*.csv
+csv_import_errors_*.txt
+csv_import_fatal_errors_*.csv
+csv_import_fatal_errors_*.txt
+
+# Local test output
+testdaten/
+Testdaten/

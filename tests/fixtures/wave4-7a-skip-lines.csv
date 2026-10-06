@@ -1,0 +1,3 @@
+KursID;Kurs;Fach;Klasse;SchuelerID;Nachname;Vorname;Geburtstag
+W47A-SKIP;CSV-Test Ueberspringen;Biologie;10T;W47A-SKIP-S1;Muster;Mia;14.03.2011
+W47A-SKIP;CSV-Test Ueberspringen;Biologie;10T;W47A-SKIP-S2;Fehlerfall;;27.08.2010

@@ -1,0 +1,5 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Sicherheitsprobleme
+    url: https://github.com/MIBMCG/Notenverwaltung-public/blob/codex/public-release-1-6/SECURITY.md
+    about: Vor öffentlicher Freigabe wird ein privater Meldeweg eingerichtet; bitte keine Sicherheitsdetails in Issues posten.

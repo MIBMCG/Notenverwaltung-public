@@ -1,0 +1,3 @@
+KursID;Kurs;Fach;Klasse;SchuelerID;Nachname;Vorname;Geburtstag
+CSV-ABNAHME;CSV-Test;Biologie;10T;CSV-A;Müller;Ada;2010-04-03
+CSV-ABNAHME;CSV-Test;Biologie;10T;CSV-A;Anderername;Ada;2010-04-03

@@ -1,0 +1,5 @@
+# Reproducible text files across Windows and other laptop environments.
+*.html text eol=lf
+*.py text eol=lf
+*.js text eol=lf
+*.cjs text eol=lf

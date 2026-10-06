@@ -1,0 +1,602 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Kurskarten: Offline-Demo</title>
+<style>
+body { margin: 0; background: #eef3f4; color: #172e36; font: 16px/1.5 system-ui, sans-serif; }
+.nv-course-demo { max-width: 1120px; margin: 0 auto; padding: 24px; }
+.nv-course-demo__example { margin: 28px 0; }
+.nv-course-demo select { min-height: 44px; margin-inline-start: 8px; }
+.nv-course-demo [role="status"] { min-height: 1.5em; font-weight: 600; }
+@media (max-width: 480px) { .nv-course-demo { padding: 16px; } }
+
+.nv-course-cards {
+  color-scheme: light dark;
+  --nv-course-bg: #f3f6f5;
+  --nv-course-panel: #ffffff;
+  --nv-course-text: #172e36;
+  --nv-course-muted: #47616b;
+  --nv-course-line: #cfdddf;
+  --nv-course-accent: #086575;
+  --nv-course-soft: #e7f3f3;
+  --nv-course-close: #9c3038;
+  --nv-course-close-bg: #fcebed;
+  --nv-course-close-line: #c9858b;
+  --nv-course-close-hover: #f8dce0;
+  --nv-course-open-text: #ffffff;
+  background: var(--nv-course-bg);
+  color: var(--nv-course-text);
+  font: 15px/1.5 system-ui, sans-serif;
+}
+
+.nv-course-cards,
+.nv-course-cards * {
+  box-sizing: border-box;
+}
+
+.nv-course-cards[data-appearance="dark"] {
+  color-scheme: dark;
+  --nv-course-bg: #111b21;
+  --nv-course-panel: #1c2931;
+  --nv-course-text: #edf4f5;
+  --nv-course-muted: #b4c8d0;
+  --nv-course-line: #42545f;
+  --nv-course-accent: #79d8df;
+  --nv-course-soft: #203b43;
+  --nv-course-close: #ffb4b9;
+  --nv-course-close-bg: #44282f;
+  --nv-course-close-line: #a36670;
+  --nv-course-close-hover: #58313a;
+  --nv-course-open-text: #10252c;
+}
+
+.nv-course-cards[data-appearance="light"] {
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+  .nv-course-cards[data-appearance="system"] {
+    --nv-course-bg: #111b21;
+    --nv-course-panel: #1c2931;
+    --nv-course-text: #edf4f5;
+    --nv-course-muted: #b4c8d0;
+    --nv-course-line: #42545f;
+    --nv-course-accent: #79d8df;
+    --nv-course-soft: #203b43;
+    --nv-course-close: #ffb4b9;
+    --nv-course-close-bg: #44282f;
+    --nv-course-close-line: #a36670;
+    --nv-course-close-hover: #58313a;
+    --nv-course-open-text: #10252c;
+  }
+}
+
+.nv-course-cards[data-family="aurora"] {
+  --nv-course-soft: #ede8fb;
+  --nv-course-accent: #6542a1;
+  --nv-course-open-text: #ffffff;
+}
+
+.nv-course-cards[data-family="aurora"][data-appearance="dark"] {
+  --nv-course-soft: #32284b;
+  --nv-course-accent: #d2baff;
+  --nv-course-open-text: #261a39;
+}
+
+@media (prefers-color-scheme: dark) {
+  .nv-course-cards[data-family="aurora"][data-appearance="system"] {
+    --nv-course-soft: #32284b;
+    --nv-course-accent: #d2baff;
+    --nv-course-open-text: #261a39;
+  }
+}
+
+.nv-course-cards[data-family="classic"] {
+  --nv-course-soft: #edf0f4;
+  --nv-course-accent: #254f81;
+}
+
+.nv-course-cards[data-family="classic"][data-appearance="dark"] {
+  --nv-course-soft: #283644;
+  --nv-course-accent: #a9cfff;
+}
+
+@media (prefers-color-scheme: dark) {
+  .nv-course-cards[data-family="classic"][data-appearance="system"] {
+    --nv-course-soft: #283644;
+    --nv-course-accent: #a9cfff;
+  }
+}
+
+.nv-course-cards .nv-course-cards__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr));
+  gap: 16px;
+}
+
+.nv-course-cards .nv-course-cards__card {
+  min-width: 0;
+  overflow: hidden;
+  background: var(--nv-course-panel);
+  border: 1px solid var(--nv-course-line);
+  border-radius: 12px;
+}
+
+.nv-course-cards .nv-course-cards__stage {
+  margin: 16px 16px 0;
+  perspective: 1000px;
+}
+
+.nv-course-cards .nv-course-cards__rotor {
+  display: grid;
+  transform-style: preserve-3d;
+  transition: transform 480ms ease;
+}
+
+.nv-course-cards .nv-course-cards__face {
+  grid-area: 1 / 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-height: 215px;
+  padding: 16px;
+  border-radius: 8px;
+  background: var(--nv-course-soft);
+  backface-visibility: hidden;
+}
+
+.nv-course-cards .nv-course-cards__front {
+  transition: opacity 480ms ease;
+}
+
+.nv-course-cards .nv-course-cards__back {
+  visibility: hidden;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 480ms ease;
+}
+
+.nv-course-cards .nv-course-cards__card.is-open .nv-course-cards__front {
+  visibility: hidden;
+  opacity: 0;
+}
+
+.nv-course-cards .nv-course-cards__card.is-open .nv-course-cards__back {
+  visibility: visible;
+  opacity: 1;
+}
+
+.nv-course-cards .nv-course-cards__eyebrow,
+.nv-course-cards .nv-course-cards__front p,
+.nv-course-cards .nv-course-cards__back dt {
+  color: var(--nv-course-muted);
+}
+
+.nv-course-cards .nv-course-cards__front h3 {
+  margin: 6px 0;
+  overflow-wrap: anywhere;
+  font-size: 23px;
+  font-weight: 600;
+}
+
+.nv-course-cards .nv-course-cards__front p {
+  margin: 0;
+}
+
+.nv-course-cards .nv-course-cards__back dl {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 7px 12px;
+  margin: 0;
+  font-size: 14px;
+}
+
+.nv-course-cards .nv-course-cards__back dd {
+  margin: 0;
+  text-align: right;
+  overflow-wrap: anywhere;
+}
+
+.nv-course-cards .nv-course-cards__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 16px;
+}
+
+.nv-course-cards button {
+  min-height: 44px;
+  padding: 9px 12px;
+  border: 1px solid var(--nv-course-line);
+  border-radius: 7px;
+  background: var(--nv-course-panel);
+  color: var(--nv-course-text);
+  font: inherit;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.nv-course-cards .nv-course-cards__open {
+  flex: 1;
+  border-color: var(--nv-course-accent) !important;
+  background: var(--nv-course-accent) !important;
+  color: var(--nv-course-open-text) !important;
+  white-space: nowrap;
+}
+
+.nv-course-cards .nv-course-cards__info {
+  flex: 0 0 52px;
+  inline-size: 52px;
+  white-space: nowrap;
+}
+
+.nv-course-cards .nv-course-cards__info[aria-expanded="true"] {
+  border-color: var(--nv-course-accent);
+}
+
+.nv-course-cards .nv-course-cards__info.is-close {
+  border-color: var(--nv-course-close-line);
+  background: var(--nv-course-close-bg);
+  color: var(--nv-course-close);
+}
+
+.nv-course-cards .nv-course-cards__info.is-close:hover {
+  background: var(--nv-course-close-hover);
+}
+
+.nv-course-cards[data-family="aurora"] .nv-course-cards__back {
+  visibility: visible;
+  opacity: 1;
+  transform: rotateY(180deg);
+}
+
+.nv-course-cards[data-family="aurora"] .nv-course-cards__front {
+  visibility: visible !important;
+  opacity: 1 !important;
+}
+
+.nv-course-cards[data-family="aurora"] .nv-course-cards__card.is-open .nv-course-cards__rotor {
+  transform: rotateY(180deg);
+}
+
+.nv-course-cards[data-family="classic"] .nv-course-cards__face {
+  transition: none;
+}
+
+.nv-course-cards[data-family="classic"] .nv-course-cards__card.is-open .nv-course-cards__back {
+  box-shadow: inset 3px 0 var(--nv-course-accent);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .nv-course-cards .nv-course-cards__rotor,
+  .nv-course-cards .nv-course-cards__face {
+    transform: none !important;
+    transition: none !important;
+  }
+
+  .nv-course-cards[data-family="aurora"] .nv-course-cards__back {
+    visibility: hidden;
+    opacity: 0;
+  }
+
+  .nv-course-cards[data-family="aurora"] .nv-course-cards__card.is-open .nv-course-cards__back {
+    visibility: visible;
+    opacity: 1;
+  }
+
+  .nv-course-cards[data-family="aurora"] .nv-course-cards__card.is-open .nv-course-cards__front {
+    visibility: hidden !important;
+    opacity: 0 !important;
+  }
+}
+</style>
+</head>
+<body>
+<main id="course-cards-demo" class="nv-course-demo"></main>
+<script>(() => {
+  // src/ui/course-cards.js
+  var FAMILIES = /* @__PURE__ */ new Set(["modern", "classic", "aurora"]);
+  var APPEARANCES = /* @__PURE__ */ new Set(["light", "dark", "system"]);
+  function textOrDash(value) {
+    return value === void 0 || value === null || value === "" ? "–" : String(value);
+  }
+  function validateOptions(options) {
+    if (!options || typeof options !== "object") throw new TypeError("Optionen fehlen.");
+    const {
+      host,
+      idPrefix,
+      courses,
+      onOpenCourse,
+      family = "modern",
+      appearance = "system",
+      schedule = setTimeout,
+      cancel = clearTimeout
+    } = options;
+    if (!host || !host.ownerDocument || typeof host.ownerDocument.createElement !== "function" || typeof host.appendChild !== "function") {
+      throw new TypeError("Ein DOM-Host wird benoetigt.");
+    }
+    if (typeof onOpenCourse !== "function") throw new TypeError("onOpenCourse muss eine Funktion sein.");
+    if (typeof idPrefix !== "string" || idPrefix.length === 0) throw new TypeError("idPrefix darf nicht leer sein.");
+    if (!Array.isArray(courses)) throw new TypeError("courses muss ein Array sein.");
+    if (!FAMILIES.has(family)) throw new TypeError("Unbekannte Designfamilie.");
+    if (!APPEARANCES.has(appearance)) throw new TypeError("Unbekannte Darstellung.");
+    if (typeof schedule !== "function" || typeof cancel !== "function") throw new TypeError("Timerfunktionen muessen Funktionen sein.");
+    const ids = /* @__PURE__ */ new Set();
+    courses.forEach((course) => {
+      if (!course || typeof course !== "object" || typeof course.id !== "string" || course.id.length === 0) {
+        throw new TypeError("Jeder Kurs braucht eine ID.");
+      }
+      if (ids.has(course.id)) throw new TypeError("Kurs-IDs muessen eindeutig sein.");
+      ids.add(course.id);
+      if (!Number.isInteger(course.studentCount) || course.studentCount < 0) {
+        throw new TypeError("studentCount muss eine nicht-negative ganze Zahl sein.");
+      }
+    });
+    return { host, idPrefix, courses, onOpenCourse, family, appearance, schedule, cancel };
+  }
+  function appendTextElement(document, parent, tagName, text) {
+    const element = document.createElement(tagName);
+    element.textContent = text;
+    parent.appendChild(element);
+    return element;
+  }
+  function addInfoLine(document, list, label, value) {
+    appendTextElement(document, list, "dt", label);
+    appendTextElement(document, list, "dd", value);
+  }
+  function mountCourseCards(options) {
+    const { host, idPrefix, courses, onOpenCourse, family, appearance, schedule, cancel } = validateOptions(options);
+    const document = host.ownerDocument;
+    const root = document.createElement("section");
+    root.setAttribute("class", "nv-course-cards");
+    root.setAttribute("data-family", family);
+    root.setAttribute("data-appearance", appearance);
+    root.setAttribute("aria-label", "Kurse");
+    const grid = document.createElement("div");
+    grid.setAttribute("class", "nv-course-cards__grid");
+    root.appendChild(grid);
+    const cleanups = [];
+    const states = [];
+    let componentDisposed = false;
+    const activeCourses = courses.filter((course) => course.archivedAt == null);
+    function listen(element, type, listener) {
+      element.addEventListener(type, listener);
+      cleanups.push(() => element.removeEventListener(type, listener));
+    }
+    function clearTimer(state) {
+      if (state.timer !== null) {
+        cancel(state.timer);
+        state.timer = null;
+      }
+    }
+    activeCourses.forEach((course, index) => {
+      const card = document.createElement("article");
+      const infoId = `${idPrefix}-course-info-${index}`;
+      card.setAttribute("class", "nv-course-cards__card");
+      card.setAttribute("data-role", "card");
+      card.setAttribute("data-course-id", course.id);
+      const stage = document.createElement("div");
+      stage.setAttribute("class", "nv-course-cards__stage");
+      const rotor = document.createElement("div");
+      rotor.setAttribute("class", "nv-course-cards__rotor");
+      const front = document.createElement("div");
+      front.setAttribute("class", "nv-course-cards__face nv-course-cards__front");
+      front.setAttribute("data-role", "front");
+      const courseLabel = [textOrDash(course.name), textOrDash(course.classLabel)].join(" · ");
+      appendTextElement(document, front, "span", "AKTIVER KURS").setAttribute("class", "nv-course-cards__eyebrow");
+      appendTextElement(document, front, "h3", courseLabel);
+      appendTextElement(document, front, "p", textOrDash(course.termLabel));
+      const back = document.createElement("div");
+      back.setAttribute("class", "nv-course-cards__face nv-course-cards__back");
+      back.setAttribute("data-role", "back");
+      back.setAttribute("id", infoId);
+      const details = document.createElement("dl");
+      addInfoLine(document, details, "Fach", textOrDash(course.subject));
+      addInfoLine(document, details, "Klasse", textOrDash(course.classLabel));
+      addInfoLine(document, details, "Schüler", String(course.studentCount));
+      addInfoLine(document, details, "Halbjahr", textOrDash(course.termLabel));
+      back.appendChild(details);
+      rotor.appendChild(front);
+      rotor.appendChild(back);
+      stage.appendChild(rotor);
+      const footer = document.createElement("footer");
+      footer.setAttribute("class", "nv-course-cards__actions");
+      const open = document.createElement("button");
+      open.setAttribute("type", "button");
+      open.setAttribute("class", "nv-course-cards__open");
+      open.setAttribute("data-role", "open");
+      open.textContent = "Noten öffnen";
+      const info = document.createElement("button");
+      info.setAttribute("type", "button");
+      info.setAttribute("class", "nv-course-cards__info");
+      info.setAttribute("data-role", "info");
+      info.setAttribute("aria-controls", infoId);
+      footer.appendChild(open);
+      footer.appendChild(info);
+      card.appendChild(stage);
+      card.appendChild(footer);
+      grid.appendChild(card);
+      const state = { pinned: false, hover: false, dismissed: false, disposed: false, timer: null };
+      states.push(state);
+      const render = () => {
+        if (state.disposed || componentDisposed) return;
+        const openInfo = state.pinned || state.hover && !state.dismissed;
+        card.classList.toggle("is-open", openInfo);
+        front.setAttribute("aria-hidden", String(openInfo));
+        back.setAttribute("aria-hidden", String(!openInfo));
+        info.setAttribute("aria-expanded", String(openInfo));
+        info.textContent = state.pinned ? "×" : "Info";
+        info.classList.toggle("is-close", state.pinned);
+        info.setAttribute("aria-label", state.pinned ? "Kursinfo schließen" : "Kursinfo anzeigen und offen halten");
+      };
+      listen(card, "pointerenter", (event) => {
+        if (state.disposed || componentDisposed || event.pointerType !== "mouse" || family === "classic") return;
+        clearTimer(state);
+        state.timer = schedule(() => {
+          state.timer = null;
+          if (state.disposed || componentDisposed) return;
+          state.hover = true;
+          render();
+        }, 220);
+      });
+      listen(card, "pointerleave", () => {
+        if (state.disposed || componentDisposed) return;
+        clearTimer(state);
+        state.hover = false;
+        state.dismissed = false;
+        render();
+      });
+      listen(info, "click", () => {
+        if (state.disposed || componentDisposed) return;
+        clearTimer(state);
+        state.pinned = !state.pinned;
+        state.dismissed = !state.pinned;
+        render();
+      });
+      listen(card, "keydown", (event) => {
+        if (state.disposed || componentDisposed || event.key !== "Escape") return;
+        clearTimer(state);
+        state.pinned = false;
+        state.dismissed = true;
+        render();
+      });
+      listen(open, "click", () => {
+        if (!state.disposed && !componentDisposed) onOpenCourse(course.id);
+      });
+      render();
+    });
+    host.appendChild(root);
+    return {
+      dispose() {
+        if (componentDisposed) return;
+        componentDisposed = true;
+        states.forEach((state) => {
+          state.disposed = true;
+          clearTimer(state);
+        });
+        cleanups.splice(0).forEach((cleanup) => cleanup());
+        if (root.parentNode === host) host.removeChild(root);
+      }
+    };
+  }
+
+  // docs/ui/course-cards-demo-entry.js
+  var sharedCourse = Object.freeze({
+    id: "bio-demo-10a",
+    name: "Biologie",
+    subject: "Biologie",
+    classLabel: "10a",
+    studentCount: 24,
+    termLabel: "26/27 H1"
+  });
+  var longNameCourse = Object.freeze({
+    ...sharedCourse,
+    id: "bio-demo-langer-name",
+    name: "Biologie: Genregulation, Proteinbiosynthese und nachhaltige Landwirtschaft im Wandel"
+  });
+  var families = Object.freeze([
+    ["modern", "Modern ruhig"],
+    ["classic", "Klassisch"],
+    ["aurora", "Aurora"]
+  ]);
+  function appendText(document, parent, tagName, text) {
+    const element = document.createElement(tagName);
+    element.textContent = text;
+    parent.appendChild(element);
+    return element;
+  }
+  function createExample(document, root, { title, description, role, status }) {
+    const section = document.createElement("section");
+    section.setAttribute("class", "nv-course-demo__example");
+    appendText(document, section, "h2", title);
+    appendText(document, section, "p", description);
+    appendText(document, section, "p", `Rolle: ${role}. Status: ${status}.`);
+    const host = document.createElement("div");
+    host.setAttribute("class", "nv-course-demo__host");
+    section.appendChild(host);
+    root.appendChild(section);
+    return host;
+  }
+  function startDemo() {
+    const document = globalThis.document;
+    const root = document.getElementById("course-cards-demo");
+    if (!root) return;
+    appendText(document, root, "h1", "Kurskarten: Offline-Demo");
+    appendText(document, root, "p", "Fiktive Vorschau ohne Speicherzugriff, Netzwerkzugriff oder echte Schuldaten.");
+    const appearanceLabel = document.createElement("label");
+    appearanceLabel.setAttribute("for", "course-cards-demo-appearance");
+    appearanceLabel.textContent = "Erscheinung";
+    root.appendChild(appearanceLabel);
+    const appearance = document.createElement("select");
+    appearance.setAttribute("id", "course-cards-demo-appearance");
+    appearance.setAttribute("data-role", "appearance");
+    for (const [value, label] of [["light", "Hell"], ["dark", "Dunkel"], ["system", "System"]]) {
+      const option = document.createElement("option");
+      option.setAttribute("value", value);
+      option.textContent = label;
+      appearance.appendChild(option);
+    }
+    appearance.value = "system";
+    root.appendChild(appearance);
+    const status = document.createElement("p");
+    status.setAttribute("role", "status");
+    status.setAttribute("aria-live", "polite");
+    status.setAttribute("data-role", "status");
+    status.textContent = "Status: Demo bereit. Keine echten Daten.";
+    root.appendChild(status);
+    const mounts = [];
+    for (const [family, title] of families) {
+      const host = createExample(document, root, {
+        title,
+        description: "Gleicher fiktiver Kurs für den Vergleich der Designfamilien.",
+        role: "Kurskarten-Vorschau",
+        status: "aktiver fiktiver Kurs"
+      });
+      mounts.push({ host, idPrefix: `demo-${family}`, courses: [sharedCourse], family });
+    }
+    mounts.push({
+      host: createExample(document, root, {
+        title: "Testbeispiel: leerer Bestand",
+        description: "Getrennter Fall ohne fiktive Kurskarte.",
+        role: "Leerzustand",
+        status: "keine Kurse"
+      }),
+      idPrefix: "demo-empty",
+      courses: [],
+      family: "modern"
+    });
+    mounts.push({
+      host: createExample(document, root, {
+        title: "Testbeispiel: langer Kursname",
+        description: "Getrennter Fall für umbrechenden, fiktiven Kursnamen.",
+        role: "Kurskarten-Vorschau",
+        status: "langer fiktiver Kursname"
+      }),
+      idPrefix: "demo-long-name",
+      courses: [longNameCourse],
+      family: "modern"
+    });
+    let mounted = [];
+    const remount = () => {
+      mounted.forEach((instance) => instance.dispose());
+      mounted = mounts.map(({ host, idPrefix, courses, family }) => mountCourseCards({
+        host,
+        idPrefix,
+        courses,
+        family,
+        appearance: appearance.value,
+        onOpenCourse: (id) => {
+          status.textContent = `Vorschau: Notentabelle für ${id}. Keine echten Daten.`;
+        }
+      }));
+    };
+    appearance.addEventListener("change", remount);
+    remount();
+  }
+  startDemo();
+})();
+</script>
+</body>
+</html>

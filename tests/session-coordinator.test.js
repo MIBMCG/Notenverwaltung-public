@@ -1,0 +1,90 @@
+'use strict';
+const test = require('node:test');
+const assert = require('node:assert/strict');
+const { loadEsmGraph } = require('./harness/load-esm-graph');
+const { createLockManagerStub, deferred } = require('./harness/shared-session');
+const { createSessionCoordinator } = loadEsmGraph('src/infrastructure/session-coordinator.js').exports;
+const make = (lockManager, onLost) => createSessionCoordinator({ lockManager, resourceName: 'notenverwaltung-v1-editor', onLost });
+test('acquire resolves while lease is held; duplicate acquire joins; competitor is busy until native release', async () => {
+  const manager = createLockManagerStub(), a = make(manager), b = make(manager);
+  assert.deepEqual(await Promise.all([a.acquire(), a.acquire()]), ['acquired', 'acquired']);
+  a.assertHeld();
+  assert.equal(await b.acquire(), 'busy');
+  assert.throws(() => b.assertHeld(), { code: 'SESSION_NOT_OWNER' });
+  await Promise.all([a.release(), a.release()]);
+  assert.equal(a.getStatus(), 'idle');
+  assert.equal(await b.acquire(), 'acquired');
+  await b.release();
+});
+test('missing or rejected native API fails closed without an acquired lease', async () => {
+  for (const manager of [null, { request: () => Promise.reject(new Error('denied')) }, { request() { throw new Error('denied'); } }]) {
+    const a = make(manager);
+    assert.equal(await a.acquire(), 'unsupported');
+    assert.equal(a.getStatus(), 'unsupported');
+    assert.throws(() => a.assertHeld(), { code: 'SESSION_NOT_OWNER' });
+    await a.release();
+  }
+});
+test('release retires pending native entry and reacquire waits for its completion', async () => {
+  const pending = deferred();
+  const native = createLockManagerStub();
+  let calls = 0;
+  const a = make({ request(...args) { calls++; return calls === 1 ? pending.promise.then(() => native.request(...args)) : native.request(...args); } });
+  const first = a.acquire();
+  const released = a.release();
+  const second = a.acquire();
+  pending.resolve();
+  assert.notEqual(await first, 'acquired');
+  await released;
+  assert.equal(await second, 'acquired');
+  assert.equal(calls, 2);
+  a.assertHeld();
+  await a.release();
+});
+test('native lease loss invalidates synchronously and a retired rejection cannot invalidate a new lease', async () => {
+  let rejectNative, callback;
+  const losses = [];
+  const manager = { request(name, options, fn) { callback = fn; return new Promise((resolve, reject) => { rejectNative = reject; }); } };
+  const a = make(manager, reason => losses.push(reason));
+  const acquired = a.acquire();
+  callback({ name: 'notenverwaltung-v1-editor' });
+  assert.equal(await acquired, 'acquired');
+  rejectNative(new Error('lost'));
+  await Promise.resolve(); await Promise.resolve();
+  assert.throws(() => a.assertHeld(), { code: 'SESSION_NOT_OWNER' });
+  assert.equal(losses.length, 1);
+  await a.release();
+});
+test('release also cancels an acquire queued behind native completion, without leaking a late lease', async () => {
+  const complete = deferred();
+  const native = createLockManagerStub();
+  let calls = 0;
+  const a = make({ request(...args) { calls++; return native.request(...args).then(() => complete.promise); } });
+  assert.equal(await a.acquire(), 'acquired');
+  const releasing = a.release();
+  const queued = a.acquire();
+  const cancelled = a.release();
+  complete.resolve();
+  await Promise.all([releasing, cancelled]);
+  assert.equal(await queued, 'busy');
+  assert.equal(calls, 1);
+  assert.throws(() => a.assertHeld(), { code: 'SESSION_NOT_OWNER' });
+  assert.equal(await a.acquire(), 'acquired');
+  await a.release();
+});
+test('a retired native rejection cannot notify loss or clear the following lease', async () => {
+  const old = deferred();
+  const native = createLockManagerStub();
+  let calls = 0, losses = 0;
+  const a = make({ request(...args) { return ++calls === 1 ? old.promise : native.request(...args); } }, () => losses++);
+  const first = a.acquire();
+  const released = a.release();
+  const next = a.acquire();
+  old.reject(new Error('retired native failure'));
+  assert.equal(await first, 'busy');
+  await released;
+  assert.equal(await next, 'acquired');
+  assert.equal(losses, 0);
+  a.assertHeld();
+  await a.release();
+});

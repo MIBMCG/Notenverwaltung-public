@@ -1,0 +1,30 @@
+{
+  "name": "notenverwaltung-tests",
+  "version": "1.0.0",
+  "license": "MIT",
+  "private": true,
+  "description": "Entwicklungsseitige Tests fuer Notenverwaltung.html. Die ausgelieferte Anwendung bleibt buildfrei.",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "test": "node tests/run-tests.js",
+    "test:tap": "node tests/run-tests.js --test-reporter=tap",
+    "check": "node --test tests/syntax.test.js",
+    "build": "node scripts/build.mjs",
+    "verify:artifact": "node scripts/verify-artifact.mjs",
+    "check:findings": "node scripts/verify-findings-register.js",
+    "check:doc-links": "node scripts/verify-doc-links.mjs",
+    "test:release": "node --test tests/release-package.test.js tests/release-doc-links.test.js",
+    "build:release": "node scripts/build-release.mjs",
+    "verify:release": "node scripts/verify-release.mjs"
+  },
+  "devDependencies": {
+    "esbuild": "0.25.9",
+    "fflate": "0.8.3",
+    "mdast-util-from-markdown": "2.0.3"
+  },
+  "dependencies": {
+    "write-excel-file": "4.1.1"
+  }
+}

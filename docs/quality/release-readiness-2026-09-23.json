@@ -1,0 +1,200 @@
+{
+  "schemaVersion": 1,
+  "reviewDate": "2026-09-23",
+  "statusMeaning": "closed means technical fix, GREEN integration and independent task review are complete; final desktop/file/export acceptance and public release remain separate gates",
+  "decisions": {
+    "operation": "Technically enforced single editor window; early M06 file/profile/crash architecture evidence closed 2026-10-04. Task9 manual repetition ended by explicit user decision 2026-10-05; retain and check existing evidence and that decision against docs/ABNAHME.md. No fresh complete desktop acceptance is claimed.",
+    "license": "MIT consent confirmed by the user for all relevant contributors including Jens",
+    "mobile": "Tablet and smartphone acceptance is outside the release gate"
+  },
+  "findings": [
+    {
+      "id": "R23-01",
+      "priority": "P1",
+      "status": "closed",
+      "summary": "Parallel windows can overwrite data or the password state",
+      "testTargets": [
+        "M01",
+        "M02",
+        "M03",
+        "M04",
+        "M05",
+        "M06"
+      ],
+      "codeAnchors": [
+        "src/infrastructure/storage.js:createStorage",
+        "src/infrastructure/storage.js:changePassword",
+        "src/legacy/application.js:UiShell.init"
+      ],
+      "diagnosticRepro": "tests/storage.test.js",
+      "browserAcceptance": "Fresh complete final 1.6.0 desktop acceptance: NOT RUN. Task9 manual repetition ended by explicit user decision 2026-10-05; existing practice reports and bounded partial observations remain as documented in docs/ABNAHME.md, with no new browser PASS. Early M06 architecture gate closed separately 2026-10-04.",
+      "closure": {
+        "scope": "Technical fix and reviewed integration only",
+        "date": "2026-10-05",
+        "tests": [
+          "tests/storage.test.js",
+          "tests/storage-cross-window.test.js",
+          "tests/release-workflows.test.js"
+        ],
+        "integrationResult": "1344/1344 PASS, exit0, Windows Node22.23.3",
+        "publicProof": "docs/quality/PUBLICATION.md"
+      }
+    },
+    {
+      "id": "R23-02",
+      "priority": "P1",
+      "status": "closed",
+      "summary": "Backup can omit a just-entered grade while its save is pending",
+      "testTargets": [
+        "B01",
+        "B02",
+        "B03",
+        "B04",
+        "B05",
+        "B06",
+        "B08"
+      ],
+      "codeAnchors": [
+        "src/legacy/application.js:Backup",
+        "src/ui/state-commit.js:createStateCommitter"
+      ],
+      "diagnosticRepro": "tests/backup-consistency.test.js",
+      "browserAcceptance": "Fresh complete final 1.6.0 desktop acceptance: NOT RUN. Task9 manual repetition ended by explicit user decision 2026-10-05; existing practice reports and bounded partial observations remain as documented in docs/ABNAHME.md, with no new browser PASS. Early M06 architecture gate closed separately 2026-10-04.",
+      "closure": {
+        "scope": "Technical fix and reviewed integration only",
+        "date": "2026-10-05",
+        "tests": [
+          "tests/backup-consistency.test.js",
+          "tests/state-commit.test.js",
+          "tests/release-workflows.test.js"
+        ],
+        "integrationResult": "1344/1344 PASS, exit0, Windows Node22.23.3",
+        "publicProof": "docs/quality/PUBLICATION.md"
+      }
+    },
+    {
+      "id": "R23-03",
+      "priority": "P1",
+      "status": "closed",
+      "summary": "Skipping a CSV warning row can still change an existing Q4 exam flag",
+      "testTargets": [
+        "C01",
+        "C02",
+        "C03",
+        "C04",
+        "C05",
+        "C07",
+        "C08"
+      ],
+      "codeAnchors": [
+        "src/transfer/csv-import-orchestrator.js:prepare",
+        "src/legacy/application.js:CSV warning decision",
+        "src/domain/grading.js:written exams"
+      ],
+      "diagnosticRepro": "tests/csv-accepted-lines.test.js",
+      "automatedFix": {
+        "status": "independently_reviewed_technical_closed",
+        "tests": [
+          "tests/csv-accepted-lines.test.js",
+          "tests/csv-decision-refresh.test.js",
+          "tests/csv-import-orchestrator.test.js",
+          "tests/csv-transfer.test.js",
+          "tests/csv-import-file.test.js"
+        ],
+        "focused": "87/87 PASS after review fix",
+        "fullSuite": "1211/1211 PASS after review fix",
+        "finalIntegration": "Aktuelle Regressionstests und Prüfgrenzen: docs/quality/PUBLICATION.md"
+      },
+      "browserAcceptance": "Fresh complete final 1.6.0 desktop acceptance: NOT RUN. Task9 manual repetition ended by explicit user decision 2026-10-05; existing practice reports and bounded partial observations remain as documented in docs/ABNAHME.md, with no new browser PASS. Early M06 architecture gate closed separately 2026-10-04.",
+      "closure": {
+        "scope": "Technical fix and reviewed integration only",
+        "date": "2026-10-05",
+        "tests": [
+          "tests/csv-accepted-lines.test.js",
+          "tests/csv-decision-refresh.test.js",
+          "tests/csv-import-orchestrator.test.js",
+          "tests/release-workflows.test.js"
+        ],
+        "integrationResult": "1344/1344 PASS, exit0, Windows Node22.23.3",
+        "publicProof": "docs/quality/PUBLICATION.md"
+      }
+    },
+    {
+      "id": "R23-04",
+      "priority": "P2",
+      "status": "closed",
+      "summary": "Immediate lock can discard an in-flight grade without usable feedback",
+      "testTargets": [
+        "L01",
+        "L02",
+        "L03",
+        "L04",
+        "L05",
+        "L06",
+        "L07"
+      ],
+      "codeAnchors": [
+        "src/legacy/application.js:lock handler",
+        "src/infrastructure/storage.js:lockSession"
+      ],
+      "diagnosticRepro": "tests/manual-lock-flush.test.js",
+      "browserAcceptance": "Fresh complete final 1.6.0 desktop acceptance: NOT RUN. Task9 manual repetition ended by explicit user decision 2026-10-05; existing practice reports and bounded partial observations remain as documented in docs/ABNAHME.md, with no new browser PASS. Early M06 architecture gate closed separately 2026-10-04.",
+      "closure": {
+        "scope": "Technical fix and reviewed integration only",
+        "date": "2026-10-05",
+        "tests": [
+          "tests/manual-lock-flush.test.js",
+          "tests/backup-consistency.test.js"
+        ],
+        "integrationResult": "1344/1344 PASS, exit0, Windows Node22.23.3",
+        "publicProof": "docs/quality/PUBLICATION.md"
+      }
+    },
+    {
+      "id": "R23-05",
+      "priority": "P2",
+      "status": "closed",
+      "summary": "Trend can be absent for raw-only grades or retain the old direction after an edit",
+      "testTargets": [
+        "T01",
+        "T02",
+        "T03",
+        "T04",
+        "T05",
+        "T06"
+      ],
+      "codeAnchors": [
+        "src/legacy/application.js:trend display",
+        "src/domain/migrations.js:score normalization"
+      ],
+      "diagnosticRepro": "tests/gradesheet.test.js",
+      "automatedFix": {
+        "status": "independently_reviewed_technical_closed",
+        "tests": [
+          "tests/gradesheet.test.js",
+          "tests/grading.test.js",
+          "tests/term-results.test.js",
+          "tests/uppersec-context.test.js",
+          "tests/terms.test.js"
+        ],
+        "focused": "198/198 PASS",
+        "fullSuite": "1220/1220 PASS",
+        "scopeNote": "Sek-II term tables have no trend column; T04 verifies valid zero in the visible term value and point direction in the existing trend calculation.",
+        "finalIntegration": "Aktuelle Regressionstests und Prüfgrenzen: docs/quality/PUBLICATION.md"
+      },
+      "browserAcceptance": "Fresh complete final 1.6.0 desktop acceptance: NOT RUN. Task9 manual repetition ended by explicit user decision 2026-10-05; existing practice reports and bounded partial observations remain as documented in docs/ABNAHME.md, with no new browser PASS. Early M06 architecture gate closed separately 2026-10-04.",
+      "closure": {
+        "scope": "Technical fix and reviewed integration only",
+        "date": "2026-10-05",
+        "tests": [
+          "tests/gradesheet.test.js",
+          "tests/grading.test.js",
+          "tests/term-results.test.js",
+          "tests/release-workflows.test.js"
+        ],
+        "integrationResult": "1344/1344 PASS, exit0, Windows Node22.23.3",
+        "publicProof": "docs/quality/PUBLICATION.md"
+      }
+    }
+  ]
+}
