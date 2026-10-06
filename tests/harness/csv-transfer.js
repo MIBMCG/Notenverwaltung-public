@@ -45,6 +45,9 @@ function installCsvArtifactDependencies(modules, htmlLines) {
   Object.assign(modules.sandbox, modules.sandbox.__csv_import_rules_exports);
 
   const orchestratorSource = [
+    extractFunction(htmlLines, 'getSettingsForCourse'),
+    extractFunction(htmlLines, 'resolveSchoolYearBoundaries'),
+    extractFunction(htmlLines, 'resolveAssessmentTermFromDateValue'),
     extractFunction(htmlLines, 'createInitialAssessmentsForCourse'),
     extractFunction(htmlLines, 'updateStudentCreatedInCurrentCsv'),
     extractFunction(htmlLines, 'createCsvImportOrchestrator'),

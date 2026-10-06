@@ -12,6 +12,8 @@ import {
   findCompatibleCsvStudent
 } from './csv-import-rules.js';
 import { createInitialAssessmentsForCourse } from '../domain/initial-assessments.js';
+import { getSettingsForCourse } from '../domain/course-settings.js';
+import { resolveAssessmentTermFromDateValue } from '../domain/terms.js';
 
 function updateStudentCreatedInCurrentCsv(candidate, createdStudentIds, studentId, values) {
   if (!createdStudentIds || !createdStudentIds.has(studentId)) return null;
@@ -24,7 +26,7 @@ function updateStudentCreatedInCurrentCsv(candidate, createdStudentIds, studentI
   return student;
 }
 
-export function createCsvImportOrchestrator({ DomainModel }) {
+export function createCsvImportOrchestrator({ DomainModel, now = () => new Date() }) {
   function prepareCsvImport(csvText, baseState, { excludeStartLines = [] } = {}) {
     if (typeof csvText !== 'string') return { errorMessage: 'CSV-Inhalt ist ungültig.' };
 
@@ -230,7 +232,8 @@ export function createCsvImportOrchestrator({ DomainModel }) {
           importKey: csvCourseKey || null
         });
         DomainModel.addCourseToState(importCandidate, course);
-        createInitialAssessmentsForCourse(DomainModel, importCandidate, course);
+        const initialTerm = resolveAssessmentTermFromDateValue(now(), course, getSettingsForCourse(course, importCandidate));
+        createInitialAssessmentsForCourse(DomainModel, importCandidate, course, initialTerm);
         courseId = course.id;
         if (csvCourseKey) {
           registerUniqueCourseKey(explicitCourseIndex, 'id:' + normLower(csvCourseKey), courseId);

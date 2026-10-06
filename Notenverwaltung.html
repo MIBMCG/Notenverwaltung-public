@@ -6016,7 +6016,7 @@
   }
 
   // src/domain/initial-assessments.js
-  function createInitialAssessmentsForCourse(DomainModel2, state, course) {
+  function createInitialAssessmentsForCourse(DomainModel2, state, course, term = null) {
     if (!course) return;
     const categories = state.settings.categories || [];
     if (!Array.isArray(categories) || categories.length === 0) return;
@@ -6027,13 +6027,15 @@
       courseId: course.id,
       categoryId: oralCategory.id,
       title: "M1",
-      weight: 1
+      weight: 1,
+      term
     }));
     DomainModel2.addAssessmentToState(state, DomainModel2.createAssessment({
       courseId: course.id,
       categoryId: writtenCategory.id,
       title: "S1",
-      weight: 1
+      weight: 1,
+      term
     }));
   }
 
@@ -7249,7 +7251,7 @@
     if (!student.homeClass && values.homeClass) student.homeClass = values.homeClass;
     return student;
   }
-  function createCsvImportOrchestrator({ DomainModel: DomainModel2 }) {
+  function createCsvImportOrchestrator({ DomainModel: DomainModel2, now = () => /* @__PURE__ */ new Date() }) {
     function prepareCsvImport(csvText, baseState, { excludeStartLines = [] } = {}) {
       if (typeof csvText !== "string") return { errorMessage: "CSV-Inhalt ist ungültig." };
       const rows = parseSemicolonCsv(csvText.replace(/^\uFEFF/, ""));
@@ -7444,7 +7446,8 @@
             importKey: csvCourseKey || null
           });
           DomainModel2.addCourseToState(importCandidate, course);
-          createInitialAssessmentsForCourse(DomainModel2, importCandidate, course);
+          const initialTerm = resolveAssessmentTermFromDateValue(now(), course, getSettingsForCourse(course, importCandidate));
+          createInitialAssessmentsForCourse(DomainModel2, importCandidate, course, initialTerm);
           courseId = course.id;
           if (csvCourseKey) {
             registerUniqueCourseKey(explicitCourseIndex, "id:" + normLower(csvCourseKey), courseId);
@@ -16189,7 +16192,10 @@
                 })) throw new Error("Die ausgewählte Gewichtungsvorlage ist nicht mehr verfügbar.");
                 const course = DomainModel.createCourse(input);
                 DomainModel.addCourseToState(candidate, course);
-                if (input.createInitialAssessments) createInitialAssessmentsForCourse(DomainModel, candidate, course);
+                if (input.createInitialAssessments) {
+                  const initialTerm = resolveAssessmentTermFromDateValue2(/* @__PURE__ */ new Date(), course, getSettingsForCourse(course, candidate));
+                  createInitialAssessmentsForCourse(DomainModel, candidate, course, initialTerm);
+                }
                 createdCourseId = course.id;
               }, { render: false });
               currentCourseId = createdCourseId;
@@ -20409,23 +20415,30 @@ ${buildPrintHeaderCss()}
         }
         async function deleteAssessment(assessmentId) {
           const assessment = DomainModel.findAssessmentById(state, assessmentId);
-          if (!assessment) return false;
+          if (!isAssessmentInManagementScope(assessment)) return false;
           const ok = window.confirm(
             "Diese Leistung inkl. aller eingetragenen Noten wirklich löschen?"
           );
           if (!ok) return false;
           try {
-            return await persistAssessmentDeletionWithRollback(assessmentId, commitStateChange);
+            return await persistAssessmentDeletionWithRollback(assessmentId, function(change) {
+              return commitStateChange(function(candidate) {
+                requireManagedAssessment(candidate, assessmentId);
+                change(candidate);
+              });
+            });
           } catch (error) {
             console.error("Leistung konnte nicht gelöscht werden:", error);
             window.alert(
-              "Die Leistung wurde nicht gelöscht, weil das verschlüsselte Speichern fehlgeschlagen ist. Bitte versuchen Sie es erneut."
+              "Die Leistung wurde nicht gelöscht. Bitte prüfen und erneut versuchen. " + error.message
             );
             return false;
           }
         }
         let allowedTerms = [];
         function editAssessment(assessment) {
+          assessment = DomainModel.findAssessmentById(state, assessment.id);
+          if (!isAssessmentInManagementScope(assessment)) return;
           const overlay = document.createElement("div");
           overlay.style.position = "fixed";
           overlay.style.top = "0";
@@ -20674,7 +20687,7 @@ ${buildPrintHeaderCss()}
             saveStatus.textContent = "";
             try {
               await commitStateChange(function(candidate) {
-                const candidateAssessment = requireAssessment(candidate, assessmentId);
+                const candidateAssessment = requireManagedAssessment(candidate, assessmentId);
                 const candidateCourse = requireActiveCourse(candidate, candidateAssessment.courseId);
                 const candidateCategory = (candidate.settings.categories || []).find(function(item) {
                   return item.id === input.categoryId && item.active;
@@ -20821,14 +20834,29 @@ ${buildPrintHeaderCss()}
           const h = parseInt(m[2], 10);
           return h === 1 ? `${y}-H2` : `${y + 1}-H1`;
         }
-        function getTermValue(asm, fallback) {
+        function getTermValue(asm, fallback, termCourse = course, termState = state) {
           if (!asm) return fallback || null;
           if (asm.term) return asm.term;
           if (asm.date) {
-            const t = deriveTermFromDateValue(new Date(asm.date), course);
+            const t = resolveGradesheetTermFromDateValue(parseAssessmentDateValue(asm.date), termCourse, termState);
             if (t) return t;
           }
           return fallback || null;
+        }
+        function isAssessmentInManagementScope(assessment, candidateState = state) {
+          if (!assessment || assessment.courseId !== course.id) return false;
+          const candidateCourse = DomainModel.findCourseById(candidateState, course.id);
+          if (!candidateCourse || candidateCourse.archivedAt) return false;
+          const currentTerm = resolveGradesheetTermFromDateValue(/* @__PURE__ */ new Date(), candidateCourse, candidateState);
+          const assessmentTerm = getTermValue(assessment, null, candidateCourse, candidateState);
+          return !!currentTerm && (assessmentTerm === currentTerm || assessmentTerm === computeNextTerm(currentTerm));
+        }
+        function requireManagedAssessment(candidate, assessmentId) {
+          const assessment = requireAssessment(candidate, assessmentId);
+          if (!isAssessmentInManagementScope(assessment, candidate)) {
+            throw new Error("Leistungen können nur im aktuellen oder nächsten Halbjahr bearbeitet oder gelöscht werden.");
+          }
+          return assessment;
         }
         function setGradesheetEntryAccessibleNames(input, statusSelect, student, assessment, fallbackTerm) {
           const studentName = [student.lastName, student.firstName].filter(Boolean).join(", ") || "Schüler";
@@ -21306,16 +21334,17 @@ ${buildPrintHeaderCss()}
           return;
         }
         const enrollments = DomainModel.listEnrollmentsForCourse(state, course.id);
+        const managedAssessments = assessmentsAll.filter((assessment) => isAssessmentInManagementScope(assessment));
         const assessmentManagement = document.createElement("details");
         assessmentManagement.className = "gradesheet-assessment-management";
-        assessmentManagement.open = assessmentsAll.length === 0;
+        assessmentManagement.open = managedAssessments.length === 0;
         const assessmentManagementSummary = document.createElement("summary");
         assessmentManagementSummary.textContent = "Leistungen verwalten";
         assessmentManagement.appendChild(assessmentManagementSummary);
         const newAsmBox = document.createElement("details");
         newAsmBox.id = "gradesheet-new-assessment";
         newAsmBox.className = "info-box gradesheet-disclosure gradesheet-create";
-        newAsmBox.open = assessmentsAll.length === 0;
+        newAsmBox.open = managedAssessments.length === 0;
         const newAsmSummary = document.createElement("summary");
         newAsmSummary.textContent = "Neue Leistung anlegen";
         newAsmBox.appendChild(newAsmSummary);
@@ -21619,13 +21648,13 @@ ${buildPrintHeaderCss()}
             catSelect.focus();
           });
         }
-        if (assessmentsAll.length > 0) {
+        if (managedAssessments.length > 0) {
           const assessmentList = document.createElement("div");
           assessmentList.className = "gradesheet-assessment-list";
           const assessmentListTitle = document.createElement("h3");
-          assessmentListTitle.textContent = "Vorhandene Leistungen";
+          assessmentListTitle.textContent = "Leistungen im aktuellen und nächsten Halbjahr";
           assessmentList.appendChild(assessmentListTitle);
-          for (const assessment of assessmentsAll) {
+          for (const assessment of managedAssessments) {
             const assessmentRow = document.createElement("div");
             assessmentRow.className = "gradesheet-assessment-list-row";
             const assessmentDescription = document.createElement("div");
