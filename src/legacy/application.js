@@ -3,7 +3,7 @@ import { createGradingLogic } from '../domain/grading-logic.js';
 import { createInitialState } from '../domain/initial-state.js';
 import { createInitialAssessmentsForCourse } from '../domain/initial-assessments.js';
 import { getSettingsForCourse } from '../domain/course-settings.js';
-import { resolveAssessmentTermFromDateValue } from '../domain/terms.js';
+import { parseAssessmentDateValue, resolveAssessmentTermFromDateValue } from '../domain/terms.js';
 import {
   parseCalendarDate,
   calendarDateToLocalDate,
@@ -3618,7 +3618,10 @@ const DISPLAY_TIME_ZONE = Intl.DateTimeFormat().resolvedOptions().timeZone;
                   })) throw new Error('Die ausgewählte Gewichtungsvorlage ist nicht mehr verfügbar.');
                   const course = DomainModel.createCourse(input);
                   DomainModel.addCourseToState(candidate, course);
-                  if (input.createInitialAssessments) createInitialAssessmentsForCourse(DomainModel, candidate, course);
+                  if (input.createInitialAssessments) {
+                    const initialTerm = resolveAssessmentTermFromDateValue(new Date(), course, getSettingsForCourse(course, candidate));
+                    createInitialAssessmentsForCourse(DomainModel, candidate, course, initialTerm);
+                  }
                   createdCourseId = course.id;
                 }, { render: false });
                 currentCourseId = createdCourseId;
@@ -8283,18 +8286,22 @@ ${buildPrintHeaderCss()}
 
           async function deleteAssessment(assessmentId) {
             const assessment = DomainModel.findAssessmentById(state, assessmentId);
-            if (!assessment) return false;
+            if (!isAssessmentInManagementScope(assessment)) return false;
             const ok = window.confirm(
               "Diese Leistung inkl. aller eingetragenen Noten wirklich löschen?"
             );
             if (!ok) return false;
             try {
-              return await persistAssessmentDeletionWithRollback(assessmentId, commitStateChange);
+              return await persistAssessmentDeletionWithRollback(assessmentId, function (change) {
+                return commitStateChange(function (candidate) {
+                  requireManagedAssessment(candidate, assessmentId);
+                  change(candidate);
+                });
+              });
             } catch (error) {
               console.error("Leistung konnte nicht gelöscht werden:", error);
               window.alert(
-                "Die Leistung wurde nicht gelöscht, weil das verschlüsselte Speichern fehlgeschlagen ist. " +
-                "Bitte versuchen Sie es erneut."
+                "Die Leistung wurde nicht gelöscht. Bitte prüfen und erneut versuchen. " + error.message
               );
               return false;
             }
@@ -8304,6 +8311,8 @@ ${buildPrintHeaderCss()}
           let allowedTerms = [];
 
           function editAssessment(assessment) {
+            assessment = DomainModel.findAssessmentById(state, assessment.id);
+            if (!isAssessmentInManagementScope(assessment)) return;
             // Modal zum Bearbeiten der Leistung
             const overlay = document.createElement("div");
             overlay.style.position = "fixed";
@@ -8603,7 +8612,7 @@ ${buildPrintHeaderCss()}
               saveStatus.textContent = '';
               try {
                 await commitStateChange(function (candidate) {
-                  const candidateAssessment = requireAssessment(candidate, assessmentId);
+                  const candidateAssessment = requireManagedAssessment(candidate, assessmentId);
                   const candidateCourse = requireActiveCourse(candidate, candidateAssessment.courseId);
                   const candidateCategory = (candidate.settings.categories || []).find(function (item) {
                     return item.id === input.categoryId && item.active;
@@ -8755,14 +8764,31 @@ ${buildPrintHeaderCss()}
             const h = parseInt(m[2], 10);
             return h === 1 ? `${y}-H2` : `${y + 1}-H1`;
           }
-          function getTermValue(asm, fallback) {
+          function getTermValue(asm, fallback, termCourse = course, termState = state) {
             if (!asm) return fallback || null;
             if (asm.term) return asm.term;
             if (asm.date) {
-              const t = deriveTermFromDateValue(new Date(asm.date), course);
+              const t = resolveGradesheetTermFromDateValue(parseAssessmentDateValue(asm.date), termCourse, termState);
               if (t) return t;
             }
             return fallback || null;
+          }
+
+          function isAssessmentInManagementScope(assessment, candidateState = state) {
+            if (!assessment || assessment.courseId !== course.id) return false;
+            const candidateCourse = DomainModel.findCourseById(candidateState, course.id);
+            if (!candidateCourse || candidateCourse.archivedAt) return false;
+            const currentTerm = resolveGradesheetTermFromDateValue(new Date(), candidateCourse, candidateState);
+            const assessmentTerm = getTermValue(assessment, null, candidateCourse, candidateState);
+            return !!currentTerm && (assessmentTerm === currentTerm || assessmentTerm === computeNextTerm(currentTerm));
+          }
+
+          function requireManagedAssessment(candidate, assessmentId) {
+            const assessment = requireAssessment(candidate, assessmentId);
+            if (!isAssessmentInManagementScope(assessment, candidate)) {
+              throw new Error('Leistungen können nur im aktuellen oder nächsten Halbjahr bearbeitet oder gelöscht werden.');
+            }
+            return assessment;
           }
 
           function setGradesheetEntryAccessibleNames(input, statusSelect, student, assessment, fallbackTerm) {
@@ -9233,10 +9259,11 @@ ${buildPrintHeaderCss()}
 
           const enrollments = DomainModel.listEnrollmentsForCourse(state, course.id);
 
-          // Kompakte Leistungsverwaltung mit unverändertem Anlage- und Bearbeitungsweg
+          // Frühere Leistungen bleiben für Auswertungen gespeichert, sind hier aber nicht bearbeitbar.
+          const managedAssessments = assessmentsAll.filter(assessment => isAssessmentInManagementScope(assessment));
           const assessmentManagement = document.createElement('details');
           assessmentManagement.className = 'gradesheet-assessment-management';
-          assessmentManagement.open = assessmentsAll.length === 0;
+          assessmentManagement.open = managedAssessments.length === 0;
           const assessmentManagementSummary = document.createElement('summary');
           assessmentManagementSummary.textContent = 'Leistungen verwalten';
           assessmentManagement.appendChild(assessmentManagementSummary);
@@ -9245,7 +9272,7 @@ ${buildPrintHeaderCss()}
           const newAsmBox = document.createElement("details");
           newAsmBox.id = 'gradesheet-new-assessment';
           newAsmBox.className = "info-box gradesheet-disclosure gradesheet-create";
-          newAsmBox.open = assessmentsAll.length === 0;
+          newAsmBox.open = managedAssessments.length === 0;
 
           const newAsmSummary = document.createElement("summary");
           newAsmSummary.textContent = "Neue Leistung anlegen";
@@ -9606,13 +9633,13 @@ ${buildPrintHeaderCss()}
             });
           }
 
-          if (assessmentsAll.length > 0) {
+          if (managedAssessments.length > 0) {
             const assessmentList = document.createElement('div');
             assessmentList.className = 'gradesheet-assessment-list';
             const assessmentListTitle = document.createElement('h3');
-            assessmentListTitle.textContent = 'Vorhandene Leistungen';
+            assessmentListTitle.textContent = 'Leistungen im aktuellen und nächsten Halbjahr';
             assessmentList.appendChild(assessmentListTitle);
-            for (const assessment of assessmentsAll) {
+            for (const assessment of managedAssessments) {
               const assessmentRow = document.createElement('div');
               assessmentRow.className = 'gradesheet-assessment-list-row';
               const assessmentDescription = document.createElement('div');

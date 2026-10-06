@@ -1,4 +1,4 @@
-export function createInitialAssessmentsForCourse(DomainModel, state, course) {
+export function createInitialAssessmentsForCourse(DomainModel, state, course, term = null) {
   if (!course) return;
   const categories = state.settings.categories || [];
   if (!Array.isArray(categories) || categories.length === 0) return;
@@ -8,9 +8,9 @@ export function createInitialAssessmentsForCourse(DomainModel, state, course) {
   if (!oralCategory || !writtenCategory) return;
 
   DomainModel.addAssessmentToState(state, DomainModel.createAssessment({
-    courseId: course.id, categoryId: oralCategory.id, title: 'M1', weight: 1
+    courseId: course.id, categoryId: oralCategory.id, title: 'M1', weight: 1, term
   }));
   DomainModel.addAssessmentToState(state, DomainModel.createAssessment({
-    courseId: course.id, categoryId: writtenCategory.id, title: 'S1', weight: 1
+    courseId: course.id, categoryId: writtenCategory.id, title: 'S1', weight: 1, term
   }));
 }

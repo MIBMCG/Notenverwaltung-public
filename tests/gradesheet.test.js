@@ -329,6 +329,7 @@ function loadGradesheetRenderer(overrides = {}, moduleOptions = {}) {
     'globalThis.__renderGradesheet = renderGradesheetSection;';
   Object.assign(modules.sandbox, {
     document,
+    parseAssessmentDateValue: modules.sandbox.__terms_exports.parseAssessmentDateValue,
     window: { alert() {}, confirm() { return true; } },
     gradesheetView: 'entry',
     requestGradesheetAnnualView() {},
@@ -1206,7 +1207,7 @@ test('assessment editor preserves an explicit manual term until automatic assign
   assert.equal(confirmedAssessment.termAssignment, 'auto');
 });
 
-test('assessment editor preserves an out-of-window manual term across an unrelated edit and encrypted reload', async () => {
+test('assessment management preserves hidden historical grades across a next-term edit and encrypted reload', async () => {
   const storage = localStorageStub();
   const password = 'Synthetisches-Editorpasswort-2026';
   const DateImpl = fixedDateClass('2026-09-15');
@@ -1222,6 +1223,12 @@ test('assessment editor preserves an out-of-window manual term across an unrelat
     term: '2023-H2'
   });
   assessment.termAssignment = 'manual';
+  setScore(modules, assessment, ctx.students[0].id, '11');
+  const nextAssessment = addAssessment(modules, ctx, {
+    categoryId: ctx.categoryIds.written,
+    title: 'Geplante Leistung',
+    term: '2026-H2'
+  });
   await modules.sessionReady;
   await modules.Storage.enableEncryption(password, ctx.state);
   Object.assign(modules.sandbox, { state: ctx.state, currentCourseId: ctx.course.id });
@@ -1235,9 +1242,10 @@ test('assessment editor preserves an out-of-window manual term across an unrelat
   render(container);
 
   const management = findDetailsBySummary(container, 'Leistungen verwalten');
+  assert.equal(collectTextContent(management).includes('Historische manuelle Leistung'), false);
   const editButton = collectElements(management, element =>
     element.tagName === 'button' &&
-    element.attributes.get('aria-label') === 'Leistung „Historische manuelle Leistung“ bearbeiten'
+    element.attributes.get('aria-label') === 'Leistung „Geplante Leistung“ bearbeiten'
   )[0];
   await editButton.dispatch('click');
   const dialog = collectElements(document.body, element =>
@@ -1246,8 +1254,7 @@ test('assessment editor preserves an out-of-window manual term across an unrelat
   const termSelect = collectElements(dialog, element =>
     element.tagName === 'select' && element.children.some(option => option.value === 'auto')
   )[0];
-  assert.equal(termSelect.value, '2023-H2');
-  assert.ok(termSelect.children.some(option => option.value === '2023-H2'));
+  assert.equal(termSelect.value, '2026-H2');
 
   const titleInput = collectElements(dialog, element => element.tagName === 'input' && element.type === 'text')[0];
   titleInput.value = 'Nur Titel geändert';
@@ -1261,9 +1268,11 @@ test('assessment editor preserves an out-of-window manual term across an unrelat
   await storageReader.sessionCoordinator.acquire();
   const reloaded = await storageReader.Storage.loadState();
   const stored = reloaded.assessments.find(candidate => candidate.id === assessment.id);
-  assert.equal(stored.title, 'Nur Titel geändert');
+  assert.equal(stored.title, 'Historische manuelle Leistung');
   assert.equal(stored.term, '2023-H2');
   assert.equal(stored.termAssignment, 'manual');
+  assert.equal(stored.scores[ctx.students[0].id].valueRaw, '11');
+  assert.equal(reloaded.assessments.find(candidate => candidate.id === nextAssessment.id).title, 'Nur Titel geändert');
 });
 
 test('half-year creation keeps Q2 for a second add while real saves delay the replacement render', async () => {
@@ -1848,6 +1857,196 @@ test('gradesheet keeps assessment management reachable outside compact table hea
   // Der reale Löschhandler bleibt verbunden; Abbruch muss die Leistung unverändert lassen.
   await deleteButton.dispatch('click');
   assert.equal(modules.DomainModel.findAssessmentById(ctx.state, assessment.id), assessment);
+});
+
+for (const schemaMode of ['grades', 'uppersec']) {
+  for (const scenario of [
+    { date: '2026-09-15', current: '2026-H1', next: '2026-H2', previous: '2025-H2', later: '2027-H1' },
+    { date: '2027-03-15', current: '2026-H2', next: '2027-H1', previous: '2026-H1', later: '2027-H2' }
+  ]) {
+    test(`assessment management lists only current and next terms (${schemaMode}, ${scenario.current})`, () => {
+      const { modules, document, render } = loadGradesheetRenderer({}, { dateImpl: fixedDateClass(scenario.date) });
+      const ctx = buildCourseState(modules, { schemaMode, studentCount: 1 });
+      if (schemaMode === 'uppersec') configureQ1Q2Course(modules, ctx.course);
+      const fixtures = [
+        { title: 'Vorjahr', term: '2024-H1' },
+        { title: 'Vorheriges Halbjahr', term: scenario.previous },
+        { title: 'Manuell historisch', term: scenario.previous, date: scenario.date, termAssignment: 'manual' },
+        { title: 'Historisch nach Datum', date: '2024-10-01' },
+        { title: 'Aktuell', term: scenario.current },
+        { title: 'Geplant', term: scenario.next },
+        { title: 'Manuell aktuell', term: scenario.current, date: '2024-10-01', termAssignment: 'manual' },
+        { title: 'Aktuell nach Datum', date: scenario.date },
+        { title: 'Ausgeblendete aktuelle Leistung', term: scenario.current, visible: false },
+        { title: 'Späteres Halbjahr', term: scenario.later }
+      ];
+      for (const fixture of fixtures) {
+        addAssessment(modules, ctx, { categoryId: ctx.categoryIds.written, ...fixture });
+      }
+      const originalAssessments = JSON.stringify(ctx.state.assessments);
+      Object.assign(modules.sandbox, { state: ctx.state, currentCourseId: ctx.course.id });
+      const container = document.createElement('main');
+      render(container);
+
+      const management = findDetailsBySummary(container, 'Leistungen verwalten');
+      const rows = collectElements(management, element => element.className === 'gradesheet-assessment-list-row');
+      assert.deepEqual(rows.map(row => collectElements(row, element => element.tagName === 'strong')[0].textContent),
+        ['Aktuell', 'Geplant', 'Manuell aktuell', 'Aktuell nach Datum', 'Ausgeblendete aktuelle Leistung']);
+      for (const row of rows) {
+        assert.equal(collectElements(row, element => element.title === 'Leistung bearbeiten').length, 1);
+        assert.equal(collectElements(row, element => element.title === 'Leistung löschen').length, 1);
+      }
+      assert.equal(JSON.stringify(modules.sandbox.state.assessments), originalAssessments,
+        'filtering management must not remove or alter stored assessments');
+    });
+  }
+}
+
+test('assessment management keeps newly created M1 and S1 available without reloading', () => {
+  const DateImpl = fixedDateClass('2026-03-15');
+  const { modules, document, render } = loadGradesheetRenderer({}, { dateImpl: DateImpl });
+  const ctx = buildCourseState(modules, { studentCount: 1 });
+  const { createInitialAssessmentsForCourse } = loadEsmGraph('src/domain/initial-assessments.js').exports;
+  const initialTerm = modules.GradingLogic.resolveAssessmentTermFromDateValue(new DateImpl(), ctx.course, ctx.state.settings);
+  createInitialAssessmentsForCourse(modules.DomainModel, ctx.state, ctx.course, initialTerm);
+  Object.assign(modules.sandbox, { state: ctx.state, currentCourseId: ctx.course.id });
+  const container = document.createElement('main');
+  render(container);
+
+  const management = findDetailsBySummary(container, 'Leistungen verwalten');
+  assert.deepEqual(collectElements(management, element => element.tagName === 'strong').map(element => element.textContent), ['M1', 'S1']);
+  assert.equal(collectElements(management, element => element.title === 'Leistung bearbeiten').length, 2);
+  assert.equal(collectElements(management, element => element.title === 'Leistung löschen').length, 2);
+  assert.ok(ctx.state.assessments.every(assessment => assessment.term === '2025-H2'));
+});
+
+test('assessment management respects local calendar boundaries and timestamp instants', { concurrency: false }, () => {
+  const previousTimezone = process.env.TZ;
+  process.env.TZ = 'America/Los_Angeles';
+  try {
+    for (const h2StartDay of [9, 20]) {
+      const { modules, document, render } = loadGradesheetRenderer();
+      const ctx = buildCourseState(modules, { studentCount: 1 });
+      ctx.course.termCutoffs = { h1EndMonth: 2, h1EndDay: h2StartDay - 1, h2StartMonth: 2, h2StartDay };
+      const firstDate = `2026-02-${String(h2StartDay).padStart(2, '0')}`;
+      const fixtures = [
+        { title: 'Erster Tag H2', date: firstDate },
+        { title: 'Zeitpunkt vor H2', date: firstDate + 'T00:00:00Z' },
+        { title: 'Erster Tag nächstes H1', date: '2026-09-08' },
+        { title: 'Erster Tag übernächstes H2', date: `2027-02-${String(h2StartDay).padStart(2, '0')}` }
+      ];
+      for (const fixture of fixtures) addAssessment(modules, ctx, { categoryId: ctx.categoryIds.written, ...fixture });
+      Object.assign(modules.sandbox, { state: ctx.state, currentCourseId: ctx.course.id });
+      const container = document.createElement('main');
+      render(container);
+
+      const management = findDetailsBySummary(container, 'Leistungen verwalten');
+      const rows = collectElements(management, element => element.className === 'gradesheet-assessment-list-row');
+      assert.deepEqual(rows.map(row => collectElements(row, element => element.tagName === 'strong')[0].textContent),
+        ['Erster Tag H2', 'Erster Tag nächstes H1']);
+      assert.match(collectTextContent(rows[0]), /25\/26 H2/);
+      assert.match(collectTextContent(rows[1]), /26\/27 H1/);
+    }
+  } finally {
+    if (previousTimezone === undefined) delete process.env.TZ;
+    else process.env.TZ = previousTimezone;
+  }
+});
+
+test('assessment management opens creation when only historical assessments exist', () => {
+  const { modules, document, render } = loadGradesheetRenderer();
+  const ctx = buildCourseState(modules, { studentCount: 1 });
+  addAssessment(modules, ctx, { categoryId: ctx.categoryIds.written, title: 'Alte Leistung', term: '2025-H1' });
+  Object.assign(modules.sandbox, { state: ctx.state, currentCourseId: ctx.course.id });
+  const container = document.createElement('main');
+  render(container);
+
+  const management = findDetailsBySummary(container, 'Leistungen verwalten');
+  assert.equal(collectElements(management, element => element.title === 'Leistung bearbeiten' || element.title === 'Leistung löschen').length, 0);
+  assert.equal(management.open, true);
+  assert.equal(findDetailsBySummary(management, 'Neue Leistung anlegen').open, true);
+  assert.equal(modules.sandbox.state.assessments.length, 1);
+});
+
+test('assessment management rejects stale edit and delete actions after a half-year rollover', async () => {
+  let confirmations = 0;
+  let saves = 0;
+  const { modules, document, render } = loadGradesheetRenderer({
+    window: { alert() {}, confirm() { confirmations += 1; return true; } },
+    persistState() { saves += 1; }
+  }, { dateImpl: fixedDateClass('2026-09-15') });
+  const ctx = buildCourseState(modules, { studentCount: 1 });
+  addAssessment(modules, ctx, { categoryId: ctx.categoryIds.written, term: '2026-H1' });
+  Object.assign(modules.sandbox, { state: ctx.state, currentCourseId: ctx.course.id });
+  const originalAssessments = JSON.stringify(ctx.state.assessments);
+  const container = document.createElement('main');
+  document.body.appendChild(container);
+  render(container);
+  const management = findDetailsBySummary(container, 'Leistungen verwalten');
+  const edit = collectElements(management, element => element.title === 'Leistung bearbeiten')[0];
+  const remove = collectElements(management, element => element.title === 'Leistung löschen')[0];
+
+  modules.sandbox.Date = fixedDateClass('2027-03-15');
+  await edit.dispatch('click');
+  await remove.dispatch('click');
+
+  assert.equal(collectElements(document.body, element => element.tagName === 'h3' && element.textContent === 'Leistung bearbeiten').length, 0);
+  assert.equal(confirmations, 0);
+  assert.equal(saves, 0);
+  assert.equal(JSON.stringify(modules.sandbox.state.assessments), originalAssessments);
+});
+
+test('assessment management rejects saving an open editor after a half-year rollover', async () => {
+  let saves = 0;
+  const { modules, document, render } = loadGradesheetRenderer({
+    persistState() { saves += 1; }
+  }, { dateImpl: fixedDateClass('2026-09-15') });
+  const ctx = buildCourseState(modules, { studentCount: 1 });
+  addAssessment(modules, ctx, { categoryId: ctx.categoryIds.written, term: '2026-H1' });
+  Object.assign(modules.sandbox, { state: ctx.state, currentCourseId: ctx.course.id });
+  const originalAssessments = JSON.stringify(ctx.state.assessments);
+  const container = document.createElement('main');
+  document.body.appendChild(container);
+  render(container);
+  const management = findDetailsBySummary(container, 'Leistungen verwalten');
+  await collectElements(management, element => element.title === 'Leistung bearbeiten')[0].dispatch('click');
+  const dialog = collectElements(document.body, element => element.tagName === 'h3' && element.textContent === 'Leistung bearbeiten')[0].parentNode;
+  collectElements(dialog, element => element.tagName === 'input' && element.type === 'text')[0].value = 'Veraltete Änderung';
+  modules.sandbox.Date = fixedDateClass('2027-03-15');
+  await collectElements(dialog, element => element.tagName === 'button' && element.textContent === 'Speichern')[0].dispatch('click');
+
+  assert.equal(saves, 0);
+  assert.equal(JSON.stringify(modules.sandbox.state.assessments), originalAssessments);
+  assert.match(collectTextContent(dialog), /nicht gespeichert.*Halbjahr/);
+});
+
+test('assessment management rechecks a queued deletion after a half-year rollover', async () => {
+  const pendingSave = deferred();
+  let saves = 0;
+  const alerts = [];
+  const { modules, document, render } = loadGradesheetRenderer({
+    window: { alert(message) { alerts.push(message); }, confirm() { return true; } },
+    persistState() { saves += 1; return pendingSave.promise; }
+  }, { dateImpl: fixedDateClass('2026-09-15') });
+  const ctx = buildCourseState(modules, { studentCount: 1 });
+  addAssessment(modules, ctx, { categoryId: ctx.categoryIds.written, term: '2026-H1' });
+  Object.assign(modules.sandbox, { state: ctx.state, currentCourseId: ctx.course.id });
+  const originalAssessments = JSON.stringify(ctx.state.assessments);
+  const container = document.createElement('main');
+  render(container);
+  const firstCommit = modules.sandbox.commitStateChange(candidate => {
+    candidate.courses[0].name = 'Umbenannter Testkurs';
+  }, { render: false });
+  await new Promise(resolve => setImmediate(resolve));
+  const deleting = collectElements(container, element => element.title === 'Leistung löschen')[0].dispatch('click');
+  modules.sandbox.Date = fixedDateClass('2027-03-15');
+  pendingSave.resolve();
+  await Promise.all([firstCommit, deleting]);
+
+  assert.equal(saves, 1, 'the stale deletion must not start a second persistence attempt');
+  assert.equal(JSON.stringify(modules.sandbox.state.assessments), originalAssessments);
+  assert.equal(alerts.length, 1);
+  assert.match(alerts[0], /nicht gelöscht.*Halbjahr/);
 });
 
 test('name search filters existing rows only after all visible grade drafts finish cleanly', async () => {
@@ -3597,7 +3796,7 @@ test('M19: assessment create and edit use the shared candidate commit without a 
   const editEnd = section.indexOf('const cancelBtn', editStart);
   const editCommit = section.slice(editStart, editEnd);
   assert.doesNotMatch(editCommit, /Storage\.saveState\(state\)/);
-  assert.match(editCommit, /requireAssessment\(candidate, assessmentId\)/);
+  assert.match(editCommit, /requireManagedAssessment\(candidate, assessmentId\)/);
   assert.match(editCommit, /requireActiveCourse\(candidate, candidateAssessment\.courseId\)/);
 
   const createStart = section.indexOf('const courseId = course.id;');
