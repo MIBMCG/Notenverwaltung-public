@@ -59,9 +59,9 @@ const DISPLAY_TIME_ZONE = Intl.DateTimeFormat().resolvedOptions().timeZone;
 
     // Sichtbare Programmversion. Unabhängig von state.version, das nur das Datenformat bezeichnet.
     const APP_RELEASE = Object.freeze({
-      version: "1.6.0",
-      dateIso: "2026-10-06",
-      dateLabel: "06.10.2026"
+  version: "1.7.0",
+  dateIso: "2026-10-16",
+  dateLabel: "16.10.2026"
     });
 
     // ------------------------------------------------------

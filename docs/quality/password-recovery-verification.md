@@ -1,6 +1,6 @@
 # Passwortwiederherstellung – Implementierungsnachweis
 
-Stand: 16.10.2026. Lokale, unveröffentlichte Weiterentwicklung auf Basis der
+Historischer Prüfstand vom 16.10.2026 vor der Versionierung: Weiterentwicklung auf Basis der
 öffentlichen Version 1.6.0 (`09b8b42`) und der geprüften Speicherhärtung (`289e7ae`).
 Produktstand: `684dbc9a88aabb7d27bf90fac55f7ffde333c573`, Branch
 `codex/password-recovery`. Die nachfolgende Dokumentation und Entfernung einer
@@ -64,8 +64,40 @@ SHA-256 der geprüften `Notenverwaltung.html`:
 
 Die DOM-/HTML-Prüfungen liefen im Node-Testharness. Native Safari/macOS- und
 Chrome-Bedienung, tatsächlicher Druck, Zielgeräte-Laufzeit und physische
-Crash-Durabilität sind nicht nachgewiesen. Vor Veröffentlichung mit synthetischen
-Daten prüfen: vollständige Einrichtung samt Ausdruck/Rückeingabe, Neustart und
+Crash-Durabilität sind nicht nachgewiesen. Ergänzende Zielgeräteprüfungen mit synthetischen
+Daten umfassen: vollständige Einrichtung samt Ausdruck/Rückeingabe, Neustart und
 Recovery, Dateiaustausch, freiwillige Nachrüstung, Sperren und parallele Fenster.
-Die Programmversion wurde noch nicht erhöht; Veröffentlichung und Releasepaket
-sind ein eigener nachfolgender Schritt.
+Am oben genannten historischen Produktstand war die Programmversion noch nicht
+erhöht; die anschließende Freigabe ist unten gesondert eingeordnet.
+
+## Ergänzende Nutzerrückmeldung vom 16.10.2026
+
+Der Nutzer hat die neue Testfassung ausprobiert und bestätigt, dass sowohl das
+Nachrüsten eines Wiederherstellungscodes als auch die Wiederherstellung
+funktioniert haben. Beide Benutzerwege sind als erfolgreiche praktische
+Nutzertests dokumentiert. Browser, Betriebssystem, genaue getestete
+Datei/Prüfsumme sowie die Wiederherstellungsvariante (lokaler Bestand oder
+Backup-Datei) wurden nicht genannt. Daraus wird keine Bestätigung beider
+Wiederherstellungsvarianten oder bestimmter Browser/Plattformen abgeleitet.
+Die oben genannten technischen Prüfungen und ihre Artefaktzuordnung bleiben
+unverändert.
+
+## Anschließende Veröffentlichung als 1.7.0
+
+Nach diesen Nutzertests hat der Nutzer am 16.10.2026 ausdrücklich die
+Aktualisierung auf GitHub und die Veröffentlichung der neuen Version beauftragt.
+Version 1.7.0 erhält eigene Releasehinweise und ein neu gebautes Paket. Die
+obigen Testzahlen und die HTML-Prüfsumme bleiben dem historischen Produktstand
+zugeordnet; sie sind keine Prüfsumme des neu versionierten Downloads.
+Der abschließende Stand wird gemäß [Veröffentlichungsablauf](PUBLICATION.md)
+erneut technisch geprüft. GitHub-CI und Release-Metadaten belegen den
+veröffentlichten Commit. Die begrenzte Plattformzuordnung der Nutzertests bleibt
+auch nach der Veröffentlichung bestehen.
+
+Die erneute vollständige Testsuite der versionierten 1.7.0 bestand am 16.10.2026
+unter Windows mit Node 26.11.1: **1.482 von 1.482 Tests, keine Fehler und keine
+übersprungenen Tests**, Exit 0, 95,97 Sekunden. Ein normaler temporärer Ordner
+außerhalb von OneDrive beseitigte die historischen Dateisystem-Umgebungsfehler;
+die Schutzprüfungen blieben unverändert. Auch die 16 Snapshot-Tests wurden zuvor
+separat erfolgreich ausgeführt. Das neue HTML stimmt bytegenau mit den Quellen
+überein; 78 Befunde und alle 42 aktuellen Quellhashes wurden erneut geprüft.

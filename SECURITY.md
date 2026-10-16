@@ -42,6 +42,6 @@ Schließen, Sperren, Besitzerverlust und Abbruch verwerfen offene Codeansichten
 und Vorbereitungen. JavaScript kann keine vollständige Löschung aller zuvor im
 Arbeitsspeicher befindlichen Bytes garantieren. Verschlüsselte lokale Speicherung
 ersetzt weder einen geschützten Rechner und Browser noch getrennte Backups.
-Native Safari-/macOS-Abnahme und physische Crash-Durabilität sind für diese lokale
-Entwicklungsfassung nicht nachgewiesen. Bitte melde Supportfälle ohne echte
+Native Safari-/macOS-Abnahme und physische Crash-Durabilität sind für Version
+1.7.0 nicht nachgewiesen. Bitte melde Supportfälle ohne echte
 Passwörter, Wiederherstellungscodes oder Datenbestände.

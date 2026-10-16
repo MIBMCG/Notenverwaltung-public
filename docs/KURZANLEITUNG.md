@@ -1,15 +1,15 @@
-# Notenverwaltung – Kurzanleitung
+# Notenverwaltung 1.7.0 – Kurzanleitung
 
 Diese Anleitung beschreibt den vorgesehenen Alltag mit der lokalen
 `Notenverwaltung.html`. Die Anwendung benötigt keine Installation und keinen
 Internetanschluss.
 
-Version 1.6.0 ist ein unveröffentlichter Prüfkandidat für Desktop-PCs und
-Laptops. Die abschließende Desktopprüfung und damit die verbindliche Liste
-unterstützter Dateibrowser stehen noch aus. Für Tablets und Smartphones liegt
-keine umfassende Prüfung dieser Fassung vor. Der frühe Dateistarttest mit
-Edge, Chrome und Firefox belegt die Fenstersperre im geprüften Umfang, noch
-nicht die gesamte Bedienung dieser Programmfassung.
+Version 1.7.0 vom 16.10.2026 richtet sich vor allem an Desktop-PCs und Laptops.
+Die Nachrüstung eines Codes und eine Wiederherstellung wurden vom Nutzer
+erfolgreich ausprobiert; Browser, Betriebssystem und Wiederherstellungsvariante
+sind dabei nicht benannt. Eine vollständige Browser- oder Geräteabnahme liegt
+damit nicht vor; insbesondere sind Safari/macOS nicht bestätigt. Den Prüfstand
+und seine Grenzen beschreibt [ABNAHME.md](ABNAHME.md).
 
 ## Anwendung starten
 
@@ -72,8 +72,9 @@ herunter und prüfe den Downloadordner.
 Bei einem bisherigen Bestand ohne Code funktioniert das bisherige Passwort
 weiter. Unter **Einstellungen → Sicherheit** bietet **Wiederherstellungscode jetzt
 einrichten** eine freiwillige Nachrüstung. Dafür bestätigst du dein aktuelles
-Passwort. Die Nachrüstung verwendet ein neues Datenformat: ältere HTML-Versionen
-können neue Bestände und Sicherungen nicht lesen. Eine verschlüsselte Alt-Kopie
+Passwort. Die Nachrüstung verwendet das neue V2-Datenformat: Bestände und
+Sicherungen mit Codezugang benötigen Version 1.7.0 oder neuer. Ältere
+HTML-Versionen können sie nicht lesen. Eine verschlüsselte Alt-Kopie
 kannst du dort herunterladen; sie benötigt weiterhin ihr bisheriges Passwort.
 
 ### Zugang mit Code wiederherstellen
@@ -148,7 +149,8 @@ Fehlt eine verlässliche Fenstersperre, bleibt die Bearbeitung deaktiviert.
 3. Die Sicherung wird mit dem aktuellen lokalen Schutz verschlüsselt. Bei eingerichtetem Codezugang öffnen das aktuelle Passwort oder der zugehörige Code die Datei.
 4. Prüfe anschließend im Downloadordner, ob eine Datei wie
    `notenverwaltung_backup_<Zeitstempel>.enc.json` tatsächlich vorhanden ist.
-5. Bewahre die Datei sicher auf und halte das zugehörige Passwort getrennt fest.
+5. Bewahre die Datei sicher auf und halte das zugehörige Passwort und den
+   gegebenenfalls eingerichteten Code getrennt von der Datei fest.
 
 Die Meldung **„Backup-Download gestartet“** bestätigt nur, dass der Browser den
 Download angestoßen hat. Eine sichtbare Datei bestätigt nur ihre Anwesenheit. Ob sie
@@ -197,8 +199,8 @@ im Klartext enthalten und müssen entsprechend geschützt werden.
    Vor dem Versionswechsel alle Fenster der alten Fassung schließen.
 2. Übertrage eine frische endgültige `Notenverwaltung.html` und die verschlüsselte
    Backup-Datei auf sicherem Weg. Übermittle das Backup-Passwort getrennt.
-3. Öffne auf dem Zielgerät die HTML-Datei im vorgesehenen Browser und richte das
-   Zielpasswort ein.
+3. Öffne auf dem Zielgerät Version 1.7.0 oder neuer im vorgesehenen Browser.
+   Richte das Zielpasswort ein und sichere und bestätige den neuen lokalen Code.
 4. Stelle das Backup wie oben beschrieben wieder her. Auf einem leeren Ziel ist
    **vollständig ersetzen** in der Regel die passende Wahl.
 5. Lade neu, entsperre mit dem Zielpasswort und vergleiche Kurse, Personen,

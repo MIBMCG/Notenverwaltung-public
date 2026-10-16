@@ -1,51 +1,76 @@
-# Abnahme und Prüfgrenzen – Version 1.6.0
+# Abnahme und Prüfgrenzen – Version 1.7.0
 
-**Status: lokal am 06.10.2026 gebaut, unveröffentlicht.** Eine Freigabe für die öffentliche
-Nutzung und eine vollständige Desktopabnahme liegen noch nicht vor. Die letzte
-private Freigabe ist Version 1.5.1. Frühere persönliche Prüfungen der Version
-1.3.0 und technische Zwischenstände belegen nur die jeweils geprüfte Fassung.
+**Stand: 16.10.2026.** Version 1.7.0 ergänzt den Offline-Wiederherstellungscode
+und die Härtung von Speicherübergängen. Der Nutzer hat die Veröffentlichung
+beauftragt. Die folgenden Nachweise beschreiben ihren tatsächlichen Umfang;
+sie sind keine vollständige Freigabe aller Browser und Geräte.
 
 ## Ergebniskategorien
 
-`PASS` bedeutet, dass der benannte Fall am angegebenen Stand tatsächlich
-bestanden wurde. `FAIL` kennzeichnet eine Abweichung. `BLOCKED` bezeichnet
-einen wegen konkreter äußerer Hürde nicht ausführbaren Fall. `NOT RUN`
-bedeutet, dass der geforderte Nachweis noch fehlt. Ein automatisierter Test
-oder DOM-Harness ersetzt keinen realen Desktopbrowser.
+`PASS` bezeichnet einen am genannten Stand tatsächlich bestandenen Fall.
+`FAIL` kennzeichnet eine Abweichung, `BLOCKED` eine konkrete äußere Hürde und
+`NOT RUN` einen fehlenden Nachweis. Automatisierte Tests und DOM-Harnesses
+ersetzen keine Bedienprüfung im realen Browser.
 
 ## Aktueller Stand
 
 | Bereich | Status | Reichweite |
 | --- | --- | --- |
-| Frühes M06-Dateistartgate | PASS | Synthetische `file:`-Probe mit Edge, Chrome und Firefox: gemeinsamer Speicher und wirksame Sperrkonkurrenz, Pfad- und Profilvarianten sowie dokumentierter Neustart. Das belegt die Architekturentscheidung vor der Produktintegration. |
-| Technische Produktkorrekturen | PASS am Task-7-Abschlussstand | Unabhängig geprüfte Korrekturen für Einfensterbetrieb, Abschluss offener Eingaben, Sperren, CSV-Auswahl, Tendenzen und Wiederherstellung/Sicherheitsgrenzen. Die technischen Nachweise sind an ihre jeweiligen Commits gebunden. |
-| Integrierter Quellstand einschließlich Datums- und Textänderungen | PASS (lokal, Node 22.23.3) | 1344/1344 automatisierte Tests; Syntax, Build-Identität, Befundregister, Dokumentlinks und Releasepaket-Regressionen lokal geprüft. Das ist keine reale Browserabnahme und kein CI-Nachweis für den künftigen öffentlichen Commit. |
-| Reale Desktopbedienung von 1.6.0 | Teilweise frisch belegt; weitere Wiederholung ausdrücklich aufgehoben | Edge: gespeicherte 2, sofortige Maskierung sowie Ben leer nach Entsperren als Teilbeobachtungen berichtet; vollständiger L01-D-Fall wegen unbeobachtetem neutralem Zwischenhinweis nicht frisch verifiziert. Start/Zweitfensterblockade und aktuelle Fensterübernahme ebenfalls nur teilweise berichtet. Der Nutzer bestätigt früher durchgeführte Praxisprüfungen und hat weitere manuelle Wiederholungen am 05.10.2026 beendet. Eine frische vollständige Prüfung aller Desktopfälle und Browser wird daraus nicht behauptet. |
-| Öffentlicher Download und Rückkontrolle | NOT RUN | Lokaler Dateibaum und Paket werden für die Freigabe vorbereitet. Repository, Tag, erreichbare Links und anonymer Download stehen noch aus; bei späterem Veröffentlichungstag ist ein neuer Datumsbuild nötig. |
+| Technische Wiederherstellungsfunktion und Speicherhärtung | Geprüft am dokumentierten Implementierungsstand | Tests von Einrichtung, freiwilliger Nachrüstung, lokaler und Datei-Wiederherstellung, Codeprüfung/-ersatz, Passwortwechsel, V1-/V2-Import und Fehlerfällen; unabhängige Reviews ohne offene konkrete Produktbefunde. |
+| Gesamtsuite am Implementierungsstand | Mit bekannten Umgebungsfehlern | Der dokumentierte Lauf enthält 13 Dateisystemfehler, die identisch auf der unveränderten öffentlichen 1.6.0-Basis auftreten (OneDrive-Reparsepunkte und fehlende Symlinkrechte). Das ist kein vollständig grüner Gesamtlauf. |
+| Gesamtsuite der Version 1.7.0 am 16.10.2026 | PASS (Windows, Node 26.11.1) | 1.482 von 1.482 Tests bestanden, keine übersprungen. Ein normaler temporärer Ordner außerhalb von OneDrive beseitigt die genannten Umgebungsfehler, ohne Schutzprüfungen abzuschwächen. Quellstand und HTML sind buildidentisch. |
+| Praktische Nutzerrückmeldung vom 16.10.2026 | PASS im berichteten Umfang | Nachrüstung eines Codes und eine tatsächliche Wiederherstellung erfolgreich. Browser, Betriebssystem, Datei/Prüfsumme und Wiederherstellungsvariante wurden nicht genannt. Beide Recoveryquellen oder bestimmte Plattformen sind damit nicht einzeln bestätigt. |
+| Finales Releasepaket und öffentlicher Download | Eigene Veröffentlichungsprüfung | Build-Identität, CI, Paket und erreichbare Downloads müssen dem finalen Releasecommit zugeordnet werden. Frühere Implementierungsnachweise allein bestätigen das neue Paket nicht. |
+
+Der [Implementierungsnachweis](https://github.com/MIBMCG/Notenverwaltung-public/blob/main/docs/quality/password-recovery-verification.md)
+nennt die geprüften Stände und technischen Einzelbefunde. Die
+[Release-Seite](https://github.com/MIBMCG/Notenverwaltung-public/releases/tag/v1.7.0)
+enthält die Veröffentlichung und ihre Paketprüfsummen. Diese externen Links
+benötigen eine Internetverbindung.
 
 ## Desktop- und Browsergrenzen
 
-Edge und Chrome sind für den vollständigen Windows-Desktopkernlauf vorgesehen.
-Firefox erhält denselben Kernlauf; eine Unterstützungsaussage folgt seinem
-Ergebnis. Das M06-Gate allein gibt keinen dieser Browser für die gesamte
-Version 1.6.0 frei. Safari/macOS sind ohne reale Prüfung nicht verifiziert.
-Für Tablets und Smartphones liegt keine umfassende Prüfung von 1.6.0 vor;
-sie sind kein Freigabegate für die auf Desktop-PCs und Laptops ausgerichtete
-Anwendung.
+Die Anwendung richtet sich vor allem an Desktop-PCs und Laptops. Das frühere
+M06-Dateistartgate mit Edge, Chrome und Firefox belegt die Architektur der
+Fenstersperre im damaligen Umfang; es ist keine vollständige Browserabnahme
+von 1.7.0. Frühere technische Prüfungen und persönliche Stichproben zu 1.6.0
+und älteren Versionen bleiben an ihre damaligen Stände gebunden. Der Nutzer
+hatte die vollständige frische Wiederholung der früheren Desktopmatrix am
+05.10.2026 beendet; daraus werden keine neuen PASS-Nachweise abgeleitet.
 
-Die vollständige frische Wiederholung der Desktopmatrix wurde am 05.10.2026 auf ausdrücklichen Nutzerentscheid beendet; vorhandene Praxisrückmeldungen und aktuelle Teilnachweise bleiben getrennt dokumentiert. Noch nicht frisch belegte Abläufe sind keine neuen PASS-Nachweise. Der technische Gesamtreview und die lokale Kandidatenvorbereitung werden fortgesetzt.
+Native Safari/macOS-Bedienung, tatsächlicher Ausdruck des Codes,
+Zielgeräte-Laufzeit und physische Crash-Durabilität sind nicht nachgewiesen.
+Für Tablets und Smartphones liegt keine umfassende Prüfung dieser Fassung vor.
+Es wird keine verbindliche umfassend geprüfte Browserliste behauptet.
 
-Zum definierten Prüfbereich gehören der lokale `file:`-Start, Einfensterübernahme, Backup und Wiederherstellung,
-Sperr- und Abbruchwege, CSV- und Tendenzänderungen, Offlinebetrieb, Tastatur,
-Zoom, Druck und ein größerer synthetischer Bestand.
-Dabei zählen Browser, Version, Gerät, Windowsversion, Datum,
-Commit und HTML-Prüfsumme. Profil und Öffnungspfad sind getrennt zu erfassen.
-Ein anderes Profil oder ein anderer Dateipfad kann einen eigenen Bestand
-anzeigen. Die HTML-Datei enthält keine eingegebenen Noten; für den Umzug
-ist eine verschlüsselte Backup-Datei erforderlich.
+Eine weitergehende Praxisprüfung sollte mit erfundenen Daten Einrichtung,
+Code sichern/drucken und Rückeingabe, Neustart, beide Recoveryquellen,
+freiwillige Nachrüstung, Backup-Import, Sperren und parallele Fenster abdecken.
+Browser und Version, Betriebssystem, Datum, Programmversion und HTML-Prüfsumme
+sowie Profil und Öffnungspfad gehören jeweils zum Nachweis. Tastatur, Zoom,
+Druck und ein größerer synthetischer Bestand sind gesondert zu prüfen.
 
-Auch nach erfolgreicher Abnahme wäre keine vollständige Prüfung aller
-Geräte, Farbkombinationen oder denkbaren Eingaben behauptet. Eine gestartete
-Backup-Datei ist erst nach Dateiprüfung und kontrollierter Wiederherstellung
-als nutzbare Sicherung belegt. Die Anwendung trifft keine abschließende
-pädagogische Entscheidung über Kursnoten.
+## Grenzen für Sicherung und Umstieg
+
+Die HTML-Datei enthält keine eingegebenen Noten. Für einen Gerätewechsel ist
+ein verschlüsseltes Backup erforderlich. Ein anderer Browser, ein anderes
+Profil oder ein anderer Öffnungspfad kann einen eigenen Bestand anzeigen.
+Vor einem Update sichern und alle Fenster der alten Fassung schließen.
+
+V2-Bestände und Sicherungen mit Codezugang benötigen Version 1.7.0 oder neuer.
+Alte Dateien behalten ihre damaligen Zugangsdaten. Ein gesperrter Altbestand
+ohne zuvor eingerichteten Code ist nicht nachträglich damit entschlüsselbar.
+Passwortwechsel, Codeersatz und Wiederherstellung erzeugen einen neuen Code;
+vorherige Sicherungen ändern sich dadurch nicht.
+
+Ein gestarteter Download belegt nur den Downloadstart. Die Anwesenheit einer
+Datei und eine kontrollierte Wiederherstellungsprobe im getrennten Testbestand
+sind eigene Prüfungen. Die vollständige Wiederherstellung ersetzt nach
+Bestätigung vorhandene Daten; vorab den Zielbestand sichern. Beim normalen
+Import bleiben lokales Passwort und Code erhalten. Die
+[Kurzanleitung](KURZANLEITUNG.md) unterscheidet normalen Import und Wiederherstellung
+mit neuem Schutz.
+
+Auch erfolgreiche Einzelprüfungen bestätigen nicht alle Geräte,
+Farbkombinationen oder denkbaren Eingaben. Abschließende pädagogische
+Entscheidungen über Kursnoten trifft die Lehrkraft.

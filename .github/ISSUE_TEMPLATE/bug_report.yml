@@ -5,12 +5,12 @@ labels: [bug]
 body:
   - type: markdown
     attributes:
-      value: "Bitte ausschließlich erfundene Personen, Kurse und Noten verwenden. Keine Passwörter, Backups, echten Exporte oder privaten Screenshots hochladen. Sicherheitsprobleme nicht als öffentliches Issue melden; siehe SECURITY.md."
+      value: "Bitte ausschließlich erfundene Personen, Kurse und Noten verwenden. Keine Passwörter, Wiederherstellungscodes, Backups, echten Exporte oder privaten Screenshots hochladen. Sicherheitsprobleme nicht als öffentliches Issue melden; siehe SECURITY.md."
   - type: input
     id: version
     attributes:
       label: Programmversion
-      placeholder: "1.6.0"
+      placeholder: "1.7.0"
     validations:
       required: true
   - type: input
