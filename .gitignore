@@ -35,5 +35,6 @@ csv_import_fatal_errors_*.csv
 csv_import_fatal_errors_*.txt
 
 # Local test output
+.superpowers/
 testdaten/
 Testdaten/

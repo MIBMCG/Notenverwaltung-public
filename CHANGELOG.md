@@ -1,6 +1,28 @@
 # Änderungen
 
-## 1.6.0 – unveröffentlichter Prüfkandidat
+## 1.7.0 – 16.10.2026
+
+- Separater Offline-Wiederherstellungscode für lokale Daten und neue Backups.
+  Neue Einrichtungen sichern den Code und bestätigen ihn durch vollständige
+  Rückeingabe; bestehende Bestände können den Zugang freiwillig nachrüsten.
+- Wiederherstellung über den lokalen Bestand oder eine passende Backup-Datei
+  mit neuem Passwort und neuem bestätigtem Code. Codeprüfung, Codeersatz und
+  Passwortwechsel sind unter Einstellungen → Sicherheit erreichbar.
+- Neues verschlüsseltes V2-Format mit getrennten Zugängen über Passwort und
+  Code; benötigt Version 1.7.0 oder neuer. Alte Backups behalten ihre bisherigen
+  Zugangsdaten. Ein gesperrter Altbestand ohne Code ist nicht nachträglich
+  wiederherstellbar. Normaler Import behält Passwort und Code des Zielbestands.
+- Speicherübergänge schützen vor veralteten Sitzungen, konkurrierenden Änderungen
+  und Teilschreibfehlern; vorbereitete Zugangsänderungen schreiben erst nach
+  vollständiger Codebestätigung. Eine verschlüsselte Alt-Kopie sichert den
+  bisherigen Stand beim Umstieg.
+- Erfolgreiche Nutzertests für Nachrüstung und Wiederherstellung dokumentiert;
+  Browser und genaue Wiederherstellungsvariante sind nicht benannt. Technische
+  Nachweise und offene Praxisgrenzen bleiben getrennt ausgewiesen.
+
+[Release-Hinweise und Umstieg](docs/releases/1.7.0.md).
+
+## 1.6.0 – vorherige öffentliche Version
 
 - Pro Browserbestand darf ein Fenster bearbeiten; nach Freigabe kann ein
   zweites Fenster den aktuellen Stand bewusst übernehmen.
@@ -12,8 +34,8 @@
 - Übersprungene CSV-Warnzeilen beeinflussen übernommene Personen-, Kurs- und
   Q4-Angaben nicht mehr. Tendenzen verwenden gültige Rohwerte und
   aktualisieren sich nach bestätigten Änderungen.
-- Technische Prüfungen und Reviews sind abgeschlossen; die reale
-  Desktopabnahme für 1.6.0 steht noch aus.
+- Technische Prüfungen und Reviews wurden abgeschlossen. Eine vollständige
+  frische Desktopmatrix wurde für 1.6.0 nicht als bestanden dokumentiert.
 
 [Release-Hinweise und Umstieg](docs/releases/1.6.0.md).
 

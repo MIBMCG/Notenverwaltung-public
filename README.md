@@ -4,7 +4,7 @@
 
 **Noten, Kurse und Schuljahre verwalten – lokal in deinem Browser.**
 
-[1.6.0 – lokale Veröffentlichungsfassung](docs/releases/1.6.0.md) · [Kurzanleitung](docs/KURZANLEITUNG.md) · [Prüfstand](docs/ABNAHME.md)
+[Version 1.7.0 vom 16.10.2026](docs/releases/1.7.0.md) · [Kurzanleitung](docs/KURZANLEITUNG.md) · [Prüfstand](docs/ABNAHME.md)
 
 </div>
 
@@ -22,21 +22,23 @@ einen Server. Die Anwendung lässt sich nach dem Herunterladen offline nutzen.
 | **Auswertung** | Halbjahres- und Jahresansichten, Kursstatistik und Berichte |
 | **Schuljahreswechsel** | Kurse archivieren und Nachfolgekurse anlegen |
 | **Datenaustausch** | Verschlüsselte Backups, CSV-Import/-Export und echte Excel-Arbeitsmappen |
+| **Zugang wiederherstellen** | Separater Offline-Code für lokale Daten und neue Backups |
 | **Darstellung** | Klassisch, Modern ruhig oder Aurora; Hell-/Dunkelmodus, Farben und Bewegung |
 | **Eigene Schule** | Schulname und PNG-Logo in den Einstellungen anpassen |
 
-Die Anwendung richtet sich vor allem an Desktop-PCs und Laptops. Die
-vollständige Desktopabnahme von 1.6.0 steht noch aus; eine verbindliche
-Browserliste wird erst nach ihr veröffentlicht. Für Tablets und Smartphones
-liegt keine umfassende Prüfung dieser Fassung vor.
+Die Anwendung richtet sich vor allem an Desktop-PCs und Laptops. Die Nachrüstung
+eines Codes und eine Wiederherstellung wurden vom Nutzer erfolgreich ausprobiert;
+Browser, Betriebssystem und genaue Wiederherstellungsvariante sind dabei nicht
+benannt. Eine vollständige Browser- oder Geräteabnahme wird daraus nicht abgeleitet.
+Die [Abnahmeübersicht](docs/ABNAHME.md) nennt die Prüfgrenzen.
 
 ## In wenigen Schritten starten
 
-Version 1.6.0 ist lokal am 06.10.2026 gebaut; es gibt noch keinen öffentlichen Download.
-Für die spätere Nutzung das geprüfte Anwendungspaket vollständig in einen
-festen Ordner entpacken, `Notenverwaltung.html` im dann freigegebenen
-Dateibrowser öffnen und beim ersten Start ein Passwort einrichten.
-`placeholder-logo.svg` kann im selben Ordner bleiben.
+Lade das Anwendungspaket von der [Release-Seite für 1.7.0](https://github.com/MIBMCG/Notenverwaltung-public/releases/tag/v1.7.0)
+herunter und entpacke es vollständig in einen festen Ordner. Öffne
+`Notenverwaltung.html` im Browser. Beim ersten Start richtest du ein Passwort
+ein, sicherst den separaten Wiederherstellungscode und gibst ihn zur Bestätigung
+vollständig erneut ein. `placeholder-logo.svg` kann im selben Ordner bleiben.
 
 Für die Nutzung sind keine Installation, kein Node.js und kein Build nötig.
 Das Anwendungspaket enthält eine Startanleitung und die Kurzanleitung.
@@ -49,9 +51,9 @@ neben der HTML-Datei gesucht.
 Ab Version 1.5.0 darf eine neu ausgewählte PNG-Datei höchstens 256 KiB und
 4096 × 4096 Pixel groß sein. Bereits gespeicherte gültige Logos bis zur früheren
 Grenze von 2 MiB bleiben im Bestand und in vollständigen Backups erhalten.
-Die frühere Projektablage und ihre Releases bleiben privat. Der künftige
-[öffentliche Download](https://github.com/MIBMCG/Notenverwaltung-public/releases)
-gehört zum neuen Repository und ist erst nach der Freigabe verfügbar.
+Öffentliche Downloads liegen unter
+[MIBMCG/Notenverwaltung-public](https://github.com/MIBMCG/Notenverwaltung-public/releases).
+Die frühere private Projektablage ist davon getrennt.
 
 ## Deine Daten bleiben bei dir
 
@@ -67,6 +69,11 @@ benötigt keinen Cloud-Dienst.
   verhindern den Download. Prüfe die Datei und ihre Wiederherstellbarkeit.
 - **Vor Updates:** Im alten Fenster ein verschlüsseltes Backup erstellen und
   alle Fenster der alten Fassung schließen. Erst dann die neue Datei öffnen.
+- **Code getrennt sichern:** Der Code ist ein gleichwertiger geheimer Zugang.
+  Bestehende Bestände können ihn freiwillig unter „Einstellungen → Sicherheit“
+  nachrüsten. Neue Daten und Backups mit Codezugang benötigen Version 1.7.0
+  oder neuer. Alte Backups behalten ihr damaliges Passwort; ein gesperrter
+  Altbestand ohne Code lässt sich nicht nachträglich damit öffnen.
 - **Browserdaten sind keine Programmdateien:** Das Kopieren der HTML-Datei oder
   des Git-Repositories überträgt keine Schüler:innen oder Noten.
 - **Gerätewechsel bewusst durchführen:** Ein anderer Browser, ein anderes Profil
@@ -83,8 +90,9 @@ benötigt keinen Cloud-Dienst.
 - [Änderungsübersicht](CHANGELOG.md)
 - [Abnahme und bekannte Prüfgrenzen](docs/ABNAHME.md)
 
-Die technischen Korrekturen für 1.6.0 sind geprüft. Welche Bedien- und
-Browserfälle noch ausstehen, steht in der [Abnahmeübersicht](docs/ABNAHME.md).
+Die technischen Nachweise für den Wiederherstellungszugang und die Speicherhärtung
+sind dokumentiert. Welche Bedien- und Browserfälle noch ausstehen, steht in der
+[Abnahmeübersicht](docs/ABNAHME.md).
 Ältere Prüfergebnisse gelten nur für die jeweils genannte Fassung.
 
 ## Mitentwickeln
@@ -102,12 +110,11 @@ npm run check:findings
 
 Die Quellen liegen unter `src/`. Der Build erzeugt daraus die eigenständige
 `Notenverwaltung.html`; sie sollte nicht direkt bearbeitet werden. Für die
-spätere Nutzung der HTML-Datei werden die Entwicklungswerkzeuge nicht benötigt.
+Nutzung der HTML-Datei werden die Entwicklungswerkzeuge nicht benötigt.
 
 Für Beiträge und datensparsame Fehlerberichte gilt die
-[Beitragsanleitung](docs/CONTRIBUTING.md). Ein privater Meldeweg für
-Sicherheitsprobleme wird vor der Veröffentlichung eingerichtet und geprüft;
-der [Sicherheitshinweis](SECURITY.md) nennt den aktuellen Stand.
+[Beitragsanleitung](docs/CONTRIBUTING.md). Sicherheitsprobleme bitte über den
+in [SECURITY.md](SECURITY.md) verlinkten privaten Meldeweg berichten.
 
 ## Lizenz
 
@@ -120,8 +127,8 @@ Fremde Bestandteile behalten ihre jeweiligen Lizenzen:
 [gebündelte Bibliotheken](docs/releases/THIRD_PARTY_NOTICES.txt) und
 [Lucide in der Konzeptvorschau](docs/ui/concepts/vendor/lucide-LICENSE).
 
-Die neue öffentliche Ausgabe wird als bereinigter Dateibaum mit den
-erforderlichen Lizenz- und Drittanbieterhinweisen vorbereitet.
+Das öffentliche Anwendungspaket enthält die erforderlichen Lizenz- und
+Drittanbieterhinweise.
 
 ## Das Projekt unterstützen
 

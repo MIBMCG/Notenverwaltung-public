@@ -22,7 +22,10 @@ const API_KEYS = [
   'encryptForBackup', 'lockSession', 'exportStateEncrypted',
   'importStateEncryptedFromText', 'isEncrypted', 'changePassword',
   'setSessionTimeoutMinutes', 'getSessionTimeoutMinutes', '_encryptJsonWithSalt',
-  '_decryptPayload'
+  '_decryptPayload', 'getRecoveryStatus', 'getRecoveryMigrationBackup',
+  'prepareRecoveryEnrollment', 'prepareCredentialRotation', 'openRecoverySource',
+  'prepareRecoveredProtection', 'confirmPreparedProtection', 'commitPreparedProtection',
+  'cancelPreparedProtection', 'verifyRecoveryCode', 'importStateEncryptedWithRecovery'
 ];
 
 function createCryptoGate() {
@@ -109,7 +112,7 @@ test('Storage-Modul importiert ohne Browser-Globals und exportiert nur die Fabri
   assert.equal(typeof loaded.exports.createStorage, 'function');
 });
 
-test('createStorage erzeugt die unveraenderte API und registriert erst dann neun Listener', () => {
+test('createStorage erzeugt die vereinbarte API einschließlich Recovery und registriert erst dann neun Listener', () => {
   const { globals, listenerTypes } = createFactorySandbox();
   const { exports } = loadEsmGraph('src/infrastructure/storage.js', { globals });
   assert.deepEqual(listenerTypes, []);

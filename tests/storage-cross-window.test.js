@@ -210,7 +210,12 @@ test('initial concurrent starts, cancelled login and BFCache return preserve exc
   assert.equal(b.sessionCoordinator.getStatus(), 'busy');
   assert.deepEqual(snapshot(storage), [null, null, null, null]);
   a.sandbox.window.promptPassword = async () => null;
-  await findByText(a.root, 'Verschlüsselung jetzt einrichten').dispatch('click');
+  const recoveryFlow = require('./harness/recovery-flow');
+  const setupPending = recoveryFlow.button(a, 'Verschlüsselung jetzt einrichten').dispatch('click');
+  await recoveryFlow.waitFor(a, () => recoveryFlow.field(a, 'Neues Passwort'), 'setup password');
+  await recoveryFlow.click(a, 'Abbrechen');
+  await setupPending;
+  assert.deepEqual(snapshot(storage), [null, null, null, null]);
   await a.sessionCoordinator.release();
   assert.equal(a.sessionCoordinator.getStatus(), 'idle');
   await findByText(b.root, 'Erneut versuchen').dispatch('click');

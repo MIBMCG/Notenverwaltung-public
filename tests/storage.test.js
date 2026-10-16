@@ -483,19 +483,23 @@ test('M19/D6: locking aborts encryption setup before its first storage mutation'
   await writer.Storage.enableEncryption(PASSWORD, seededState(writer));
   const deriveStarted = deferred();
   const releaseDerivation = deferred();
-  let deriveCalls = 0;
+  let setupStarted = false;
   const modules = (await openStorageSession({
     storage,
+    password: PASSWORD,
     cryptoImpl: createCryptoFacade({
       beforeDeriveKey: async () => {
-        deriveCalls += 1;
-        if (deriveCalls === 1) {
+        if (setupStarted) {
+          setupStarted = false;
           deriveStarted.resolve();
           await releaseDerivation.promise;
         }
       }
     })
   }));
+  // Reconfiguration now requires an authenticated existing state.
+  await modules.Storage.loadState();
+  setupStarted = true;
   const enabledState = seededState(modules);
   enabledState.courses[0].name = 'Nach Neuer Einrichtung gespeichert';
   const before = snapshotLocalStorage(storage);
@@ -1236,7 +1240,7 @@ test('D6: every ordinary save mutation rolls back to the previously readable byt
 });
 
 test('D6: every encryption setup mutation rolls back payload, salt, flag, and plaintext', async t => {
-  for (const failureCall of [1, 2, 3, 4]) {
+  for (const failureCall of [1, 2, 3, 4, 5, 6]) {
     await t.test(`mutation ${failureCall}`, async () => {
       const storage = localStorageStub();
       const modules = (await openStorageSession({ storage, password: PASSWORD }));
@@ -1261,7 +1265,7 @@ test('D6: every encryption setup mutation rolls back payload, salt, flag, and pl
 });
 
 test('D6: every password-change mutation rolls back to the old credentials', async t => {
-  for (const failureCall of [1, 2]) {
+  for (const failureCall of [1, 2, 3, 4]) {
     await t.test(`mutation ${failureCall}`, async () => {
       const storage = localStorageStub();
       const modules = (await openStorageSession({ storage, password: PASSWORD }));
@@ -1282,14 +1286,14 @@ test('D6: every password-change mutation rolls back to the old credentials', asy
 });
 
 test('D6: every rollback mutation failure stays visible as a distinct storage error', async t => {
-  for (const rollbackFailureCall of [5, 6, 7, 8]) {
-    await t.test(`rollback mutation ${rollbackFailureCall - 4}`, async () => {
+  for (const rollbackFailureCall of [6, 7, 8, 9, 10]) {
+    await t.test(`rollback mutation ${rollbackFailureCall - 5}`, async () => {
       const storage = localStorageStub();
       storage.setItem('notenverwaltung_v1_state', '{"legacy":"keep"}');
       const before = snapshotLocalStorage(storage);
       const modules = (await openStorageSession({ storage, password: PASSWORD }));
       interceptStorageMutations(storage, {
-        primaryFailureCall: 4,
+        primaryFailureCall: 5,
         rollbackFailureCall
       });
 

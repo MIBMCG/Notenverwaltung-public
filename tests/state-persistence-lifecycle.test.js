@@ -7,6 +7,7 @@ const { loadDashboardUi, findByText, findByAttribute } = require('./harness/dash
 const { readSourceLines } = require('./harness/extract');
 const { loadEsmGraph } = require('./harness/load-esm-graph');
 const { loadModules } = require('./harness/load');
+const recoveryFlow = require('./harness/recovery-flow');
 
 function deferred() {
   let resolve;
@@ -44,8 +45,6 @@ async function startDelayedProfileSave(app, schoolName) {
 
 async function startPasswordChange(app, oldPassword, newPassword) {
   await findByAttribute(app.root, 'data-settings-area', 'security').dispatch('click');
-  const passwords = [oldPassword, newPassword];
-  app.sandbox.window.promptPassword = async () => passwords.shift();
   const pending = findByText(app.root, 'Passwort ändern').dispatch('click');
   await new Promise(resolve => setImmediate(resolve));
   return { pending };
@@ -67,18 +66,19 @@ test('a password dialog opened before lock cannot start a credential write after
     await findByAttribute(app.root, 'data-settings-area', 'security').dispatch('click');
     installRealPasswordPrompt(app);
     let credentialWrites = 0;
-    const realChangePassword = app.Storage.changePassword.bind(app.Storage);
-    app.Storage.changePassword = (...args) => {
+    const realChangePassword = app.Storage.prepareCredentialRotation.bind(app.Storage);
+    app.Storage.prepareCredentialRotation = (...args) => {
       credentialWrites += 1;
       return realChangePassword(...args);
     };
 
     const pending = findByText(app.root, 'Passwort ändern').dispatch('click');
+    await recoveryFlow.click(app, 'Nachrüstung beginnen');
     let inputs = app.document.body.querySelectorAll('input').filter(element => element.type === 'password');
     assert.equal(inputs.length, 1);
     inputs[0].value = app.password;
     if (lockDuring === 'new-password') {
-      await findByText(app.document.body, 'OK').dispatch('click');
+      await recoveryFlow.click(app, 'Weiter');
       await new Promise(resolve => setImmediate(resolve));
       inputs = app.document.body.querySelectorAll('input').filter(element => element.type === 'password');
       assert.equal(inputs.length, 2);
@@ -91,7 +91,7 @@ test('a password dialog opened before lock cannot start a credential write after
       'hard lock closes the old password dialog');
     await pending;
 
-    assert.equal(credentialWrites, 0, `${lockDuring}: stale dialogs must not reach Storage.changePassword`);
+    assert.equal(credentialWrites, 0, `${lockDuring}: stale dialogs must not prepare a credential transition`);
     assert.equal(app.Storage.hasSessionPassword(), false, `${lockDuring}: the locked session must stay locked`);
     assert.ok(findByText(app.root, 'Anwendung gesperrt'));
   }
@@ -111,16 +111,30 @@ for (const passwordSucceeds of [true, false]) {
     )).pending;
 
     delayed.acknowledge.resolve();
-    await Promise.all([delayed.pending, passwordChange]);
+    await delayed.pending;
+    await recoveryFlow.click(app, 'Nachrüstung beginnen');
+    recoveryFlow.field(app, 'Aktuelles Passwort').value = passwordSucceeds ? app.password : 'falsches-altes-passwort';
+    await recoveryFlow.click(app, 'Weiter');
+    recoveryFlow.field(app, 'Neues Passwort').value = 'neues-synthetisches-passwort';
+    recoveryFlow.field(app, 'Neues Passwort wiederholen').value = 'neues-synthetisches-passwort';
+    await recoveryFlow.click(app, 'Weiter');
+    if (passwordSucceeds) await recoveryFlow.confirmCode(app); else await recoveryFlow.click(app, 'Schließen');
+    await passwordChange;
     const stored = await app.Storage.loadState();
     await goToSchool(app);
     await findByText(app.root, 'Änderungen verwerfen').dispatch('click');
     assert.equal(findByAttribute(app.root, 'id', 'settings-school-name').value,
       stored.settings.schoolProfile.name);
     assert.equal(stored.settings.schoolProfile.name, 'Synthetischer Passwortgrenzen-Bestand');
-    assert.ok(alerts.some(message => passwordSucceeds
-      ? /Passwort erfolgreich geändert/.test(message)
-      : /Passwortänderung fehlgeschlagen/.test(message)));
+    const encryptedText = app.storage.getItem('notenverwaltung_v1_state_enc');
+    if (passwordSucceeds) {
+      assert.ok(await app.Storage.importStateEncryptedFromText(encryptedText, 'neues-synthetisches-passwort'));
+      await assert.rejects(app.Storage.importStateEncryptedFromText(encryptedText, app.password));
+      assert.equal(app.Storage.getRecoveryStatus().enabled, true);
+    } else {
+      assert.equal(app.Storage.getRecoveryStatus().enabled, false);
+      assert.equal(app.Storage.hasSessionPassword(), true);
+    }
   });
 }
 

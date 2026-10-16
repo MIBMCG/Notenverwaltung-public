@@ -25,7 +25,11 @@ function createDocument() {
       this.value = '';
       this.textContent = '';
       this.autocomplete = '';
+      this.attributes = new Map();
     }
+
+    setAttribute(name, value) { this.attributes.set(String(name), String(value)); }
+    getAttribute(name) { return this.attributes.get(String(name)) || null; }
 
     appendChild(child) {
       child.parentNode = this;

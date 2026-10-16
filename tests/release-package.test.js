@@ -11,7 +11,7 @@ const { pathToFileURL } = require('node:url');
 const { zipSync, unzipSync } = require('fflate');
 
 const repoRoot = path.resolve(__dirname, '..');
-const VERSION = '1.6.0';
+const VERSION = '1.7.0';
 const NAMES = [
   'ABNAHME.md', 'ASSET_NOTICES.md', 'KURZANLEITUNG.md', 'LICENSE',
   'Notenverwaltung.html', 'RELEASE-NOTES.md', 'SHA256SUMS.txt',
@@ -243,7 +243,7 @@ test('rejects incomplete rights, wrong release version and drifted HTML before w
   await assert.rejects(buildRelease({ rootDir, outputDir, version: VERSION }), /Drittanbieterhinweis/i);
   fs.writeFileSync(noticesPath, notices);
   fs.writeFileSync(path.join(rootDir, `docs/releases/${VERSION}.md`), '# Version 1.5.1\n');
-  await assert.rejects(buildRelease({ rootDir, outputDir, version: VERSION }), /Release-Notiz.*1\.6\.0/i);
+  await assert.rejects(buildRelease({ rootDir, outputDir, version: VERSION }), /Release-Notiz.*1\.7\.0/i);
   fs.writeFileSync(path.join(rootDir, `docs/releases/${VERSION}.md`), `# Version ${VERSION}\n`);
   fs.appendFileSync(path.join(rootDir, 'Notenverwaltung.html'), '<!-- drift -->\n');
   await assert.rejects(buildRelease({ rootDir, outputDir, version: VERSION }), /buildidentisch|weicht bytegenau/i);

@@ -3857,8 +3857,8 @@
     );
     function findByAliases(aliases) {
       for (const alias of aliases) {
-        const id = catByName.get(alias);
-        if (id && categoryIds.has(id)) return id;
+        const id2 = catByName.get(alias);
+        if (id2 && categoryIds.has(id2)) return id2;
       }
       return null;
     }
@@ -4012,14 +4012,14 @@
       settings
     };
   }
-  function findById(items, id) {
-    return items.find((item) => item.id === id) || null;
+  function findById(items, id2) {
+    return items.find((item) => item.id === id2) || null;
   }
 
   // src/domain/assessments.js
-  function createCategory({ id = null, name, active = true, subcategories = [] }) {
+  function createCategory({ id: id2 = null, name, active = true, subcategories = [] }) {
     return {
-      id: id || generateId("cat"),
+      id: id2 || generateId("cat"),
       name: name ?? "",
       active: !!active,
       subcategories: Array.isArray(subcategories) ? subcategories : []
@@ -4029,9 +4029,9 @@
     const subcategories = category && Array.isArray(category.subcategories) ? category.subcategories : [];
     return subcategories.length === 0 ? 100 : 0;
   }
-  function createWeightTemplate({ id = null, name, items }) {
+  function createWeightTemplate({ id: id2 = null, name, items }) {
     return {
-      id: id || generateId("wt"),
+      id: id2 || generateId("wt"),
       name: name ?? "",
       items: Array.isArray(items) ? items.map((item) => ({
         categoryId: item.categoryId,
@@ -4047,7 +4047,7 @@
     return { valueRaw, status, valueNumeric };
   }
   function createAssessment({
-    id = null,
+    id: id2 = null,
     courseId,
     categoryId,
     subcategoryId = null,
@@ -4061,7 +4061,7 @@
   }) {
     const parsedWeight = weight === null || typeof weight === "string" && weight.trim() === "" ? NaN : Number(weight);
     const assessment = {
-      id: id || generateId("asm"),
+      id: id2 || generateId("asm"),
       courseId,
       categoryId,
       subcategoryId: subcategoryId || null,
@@ -4162,8 +4162,8 @@
       [/^(politik|politische bildung|ethik|philosophie|religion|sozialkunde)\b/, "scales"],
       [/^(deutsch|englisch|französisch|franzoesisch|spanisch|latein|griechisch|italienisch|russisch|sprachen)\b/, "book"]
     ];
-    const id = chosen || (suggestions.find(([pattern]) => pattern.test(subject)) || [null, "course"])[1];
-    return COURSE_SYMBOLS.find((symbol) => symbol.id === id);
+    const id2 = chosen || (suggestions.find(([pattern]) => pattern.test(subject)) || [null, "course"])[1];
+    return COURSE_SYMBOLS.find((symbol) => symbol.id === id2);
   }
 
   // src/domain/courses.js
@@ -4196,7 +4196,7 @@
     };
   }
   function createCourse({
-    id = null,
+    id: id2 = null,
     name,
     subject,
     symbolId = null,
@@ -4219,7 +4219,7 @@
     upperSecContext = null
   }) {
     return {
-      id: id || generateId("course"),
+      id: id2 || generateId("course"),
       name: name ?? "",
       subject: subject ?? "",
       ...normalizeCourseSymbol(symbolId) ? { symbolId: normalizeCourseSymbol(symbolId) } : {},
@@ -4263,8 +4263,8 @@
     if (!course || course.archivedAt) {
       throw new Error("Die Kennzeichnung ist nur in einem aktiven Kurs erlaubt.");
     }
-    const context = course.upperSecContext;
-    if (course.schemaMode !== SCHEMA_MODES.UPPERSEC || !context || context.courseType !== UPPERSEC_COURSE_TYPES.BASIC || context.qualificationYear !== QUALIFICATION_YEARS.Q3_Q4) {
+    const context2 = course.upperSecContext;
+    if (course.schemaMode !== SCHEMA_MODES.UPPERSEC || !context2 || context2.courseType !== UPPERSEC_COURSE_TYPES.BASIC || context2.qualificationYear !== QUALIFICATION_YEARS.Q3_Q4) {
       throw new Error("Die Kennzeichnung ist nur in einem Grundkurs Q3/Q4 erlaubt.");
     }
     if (value !== true && value !== false) {
@@ -4277,11 +4277,11 @@
   }
   function resolveQualificationPhase(course, term) {
     if (!course || course.schemaMode !== SCHEMA_MODES.UPPERSEC || !isCanonicalTerm(term)) return null;
-    const context = course.upperSecContext;
-    if (!context) return null;
+    const context2 = course.upperSecContext;
+    if (!context2) return null;
     const half = String(term).endsWith("-H1") ? 1 : 2;
-    if (context.qualificationYear === QUALIFICATION_YEARS.Q1_Q2) return half === 1 ? "Q1" : "Q2";
-    if (context.qualificationYear === QUALIFICATION_YEARS.Q3_Q4) return half === 1 ? "Q3" : "Q4";
+    if (context2.qualificationYear === QUALIFICATION_YEARS.Q1_Q2) return half === 1 ? "Q1" : "Q2";
+    if (context2.qualificationYear === QUALIFICATION_YEARS.Q3_Q4) return half === 1 ? "Q3" : "Q4";
     return null;
   }
   function enrollStudentInCourse(state, courseId, studentId, subgroup = null, homeClassAtEnrollment = null) {
@@ -4399,8 +4399,8 @@
         label: "wird fortgeführt"
       };
     }
-    const context = course.upperSecContext;
-    if (!context || !context.courseType || !context.qualificationYear) {
+    const context2 = course.upperSecContext;
+    if (!context2 || !context2.courseType || !context2.qualificationYear) {
       return {
         action: "review",
         targetYear: normalizedTargetYear,
@@ -4409,7 +4409,7 @@
         label: "Kontext prüfen"
       };
     }
-    if (context.qualificationYear === QUALIFICATION_YEARS.Q3_Q4) {
+    if (context2.qualificationYear === QUALIFICATION_YEARS.Q3_Q4) {
       return {
         action: "end",
         targetYear: normalizedTargetYear,
@@ -4418,7 +4418,7 @@
         label: "endet"
       };
     }
-    if (context.qualificationYear === QUALIFICATION_YEARS.Q1_Q2) {
+    if (context2.qualificationYear === QUALIFICATION_YEARS.Q1_Q2) {
       return {
         action: "continue",
         targetYear: normalizedTargetYear,
@@ -4543,9 +4543,9 @@
   }
 
   // src/domain/students.js
-  function createStudent({ id = null, lastName, firstName, birthDate = null, homeClass = "" }) {
+  function createStudent({ id: id2 = null, lastName, firstName, birthDate = null, homeClass = "" }) {
     return {
-      id: id || generateId("stu"),
+      id: id2 || generateId("stu"),
       lastName: lastName || "",
       firstName: firstName || "",
       birthDate: birthDate || null,
@@ -4812,18 +4812,18 @@
     const kept = [];
     for (const item of Array.isArray(items) ? items : []) {
       if (!hasUsableId(item)) continue;
-      const id = item.id;
-      if (ids.has(id)) {
-        ambiguousIds.add(id);
+      const id2 = item.id;
+      if (ids.has(id2)) {
+        ambiguousIds.add(id2);
         continue;
       }
-      ids.add(id);
+      ids.add(id2);
       kept.push(item);
     }
     return { items: kept, ids, ambiguousIds };
   }
-  function isUnambiguousReference(id, collection) {
-    return collection.ids.has(id) && !collection.ambiguousIds.has(id);
+  function isUnambiguousReference(id2, collection) {
+    return collection.ids.has(id2) && !collection.ambiguousIds.has(id2);
   }
   function archiveIntegrityError(course, detail) {
     const courseId = hasUsableId(course) ? course.id : "unbekannt";
@@ -5696,8 +5696,8 @@
   }
   function resolveUpperSecGradingContext(course, studentId, term, settings) {
     const qualificationPhase = resolveQualificationPhase(course, term);
-    const context = course && course.upperSecContext;
-    if (!course || course.schemaMode !== SCHEMA_MODES.UPPERSEC || !context || !qualificationPhase || !context.courseType) {
+    const context2 = course && course.upperSecContext;
+    if (!course || course.schemaMode !== SCHEMA_MODES.UPPERSEC || !context2 || !qualificationPhase || !context2.courseType) {
       return {
         qualificationPhase,
         expectedExamCount: null,
@@ -5708,7 +5708,7 @@
         isWeightingDeviation: false
       };
     }
-    if (context.courseType === UPPERSEC_COURSE_TYPES.OTHER) {
+    if (context2.courseType === UPPERSEC_COURSE_TYPES.OTHER) {
       return {
         qualificationPhase,
         expectedExamCount: null,
@@ -5721,7 +5721,7 @@
     }
     let expectedExamCount = null;
     if (qualificationPhase === "Q4") {
-      if (context.courseType === UPPERSEC_COURSE_TYPES.ADVANCED) {
+      if (context2.courseType === UPPERSEC_COURSE_TYPES.ADVANCED) {
         expectedExamCount = 1;
       } else {
         if (!studentId) {
@@ -5738,9 +5738,9 @@
         const enrollment = findEnrollment(course, studentId);
         expectedExamCount = enrollment && enrollment.writtenExamSubjectQ4 === true ? 1 : 0;
       }
-    } else if (context.courseType === UPPERSEC_COURSE_TYPES.ADVANCED) {
+    } else if (context2.courseType === UPPERSEC_COURSE_TYPES.ADVANCED) {
       expectedExamCount = 2;
-    } else if (context.courseType === UPPERSEC_COURSE_TYPES.BASIC) {
+    } else if (context2.courseType === UPPERSEC_COURSE_TYPES.BASIC) {
       expectedExamCount = 1;
     }
     if (expectedExamCount === 0) {
@@ -5790,8 +5790,8 @@
   }
   function resolveUpperSecAssessmentWarning(assessments, course, studentId, term, settings) {
     const gradingContext = resolveUpperSecGradingContext(course, studentId, term, settings);
-    const context = course && course.upperSecContext;
-    if (!context || context.courseType !== UPPERSEC_COURSE_TYPES.ADVANCED || !["Q1", "Q2", "Q3"].includes(gradingContext.qualificationPhase)) {
+    const context2 = course && course.upperSecContext;
+    if (!context2 || context2.courseType !== UPPERSEC_COURSE_TYPES.ADVANCED || !["Q1", "Q2", "Q3"].includes(gradingContext.qualificationPhase)) {
       return null;
     }
     const writtenCategoryId = resolveUpperSecWrittenCategoryId(settings);
@@ -5834,8 +5834,8 @@
     if (!course || course.schemaMode !== SCHEMA_MODES.UPPERSEC || !term) {
       return activeWeights;
     }
-    const context = resolveUpperSecGradingContext(course, studentId, term, settings);
-    if (context.status !== "general-only") return activeWeights;
+    const context2 = resolveUpperSecGradingContext(course, studentId, term, settings);
+    if (context2.status !== "general-only") return activeWeights;
     const writtenCategoryId = resolveUpperSecWrittenCategoryId(settings);
     if (!writtenCategoryId) return activeWeights;
     return activeWeights.filter((weight) => weight.categoryId !== writtenCategoryId);
@@ -6169,19 +6169,731 @@
     return crypto.subtle.decrypt({ name: "AES-GCM", iv }, key, cipherBuf);
   }
 
+  // src/infrastructure/recovery-envelope.js
+  var FORMAT = "notenverwaltung_envelope";
+  var ALGORITHM = "AES-256-GCM";
+  var KDF = "PBKDF2-SHA256";
+  var ITERATIONS = 6e5;
+  var ENCODING = "base32-sha256-20-v1";
+  var PASSWORD_PREFIX = "notenverwaltung:password-wrap:v2\0";
+  var RECOVERY_PREFIX = "notenverwaltung:recovery-code:v2\0";
+  var MAX_STATE = 10 * 1024 * 1024;
+  var MAX_ENVELOPE = 20 * 1024 * 1024;
+  var ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";
+  var sessions = /* @__PURE__ */ new WeakMap();
+  var ownErrors = /* @__PURE__ */ new WeakSet();
+  function utf8(value) {
+    return new TextEncoder().encode(value);
+  }
+  function fail(code) {
+    const error = new Error(code);
+    error.code = code;
+    ownErrors.add(error);
+    return error;
+  }
+  function invalid() {
+    throw fail("ENCRYPTED_FORMAT_INVALID");
+  }
+  function wipe(...arrays) {
+    for (const bytes of arrays) if (bytes) bytes.fill(0);
+  }
+  function technical(error) {
+    if (ownErrors.has(error)) return error;
+    return fail("CRYPTO_OPERATION_FAILED");
+  }
+  function bytesToBase64(bytes) {
+    let binary = "";
+    const chunk = 8192;
+    for (let i = 0; i < bytes.length; i += chunk) binary += String.fromCharCode(...bytes.subarray(i, i + chunk));
+    return btoa(binary);
+  }
+  function fromBase64(value, min, max = min) {
+    if (typeof value !== "string" || value.length > Math.ceil(max / 3) * 4 || value.length < Math.ceil(min / 3) * 4 || value.length % 4 !== 0 || /[^A-Za-z0-9+/=]/.test(value)) invalid();
+    const padding = value.indexOf("=");
+    if (padding !== -1 && (padding < value.length - 2 || !/^={1,2}$/.test(value.slice(padding)))) invalid();
+    let binary;
+    try {
+      binary = atob(value);
+    } catch {
+      invalid();
+    }
+    if (binary.length < min || binary.length > max) invalid();
+    const bytes = new Uint8Array(binary.length);
+    for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+    if (bytesToBase64(bytes) !== value) invalid();
+    return bytes;
+  }
+  function exact(value, keys) {
+    if (!value || typeof value !== "object" || Array.isArray(value)) invalid();
+    const actual = Object.keys(value);
+    if (actual.length !== keys.length || keys.some((key) => !Object.prototype.hasOwnProperty.call(value, key))) invalid();
+  }
+  function id(value) {
+    if (typeof value !== "string" || !/^[0-9a-f]{32}$/.test(value)) invalid();
+  }
+  function timestamp(value) {
+    if (typeof value !== "string" || !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/.test(value)) invalid();
+    const time = new Date(value);
+    if (!Number.isFinite(time.getTime()) || time.toISOString() !== value) invalid();
+  }
+  function hasUnpairedSurrogate(text) {
+    for (let i = 0; i < text.length; i++) {
+      const code = text.charCodeAt(i);
+      if (code >= 55296 && code <= 56319) {
+        const next = text.charCodeAt(++i);
+        if (!(next >= 56320 && next <= 57343)) return true;
+      } else if (code >= 56320 && code <= 57343) return true;
+    }
+    return false;
+  }
+  function textBytes(value, max = MAX_STATE) {
+    if (typeof value !== "string" || value.length > max || hasUnpairedSurrogate(value)) invalid();
+    const bytes = utf8(value);
+    if (bytes.length > max) {
+      wipe(bytes);
+      invalid();
+    }
+    return bytes;
+  }
+  function freezeEnvelope(e) {
+    Object.freeze(e.password);
+    Object.freeze(e.recovery);
+    Object.freeze(e.data);
+    return Object.freeze(e);
+  }
+  function parseEnvelope(text) {
+    if (typeof text !== "string" || text.length > MAX_ENVELOPE) invalid();
+    const encoded = utf8(text);
+    if (encoded.length > MAX_ENVELOPE) invalid();
+    let e;
+    try {
+      e = JSON.parse(text);
+    } catch {
+      invalid();
+    }
+    exact(e, ["format", "version", "datasetId", "generationId", "createdAt", "algorithm", "password", "recovery", "data"]);
+    if (e.format !== FORMAT || e.version !== 2 || e.algorithm !== ALGORITHM) invalid();
+    id(e.datasetId);
+    id(e.generationId);
+    timestamp(e.createdAt);
+    exact(e.password, ["kdf", "iterations", "salt", "iv", "wrappedKey"]);
+    if (e.password.kdf !== KDF || e.password.iterations !== ITERATIONS) invalid();
+    exact(e.recovery, ["encoding", "iv", "wrappedKey"]);
+    if (e.recovery.encoding !== ENCODING) invalid();
+    exact(e.data, ["savedAt", "iv", "ciphertext"]);
+    timestamp(e.data.savedAt);
+    fromBase64(e.password.salt, 16);
+    fromBase64(e.password.iv, 12);
+    fromBase64(e.password.wrappedKey, 48);
+    fromBase64(e.recovery.iv, 12);
+    fromBase64(e.recovery.wrappedKey, 48);
+    fromBase64(e.data.iv, 12);
+    fromBase64(e.data.ciphertext, 16, MAX_STATE + 16);
+    return freezeEnvelope(e);
+  }
+  function context(e) {
+    return [e.format, e.version, e.algorithm, e.datasetId, e.generationId, e.createdAt];
+  }
+  function aad(e, purpose) {
+    let fields;
+    if (purpose === "password-wrap") fields = [e.password.kdf, e.password.iterations, e.password.salt];
+    else if (purpose === "recovery-wrap") fields = [e.recovery.encoding];
+    else fields = [
+      e.data.savedAt,
+      e.password.kdf,
+      e.password.iterations,
+      e.password.salt,
+      e.password.iv,
+      e.password.wrappedKey,
+      e.recovery.encoding,
+      e.recovery.iv,
+      e.recovery.wrappedKey
+    ];
+    return utf8(JSON.stringify([...context(e), purpose, ...fields]));
+  }
+  function random(length) {
+    return crypto.getRandomValues(new Uint8Array(length));
+  }
+  function randomId() {
+    const bytes = random(16);
+    return Array.from(bytes, (byte) => byte.toString(16).padStart(2, "0")).join("");
+  }
+  function concat(a, b) {
+    const bytes = new Uint8Array(a.length + b.length);
+    bytes.set(a);
+    bytes.set(b, a.length);
+    return bytes;
+  }
+  function importAes(bytes) {
+    return crypto.subtle.importKey("raw", bytes, { name: "AES-GCM" }, false, ["encrypt", "decrypt"]);
+  }
+  async function passwordKey(password, salt) {
+    const bytes = textBytes(password);
+    const prefixedSalt = concat(utf8(PASSWORD_PREFIX), salt);
+    try {
+      const base = await crypto.subtle.importKey("raw", bytes, { name: "PBKDF2" }, false, ["deriveKey"]);
+      return await crypto.subtle.deriveKey(
+        { name: "PBKDF2", hash: "SHA-256", iterations: ITERATIONS, salt: prefixedSalt },
+        base,
+        { name: "AES-GCM", length: 256 },
+        false,
+        ["encrypt", "decrypt"]
+      );
+    } finally {
+      wipe(bytes, prefixedSalt);
+    }
+  }
+  async function encrypt(key, iv, additionalData, plaintext) {
+    return new Uint8Array(await crypto.subtle.encrypt({ name: "AES-GCM", iv, additionalData, tagLength: 128 }, key, plaintext));
+  }
+  async function decrypt(key, iv, additionalData, ciphertext) {
+    try {
+      return new Uint8Array(await crypto.subtle.decrypt({ name: "AES-GCM", iv, additionalData, tagLength: 128 }, key, ciphertext));
+    } catch (error) {
+      if (error && error.name === "OperationError") throw fail("AUTH");
+      throw error;
+    }
+  }
+  function base32(bytes) {
+    let accumulator = 0, count = 0, output = "";
+    for (const byte of bytes) {
+      accumulator = accumulator << 8 | byte;
+      count += 8;
+      while (count >= 5) {
+        count -= 5;
+        output += ALPHABET[accumulator >>> count & 31];
+      }
+    }
+    if (count) output += ALPHABET[accumulator << 5 - count & 31];
+    return output;
+  }
+  function decodeRecoveryKey(text) {
+    const bytes = new Uint8Array(32);
+    let accumulator = 0, count = 0, index = 0;
+    for (const char of text) {
+      accumulator = accumulator << 5 | ALPHABET.indexOf(char);
+      count += 5;
+      if (count >= 8) {
+        count -= 8;
+        bytes[index++] = accumulator >>> count & 255;
+      }
+    }
+    if (index !== 32 || (accumulator & (1 << count) - 1) !== 0) {
+      wipe(bytes);
+      throw fail("RECOVERY_CODE_INVALID");
+    }
+    return bytes;
+  }
+  async function checksum(bytes) {
+    const input = concat(utf8(RECOVERY_PREFIX), bytes);
+    let digest;
+    try {
+      digest = new Uint8Array(await crypto.subtle.digest("SHA-256", input));
+      return base32(digest).slice(0, 4);
+    } finally {
+      wipe(input, digest);
+    }
+  }
+  function printCode(compact) {
+    return "NV2-" + compact.match(/.{4}/g).join("-");
+  }
+  async function readRecoveryCode(input) {
+    if (typeof input !== "string" || input.length > 1024 || /[^A-Za-z0-9\x09-\x0d -]/.test(input)) throw fail("RECOVERY_CODE_INVALID");
+    const compact = input.replace(/[\x09-\x0d -]/g, "").toUpperCase();
+    if (!/^NV2[A-Z2-7]{56}$/.test(compact)) throw fail("RECOVERY_CODE_INVALID");
+    const code = compact.slice(3);
+    const bytes = decodeRecoveryKey(code.slice(0, 52));
+    try {
+      const expected = await checksum(bytes);
+      let difference = 0;
+      for (let i = 0; i < 4; i++) difference |= expected.charCodeAt(i) ^ code.charCodeAt(52 + i);
+      if (difference) throw fail("RECOVERY_CODE_INVALID");
+      return { bytes, canonical: printCode(code) };
+    } catch (error) {
+      wipe(bytes);
+      throw error;
+    }
+  }
+  function newSession(key, envelope) {
+    const token = Object.freeze({});
+    sessions.set(token, { key, envelope, active: true });
+    return token;
+  }
+  function sessionRecord(token) {
+    const record = token && sessions.get(token);
+    if (!record || !record.active) throw fail("RECOVERY_SESSION_INVALID");
+    return record;
+  }
+  function assertActive(token, record) {
+    if (sessions.get(token) !== record || !record.active) throw fail("RECOVERY_SESSION_INVALID");
+  }
+  function inspectEnvelope(envelopeText) {
+    const e = parseEnvelope(envelopeText);
+    return Object.freeze({ version: 2, datasetId: e.datasetId, generationId: e.generationId, createdAt: e.createdAt, savedAt: e.data.savedAt });
+  }
+  async function normalizeRecoveryCode(input) {
+    let code;
+    try {
+      code = await readRecoveryCode(input);
+      return code.canonical;
+    } catch (error) {
+      throw technical(error);
+    } finally {
+      if (code) wipe(code.bytes);
+    }
+  }
+  async function createEnvelope(stateJson, password, options = {}) {
+    let plaintext, dekBytes, recoveryBytes;
+    try {
+      plaintext = textBytes(stateJson);
+      const checkedPassword = textBytes(password);
+      wipe(checkedPassword);
+      exact(options, Object.prototype.hasOwnProperty.call(options || {}, "datasetId") ? ["datasetId"] : []);
+      if (options.datasetId !== void 0) id(options.datasetId);
+      dekBytes = random(32);
+      recoveryBytes = random(32);
+      const e = {
+        format: FORMAT,
+        version: 2,
+        datasetId: options.datasetId || randomId(),
+        generationId: randomId(),
+        createdAt: (/* @__PURE__ */ new Date()).toISOString(),
+        algorithm: ALGORITHM,
+        password: { kdf: KDF, iterations: ITERATIONS, salt: bytesToBase64(random(16)), iv: bytesToBase64(random(12)), wrappedKey: "" },
+        recovery: { encoding: ENCODING, iv: bytesToBase64(random(12)), wrappedKey: "" },
+        data: { savedAt: (/* @__PURE__ */ new Date()).toISOString(), iv: bytesToBase64(random(12)), ciphertext: "" }
+      };
+      const key = await importAes(dekBytes);
+      const pwKey = await passwordKey(password, fromBase64(e.password.salt, 16));
+      e.password.wrappedKey = bytesToBase64(await encrypt(pwKey, fromBase64(e.password.iv, 12), aad(e, "password-wrap"), dekBytes));
+      const recoveryKey = await importAes(recoveryBytes);
+      e.recovery.wrappedKey = bytesToBase64(await encrypt(recoveryKey, fromBase64(e.recovery.iv, 12), aad(e, "recovery-wrap"), dekBytes));
+      const recoveryCode = printCode(base32(recoveryBytes) + await checksum(recoveryBytes));
+      wipe(dekBytes, recoveryBytes);
+      e.data.ciphertext = bytesToBase64(await encrypt(key, fromBase64(e.data.iv, 12), aad(e, "state"), plaintext));
+      freezeEnvelope(e);
+      return { envelopeText: JSON.stringify(e), session: newSession(key, e), recoveryCode };
+    } catch (error) {
+      throw technical(error);
+    } finally {
+      wipe(plaintext, dekBytes, recoveryBytes);
+    }
+  }
+  async function unlockEnvelope(envelopeText, access) {
+    let rawKey, recovery, plaintext;
+    try {
+      const e = parseEnvelope(envelopeText);
+      exact(access, ["kind", "value"]);
+      if (access.kind !== "password" && access.kind !== "recovery") invalid();
+      let wrappingKey, wrapper;
+      if (access.kind === "password") {
+        wrappingKey = await passwordKey(access.value, fromBase64(e.password.salt, 16));
+        wrapper = e.password;
+      } else {
+        recovery = await readRecoveryCode(access.value);
+        wrappingKey = await importAes(recovery.bytes);
+        wrapper = e.recovery;
+      }
+      rawKey = await decrypt(wrappingKey, fromBase64(wrapper.iv, 12), aad(e, access.kind === "password" ? "password-wrap" : "recovery-wrap"), fromBase64(wrapper.wrappedKey, 48));
+      if (rawKey.length !== 32) invalid();
+      const key = await importAes(rawKey);
+      wipe(rawKey);
+      if (recovery) wipe(recovery.bytes);
+      plaintext = await decrypt(key, fromBase64(e.data.iv, 12), aad(e, "state"), fromBase64(e.data.ciphertext, 16, MAX_STATE + 16));
+      let stateJson;
+      try {
+        stateJson = new TextDecoder("utf-8", { fatal: true, ignoreBOM: true }).decode(plaintext);
+      } catch {
+        invalid();
+      }
+      return { stateJson, session: newSession(key, e) };
+    } catch (error) {
+      throw technical(error);
+    } finally {
+      wipe(rawKey, plaintext);
+      if (recovery) wipe(recovery.bytes);
+    }
+  }
+  async function reencryptState(session, stateJson) {
+    let record, plaintext;
+    try {
+      record = sessionRecord(session);
+      plaintext = textBytes(stateJson);
+      const e = { ...record.envelope, data: { savedAt: (/* @__PURE__ */ new Date()).toISOString(), iv: bytesToBase64(random(12)), ciphertext: "" } };
+      e.data.ciphertext = bytesToBase64(await encrypt(record.key, fromBase64(e.data.iv, 12), aad(e, "state"), plaintext));
+      assertActive(session, record);
+      return JSON.stringify(e);
+    } catch (error) {
+      if (record) assertActive(session, record);
+      throw technical(error);
+    } finally {
+      wipe(plaintext);
+    }
+  }
+  function disposeEnvelopeSession(session) {
+    const record = session && sessions.get(session);
+    if (record) {
+      record.active = false;
+      record.key = null;
+      record.envelope = null;
+      sessions.delete(session);
+    }
+  }
+
+  // src/transfer/import-validation.js
+  function validateImportedState(candidate) {
+    if (!candidate || typeof candidate !== "object") throw new Error("Die Datei enthält keinen gültigen Datenbestand.");
+    if (!Array.isArray(candidate.students) || !Array.isArray(candidate.courses) || !Array.isArray(candidate.assessments) || !candidate.settings || typeof candidate.settings !== "object") {
+      throw new Error("Erforderliche Bereiche students, courses, assessments oder settings fehlen.");
+    }
+    const requireUniqueIds = (items, label) => {
+      const ids = /* @__PURE__ */ new Set();
+      for (const item of items) {
+        if (!item || typeof item !== "object" || typeof item.id !== "string" || !item.id.trim()) {
+          throw new Error(label + ": Ein Eintrag ohne ID wurde gefunden.");
+        }
+        if (ids.has(item.id)) throw new Error(label + ": Doppelte ID " + item.id + ".");
+        ids.add(item.id);
+      }
+      return ids;
+    };
+    const studentIds = requireUniqueIds(candidate.students, "Schüler");
+    const courseIds = requireUniqueIds(candidate.courses, "Kurse");
+    requireUniqueIds(candidate.assessments, "Leistungen");
+    if (!Array.isArray(candidate.settings.categories) || !Array.isArray(candidate.settings.weightTemplates)) {
+      throw new Error("Kategorien oder Gewichtungsvorlagen fehlen.");
+    }
+    const categoryIds = requireUniqueIds(candidate.settings.categories, "Kategorien");
+    const weightTemplateIds = requireUniqueIds(candidate.settings.weightTemplates, "Gewichtungsvorlagen");
+    for (const category of candidate.settings.categories) {
+      if (category.active !== void 0 && typeof category.active !== "boolean") {
+        throw new Error("Eine Kategorie besitzt keinen booleschen active-Wert.");
+      }
+    }
+    const categoriesById = new Map(candidate.settings.categories.map((category) => [category.id, category]));
+    const validateWeightItems = (items, label, allowedCategoryIds) => {
+      if (!Array.isArray(items)) throw new Error(label + ": Die Gewichtung ist unvollständig.");
+      for (const item of items) {
+        if (!item || !allowedCategoryIds.has(item.categoryId)) {
+          throw new Error(label + ": Die Gewichtung verweist auf eine unbekannte Kategorie.");
+        }
+        if (typeof item.weightPercent !== "number" || !Number.isFinite(item.weightPercent) || item.weightPercent < 0 || item.weightPercent > 100) {
+          throw new Error(label + ": Gewichte müssen endliche Zahlen zwischen 0 und 100 sein.");
+        }
+      }
+    };
+    const validateArchiveSnapshot = (snapshot, label, referencedTemplateId) => {
+      const prefix = label + ": ";
+      if (!snapshot || typeof snapshot !== "object" || !snapshot.gradeMapping || typeof snapshot.gradeMapping !== "object" || !Array.isArray(snapshot.categories) || !snapshot.halfYearNames || typeof snapshot.halfYearNames !== "object" || !snapshot.halfYearSettings || typeof snapshot.halfYearSettings !== "object") {
+        throw new Error(prefix + "Der Bewertungs-Snapshot ist unvollständig.");
+      }
+      const snapshotCategoryIds = /* @__PURE__ */ new Set();
+      const snapshotSubcategoryIds = /* @__PURE__ */ new Set();
+      for (const category of snapshot.categories) {
+        if (!category || !category.id) throw new Error(prefix + "Eine Kategorie ohne ID wurde gefunden.");
+        if (snapshotCategoryIds.has(category.id)) throw new Error(prefix + "Doppelte Kategorie-ID " + category.id + ".");
+        if (typeof category.active !== "boolean") {
+          throw new Error(prefix + "Eine Kategorie besitzt keinen booleschen active-Wert.");
+        }
+        snapshotCategoryIds.add(category.id);
+        for (const subcategory of category.subcategories || []) {
+          if (!subcategory || !subcategory.id) continue;
+          if (snapshotSubcategoryIds.has(subcategory.id)) throw new Error(prefix + "Eine doppelte Unterkategorie-ID wurde gefunden.");
+          snapshotSubcategoryIds.add(subcategory.id);
+        }
+      }
+      for (const enrollment of snapshot.enrollments || []) {
+        if (!studentIds.has(enrollment.studentId)) throw new Error(prefix + "Eine Einschreibung verweist auf einen unbekannten Schüler.");
+      }
+      const snapshotTemplate = snapshot.weightTemplate;
+      if (snapshotTemplate !== void 0 && snapshotTemplate !== null) {
+        if (typeof snapshotTemplate !== "object" || Array.isArray(snapshotTemplate) || !snapshotTemplate.id || !Array.isArray(snapshotTemplate.items)) {
+          throw new Error(prefix + "Die eingefrorene Gewichtungsvorlage ist ungueltig.");
+        }
+        if (referencedTemplateId !== void 0 && referencedTemplateId !== snapshotTemplate.id) {
+          throw new Error(prefix + "Die eingefrorene Gewichtungsvorlage passt nicht zur Kursreferenz.");
+        }
+        validateWeightItems(snapshotTemplate.items, label + ": Die eingefrorene Gewichtungsvorlage", snapshotCategoryIds);
+      } else if (referencedTemplateId) {
+        throw new Error(prefix + "Die eingefrorene Gewichtungsvorlage fehlt für die Kursreferenz.");
+      }
+    };
+    for (const template of candidate.settings.weightTemplates) {
+      validateWeightItems(template.items, "Gewichtungsvorlage", categoryIds);
+    }
+    const courseScope = (course) => [
+      course.schemaMode || "",
+      Number.isInteger(Number(course.schoolYearStartYear)) ? String(Number(course.schoolYearStartYear)) : "",
+      !!course.archivedAt
+    ].join("|");
+    const importKeysByScope = /* @__PURE__ */ new Set();
+    for (const course of candidate.courses) {
+      if (course.carriedForwardFromCourseId !== void 0 && course.carriedForwardFromCourseId !== null) {
+        if (typeof course.carriedForwardFromCourseId !== "string" || !course.carriedForwardFromCourseId.trim()) {
+          throw new Error("Ein Vorgaengerkurs enthaelt keine gueltige Kurs-ID.");
+        }
+        if (course.carriedForwardFromCourseId === course.id) {
+          throw new Error("Ein Vorgaengerkurs darf nicht auf den Kurs selbst verweisen.");
+        }
+        if (!courseIds.has(course.carriedForwardFromCourseId)) {
+          throw new Error("Ein Vorgaengerkurs verweist auf einen unbekannten Kurs.");
+        }
+      }
+      if (course.importKey !== void 0 && course.importKey !== null) {
+        if (typeof course.importKey !== "string" || !course.importKey.trim() || course.importKey !== course.importKey.trim()) {
+          throw new Error("Ein Kurs enthaelt eine ungueltige externe Kurskennung.");
+        }
+        const scopedImportKey = course.importKey.toLowerCase() + "|" + courseScope(course);
+        if (importKeysByScope.has(scopedImportKey)) {
+          throw new Error("Kurse enthalten eine doppelte externe Kurskennung im selben Gueltigkeitsbereich.");
+        }
+        importKeysByScope.add(scopedImportKey);
+      }
+      const enrolledStudentIds = /* @__PURE__ */ new Set();
+      for (const enrollment of course.enrollments || []) {
+        if (!studentIds.has(enrollment.studentId)) throw new Error("Kurszuordnung verweist auf einen unbekannten Schüler.");
+        if (enrolledStudentIds.has(enrollment.studentId)) throw new Error("Ein Kurs enthält eine doppelte Einschreibung für dieselbe Schüler-ID.");
+        enrolledStudentIds.add(enrollment.studentId);
+      }
+      if (!course.archivedAt && course.weightTemplateId && !weightTemplateIds.has(course.weightTemplateId)) throw new Error("Ein aktiver Kurs verweist auf eine unbekannte Gewichtungsvorlage.");
+      if (course.archivedAt) {
+        const snapshot = course.archiveSnapshot;
+        if (!snapshot || typeof snapshot !== "object" || !snapshot.gradeMapping || typeof snapshot.gradeMapping !== "object" || !Array.isArray(snapshot.categories) || !snapshot.halfYearNames || typeof snapshot.halfYearNames !== "object" || !snapshot.halfYearSettings || typeof snapshot.halfYearSettings !== "object") {
+          throw new Error("Ein archivierter Kurs besitzt keinen vollständigen Bewertungs-Snapshot.");
+        }
+        validateArchiveSnapshot(snapshot, "Archiv-Snapshot", course.weightTemplateId);
+      }
+      if (course.archiveHistory !== void 0 && !Array.isArray(course.archiveHistory)) {
+        throw new Error("Archivverlauf: Der Verlauf ist ungueltig.");
+      }
+      for (const historyEntry of course.archiveHistory || []) {
+        if (!historyEntry || typeof historyEntry !== "object" || typeof historyEntry.archivedAt !== "string" || !historyEntry.archivedAt.trim() || historyEntry.schemaMode !== void 0 && historyEntry.schemaMode !== null && !Object.values(SCHEMA_MODES).includes(historyEntry.schemaMode) || !historyEntry.snapshot || typeof historyEntry.snapshot !== "object") {
+          throw new Error("Archivverlauf: Ein ungueltiger Eintrag wurde gefunden.");
+        }
+        validateArchiveSnapshot(historyEntry.snapshot, "Archivverlauf");
+      }
+    }
+    for (const assessment of candidate.assessments) {
+      const missingTerm = assessment.term === void 0 || assessment.term === null || String(assessment.term).trim() === "";
+      if (!missingTerm && !normalizeAssessmentTerm(assessment.term)) {
+        throw new Error("Eine Leistung besitzt ein unbekanntes Halbjahr.");
+      }
+      if (assessment.termAssignment !== void 0 && assessment.termAssignment !== null && assessment.termAssignment !== "auto" && assessment.termAssignment !== "manual") {
+        throw new Error("Eine Leistung besitzt eine unbekannte Herkunft der Halbjahres-Zuordnung.");
+      }
+      if (!courseIds.has(assessment.courseId)) throw new Error("Eine Leistung verweist auf einen unbekannten Kurs.");
+      const parentCourse = candidate.courses.find((c) => c.id === assessment.courseId);
+      const assessmentCategories = parentCourse && parentCourse.archivedAt ? parentCourse.archiveSnapshot.categories : candidate.settings.categories;
+      const assessmentCategory = assessmentCategories.find((category) => category.id === assessment.categoryId);
+      if (assessment.categoryId && !assessmentCategory) throw new Error("Eine Leistung verweist auf eine unbekannte Kategorie.");
+      if (assessment.subcategoryId && (!assessmentCategory || !(assessmentCategory.subcategories || []).some((subcategory) => subcategory.id === assessment.subcategoryId))) {
+        throw new Error("Eine Leistung verweist auf eine unbekannte Unterkategorie.");
+      }
+      for (const studentId of Object.keys(assessment.scores || {})) if (!studentIds.has(studentId)) throw new Error("Ein Noteneintrag verweist auf einen unbekannten Schüler.");
+    }
+    return true;
+  }
+  function validateMergeIdentityPreflight(base, incoming) {
+    validateImportedState(base);
+    validateRawTermResults(base);
+    validateRawUpperSecContexts(base);
+    validateImportedState(incoming);
+    validateRawTermResults(incoming);
+    validateRawUpperSecContexts(incoming);
+    const norm = (value) => String(value || "").trim().toLowerCase();
+    const structuralCourseScope = (course) => [
+      course.schemaMode || "",
+      Number.isInteger(Number(course.schoolYearStartYear)) ? String(Number(course.schoolYearStartYear)) : ""
+    ].join("|");
+    const importCourseScope = (course) => [structuralCourseScope(course), !!course.archivedAt].join("|");
+    const scopedImportKey = (course) => course && course.importKey ? norm(course.importKey) + "|" + importCourseScope(course) : "";
+    const baseCoursesById = new Map(base.courses.map((course) => [course.id, course]));
+    const baseCoursesByImportKey = /* @__PURE__ */ new Map();
+    for (const course of base.courses) {
+      const key = scopedImportKey(course);
+      if (key) baseCoursesByImportKey.set(key, course);
+    }
+    const courseTargetIds = /* @__PURE__ */ new Map();
+    const claimedBaseTargets = /* @__PURE__ */ new Map();
+    for (const course of incoming.courses) {
+      const idTarget = baseCoursesById.get(course.id) || null;
+      if (idTarget && structuralCourseScope(idTarget) !== structuralCourseScope(course)) {
+        throw new Error("Die Kurs-ID " + course.id + " widerspricht dem strukturellen Kurskontext im vorhandenen Bestand.");
+      }
+      const key = scopedImportKey(course);
+      const importKeyTarget = key ? baseCoursesByImportKey.get(key) || null : null;
+      if (idTarget && importKeyTarget && idTarget !== importKeyTarget) {
+        throw new Error("Die Kursidentität " + course.id + " ist zwischen ID und externer Kurskennung widersprüchlich.");
+      }
+      const target = idTarget || importKeyTarget;
+      if (target) {
+        const previousClaim = claimedBaseTargets.get(target.id);
+        if (previousClaim && previousClaim !== course.id) {
+          throw new Error("Mehrere eingehende Kurse beanspruchen denselben Zielkurs " + target.id + ".");
+        }
+        claimedBaseTargets.set(target.id, course.id);
+      }
+      courseTargetIds.set(course.id, target ? target.id : course.id);
+    }
+    const baseAssessmentsById = new Map(base.assessments.map((assessment) => [assessment.id, assessment]));
+    for (const assessment of incoming.assessments) {
+      const targetCourseId = courseTargetIds.get(assessment.courseId);
+      const idTarget = baseAssessmentsById.get(assessment.id);
+      if (idTarget && idTarget.courseId !== targetCourseId) {
+        throw new Error("Die Leistungs-ID " + assessment.id + " verweist im Import auf einen anderen Kurs.");
+      }
+    }
+    for (const course of incoming.courses) {
+      if (!course.carriedForwardFromCourseId) continue;
+      const targetCourseId = courseTargetIds.get(course.id);
+      const targetPredecessorId = courseTargetIds.get(course.carriedForwardFromCourseId);
+      if (!targetPredecessorId) {
+        throw new Error("Ein Vorgaengerkurs kann beim Merge nicht eindeutig aufgeloest werden.");
+      }
+      if (targetCourseId === targetPredecessorId) {
+        throw new Error("Ein Vorgaengerkurs darf beim Merge nicht auf denselben Zielkurs verweisen.");
+      }
+    }
+    return { courseTargetIds };
+  }
+  function validateRawTermResults(candidate) {
+    const studentIds = new Set((candidate && candidate.students || []).map((student) => student && student.id));
+    for (const course of candidate && candidate.courses || []) {
+      if (!course || course.termResults === void 0) continue;
+      if (!Array.isArray(course.termResults)) throw new Error("Ein Kurs enthaelt ungueltige Festsetzungen.");
+      const seen = /* @__PURE__ */ new Set();
+      for (const result of course.termResults) {
+        const key = result && `${result.studentId}|${result.term}`;
+        const valid = course.schemaMode === SCHEMA_MODES.UPPERSEC && result && studentIds.has(result.studentId) && /^\d{4}-H[12]$/.test(String(result.term || "")) && Number.isInteger(result.points) && result.points >= 0 && result.points <= 15;
+        if (!valid) throw new Error("Ein Kurs enthaelt eine ungueltige Festsetzung.");
+        if (seen.has(key)) throw new Error("Ein Kurs enthaelt eine doppelte Festsetzung.");
+        seen.add(key);
+      }
+    }
+    return true;
+  }
+  function validateRawUpperSecContexts(candidate) {
+    const courseTypes = new Set(Object.values(UPPERSEC_COURSE_TYPES));
+    const qualificationYears = new Set(Object.values(QUALIFICATION_YEARS));
+    const validateContextAndEnrollments = (source, schemaMode, label, rejectAnyDuplicate) => {
+      const prefix = label ? label + ": " : "";
+      const context2 = source.upperSecContext;
+      const isUpperSec = schemaMode === SCHEMA_MODES.UPPERSEC;
+      if (!isUpperSec && context2 !== void 0 && context2 !== null) {
+        throw new Error(prefix + "Ein Sek-I-Kurs enthaelt Sek-II-Kontext.");
+      }
+      if (isUpperSec && context2 !== void 0 && context2 !== null) {
+        if (typeof context2 !== "object" || Array.isArray(context2)) {
+          throw new Error(prefix + "Ein Sek-II-Kurs enthaelt einen ungueltigen Kontext.");
+        }
+        if (context2.courseType !== void 0 && context2.courseType !== null && !courseTypes.has(context2.courseType)) {
+          throw new Error(prefix + "Ein Sek-II-Kurs enthaelt eine ungueltige Kursart.");
+        }
+        if (context2.qualificationYear !== void 0 && context2.qualificationYear !== null && !qualificationYears.has(context2.qualificationYear)) {
+          throw new Error(prefix + "Ein Sek-II-Kurs enthaelt einen ungueltigen Qualifikationsabschnitt.");
+        }
+        if (context2.weightingDeviationReason !== void 0 && context2.weightingDeviationReason !== null && (typeof context2.weightingDeviationReason !== "string" || context2.weightingDeviationReason.length > 1e3)) {
+          throw new Error(prefix + "Eine paedagogische Begruendung ist zu lang oder ungueltig.");
+        }
+      }
+      if (source.enrollments !== void 0 && !Array.isArray(source.enrollments)) {
+        throw new Error(prefix + "Ein Kurs enthaelt ungueltige Einschreibungen.");
+      }
+      const flagsByStudentId = /* @__PURE__ */ new Map();
+      for (const enrollment of source.enrollments || []) {
+        if (!enrollment || typeof enrollment !== "object") continue;
+        if (enrollment.writtenExamSubjectQ4 !== void 0 && typeof enrollment.writtenExamSubjectQ4 !== "boolean") {
+          throw new Error(prefix + "Eine Einschreibung enthaelt ein ungueltiges Q4-Pruefungsfach.");
+        }
+        if (flagsByStudentId.has(enrollment.studentId) && (rejectAnyDuplicate || flagsByStudentId.get(enrollment.studentId) !== enrollment.writtenExamSubjectQ4)) {
+          throw new Error(prefix + "Ein Kurs enthaelt eine " + (rejectAnyDuplicate ? "doppelte" : "widerspruechliche doppelte") + " Einschreibung.");
+        }
+        flagsByStudentId.set(enrollment.studentId, enrollment.writtenExamSubjectQ4);
+      }
+    };
+    for (const course of candidate && candidate.courses || []) {
+      if (!course || typeof course !== "object") continue;
+      validateContextAndEnrollments(course, course.schemaMode, "", false);
+      const snapshots = [];
+      if (course.archivedAt && course.archiveSnapshot && typeof course.archiveSnapshot === "object") {
+        snapshots.push({ snapshot: course.archiveSnapshot, label: "Archiv-Snapshot" });
+      }
+      if (Array.isArray(course.archiveHistory)) {
+        for (const entry of course.archiveHistory) {
+          if (entry && entry.snapshot && typeof entry.snapshot === "object") {
+            snapshots.push({
+              snapshot: entry.snapshot,
+              schemaMode: entry.schemaMode || entry.snapshot.schemaMode || course.schemaMode,
+              label: "Archivverlauf"
+            });
+          }
+        }
+      }
+      for (const archived of snapshots) {
+        const snapshot = archived.snapshot;
+        const label = archived.label;
+        validateContextAndEnrollments(snapshot, archived.schemaMode || course.schemaMode, label, true);
+        if (snapshot.categoryRoles !== void 0 && snapshot.categoryRoles !== null) {
+          if (typeof snapshot.categoryRoles !== "object" || Array.isArray(snapshot.categoryRoles)) {
+            throw new Error(label + ": Die Kategorienrollen sind ungueltig.");
+          }
+          const writtenCategoryId = snapshot.categoryRoles.upperSecWrittenCategoryId;
+          if (writtenCategoryId !== void 0 && writtenCategoryId !== null) {
+            const categoryIds = new Set((Array.isArray(snapshot.categories) ? snapshot.categories : []).filter((category) => category && category.id).map((category) => category.id));
+            if (typeof writtenCategoryId !== "string" || !categoryIds.has(writtenCategoryId)) {
+              throw new Error(label + ": Die Kategorienrolle verweist auf eine unbekannte Klausurkategorie.");
+            }
+          }
+        }
+      }
+    }
+    return true;
+  }
+
   // src/infrastructure/storage.js
   function createStorage({ DomainModel: DomainModel2, createInitialState: createInitialState2, sessionCoordinator: sessionCoordinator2 }) {
     const STORAGE_KEY = "notenverwaltung_v1_state";
     const STORAGE_KEY_ENC_FLAG = "notenverwaltung_v1_encrypted";
     const STORAGE_KEY_ENC_PAYLOAD = "notenverwaltung_v1_state_enc";
     const STORAGE_KEY_SALT = "notenverwaltung_v1_salt";
+    const STORAGE_KEY_JOURNAL = "notenverwaltung_v1_credential_journal";
     if (!sessionCoordinator2 || typeof sessionCoordinator2.assertHeld !== "function") {
       throw new TypeError("sessionCoordinator ist erforderlich.");
     }
-    const _storageKeys = [STORAGE_KEY_ENC_PAYLOAD, STORAGE_KEY_SALT, STORAGE_KEY_ENC_FLAG, STORAGE_KEY];
+    const STORAGE_KEY_MIGRATION = "notenverwaltung_v2_migration_backup";
+    const _storageKeys = [STORAGE_KEY_ENC_PAYLOAD, STORAGE_KEY_SALT, STORAGE_KEY_ENC_FLAG, STORAGE_KEY, STORAGE_KEY_JOURNAL, STORAGE_KEY_MIGRATION];
     let _confirmedSnapshot = null;
     const _pendingWrites = /* @__PURE__ */ new Set();
     let _sessionPassword = null;
+    let _v2Session = null;
+    let _v2StateJson = null;
+    const _privateTokens = /* @__PURE__ */ new Map();
+    const _receipts = /* @__PURE__ */ new Map();
+    const TOKEN_TTL = 15 * 60 * 1e3;
+    function _discardPrivateTokens() {
+      for (const entry of _privateTokens.values()) {
+        if (entry.session) disposeEnvelopeSession(entry.session);
+        clearTimeout(entry.timer);
+        entry.password = entry.code = entry.json = null;
+      }
+      _privateTokens.clear();
+      _receipts.clear();
+    }
+    function _discardV2Session() {
+      if (_v2Session) disposeEnvelopeSession(_v2Session);
+      _v2Session = null;
+      _v2StateJson = null;
+    }
+    function _replaceV2Session(session, json) {
+      _discardV2Session();
+      _discardPrivateTokens();
+      _sessionGeneration++;
+      _sessionPassword = null;
+      _sessionKeyCache = null;
+      _v2Session = session;
+      _v2StateJson = json;
+      _resetInactivityTimer();
+    }
     let _sessionGeneration = 0;
     let _sessionKeyCache = null;
     let _localStorageOperationTail = Promise.resolve();
@@ -6199,7 +6911,7 @@
     }
     function _startInactivityTimer() {
       _clearInactivityTimer();
-      if (!_sessionPassword) return;
+      if (!hasSessionPassword()) return;
       const generation = _sessionGeneration;
       _inactivityTimerId = setTimeout(() => {
         if (generation !== _sessionGeneration) return;
@@ -6210,7 +6922,7 @@
       }, _inactivityTimeoutMs);
     }
     function _resetInactivityTimer() {
-      if (!_sessionPassword) return;
+      if (!hasSessionPassword()) return;
       _startInactivityTimer();
     }
     function _discardSessionKeyCache() {
@@ -6218,6 +6930,8 @@
       _sessionKeyCache = null;
     }
     function _replaceSessionSecrets(password, key, saltB64) {
+      _discardV2Session();
+      _discardPrivateTokens();
       _sessionGeneration += 1;
       _sessionPassword = password;
       _sessionKeyCache = key && saltB64 ? {
@@ -6227,6 +6941,7 @@
       } : null;
     }
     function _advanceSessionGenerationPreservingSecrets() {
+      _discardPrivateTokens();
       _sessionGeneration += 1;
       if (_sessionKeyCache) {
         _sessionKeyCache = {
@@ -6238,6 +6953,8 @@
       _resetInactivityTimer();
     }
     function _clearSessionPassword() {
+      _discardV2Session();
+      _discardPrivateTokens();
       _confirmedSnapshot = null;
       _sessionPassword = null;
       _discardSessionKeyCache();
@@ -6316,6 +7033,108 @@
       error.code = "LOCAL_STORAGE_INTEGRITY_INVALID";
       return error;
     }
+    function _encryptedFormatError() {
+      const error = new Error("Das Format der verschlüsselten Daten ist beschädigt oder unvollständig. Die Originaldaten wurden nicht verändert.");
+      error.code = "ENCRYPTED_FORMAT_INVALID";
+      return error;
+    }
+    function _cryptoOperationError() {
+      const error = new Error("Die kryptografische Verarbeitung ist technisch fehlgeschlagen. Bitte den Browser neu starten oder einen unterstützten Browser verwenden. Die Originaldaten wurden nicht verändert.");
+      error.code = "CRYPTO_OPERATION_FAILED";
+      return error;
+    }
+    function _decodeEncryptedParts(payload, saltB64) {
+      const parts = typeof payload === "string" ? payload.split(":") : [];
+      const decode = (value) => {
+        if (typeof value !== "string" || !/^[A-Za-z0-9+/]+={0,2}$/.test(value)) throw _encryptedFormatError();
+        try {
+          return _base64ToBuf(value);
+        } catch (error) {
+          throw _encryptedFormatError();
+        }
+      };
+      if (parts.length !== 2) throw _encryptedFormatError();
+      const salt = decode(saltB64), iv = decode(parts[0]), cipher = decode(parts[1]);
+      if (salt.byteLength !== 16 || iv.byteLength !== 12 || cipher.byteLength < 16) throw _encryptedFormatError();
+      return { salt, iv, cipher };
+    }
+    function _incompleteLocalStateError() {
+      return _localStorageIntegrityError("Der lokale verschlüsselte Bestand ist unvollständig oder widersprüchlich. Eine Neueinrichtung wurde zum Schutz der Originaldaten gesperrt. Bitte den Bestand für eine Wiederherstellung aufbewahren.");
+    }
+    function _completeCredentials(fields) {
+      return Array.isArray(fields) && fields.length === 3 && typeof fields[0] === "string" && fields[0].length > 0 && typeof fields[1] === "string" && fields[1].length > 0 && fields[2] === "1";
+    }
+    function _readLocalRecord() {
+      const snapshot = _readSnapshot();
+      const fields = snapshot.slice(0, 3);
+      if (snapshot[4] !== null) {
+        let journal;
+        try {
+          journal = JSON.parse(snapshot[4]);
+        } catch (error) {
+          throw _incompleteLocalStateError();
+        }
+        if (!journal || !["notenverwaltung_credentials_v1", "notenverwaltung_credentials_v2"].includes(journal.format) || !_completeCredentials(journal.after) || !(journal.before === null || _completeCredentials(journal.before)) || !(journal.legacyHash === null || typeof journal.legacyHash === "string" && /^[A-Za-z0-9+/]{43}=$/.test(journal.legacyHash))) {
+          throw _incompleteLocalStateError();
+        }
+        const previous = journal.format === "notenverwaltung_credentials_v2" ? journal.previous : [];
+        if (!Array.isArray(previous) || !previous.every((candidate) => candidate === null || _completeCredentials(candidate))) throw _incompleteLocalStateError();
+        const candidates = [journal.after, journal.before, ...previous].map((candidate) => candidate || [null, null, null]);
+        if (!fields.every((value, index) => candidates.some((candidate) => value === candidate[index])) || snapshot[3] !== null && journal.legacyHash === null) throw _incompleteLocalStateError();
+        _validateCredentialFields(journal.after);
+        if (journal.before) _validateCredentialFields(journal.before);
+        for (const candidate of previous.filter(Boolean)) _validateCredentialFields(candidate);
+        if (journal.format === "notenverwaltung_credentials_v2") {
+          if (![journal.migrationBefore, journal.migrationAfter].includes(snapshot[5]) || ![journal.migrationBefore, journal.migrationAfter].every((value) => value === null || _validMigrationBackup(value))) throw _incompleteLocalStateError();
+        }
+        return { fields, journal, legacy: snapshot[3] };
+      }
+      if (fields.some((value) => value !== null) && !_completeCredentials(fields)) throw _incompleteLocalStateError();
+      if (_completeCredentials(fields)) _validateCredentialFields(fields);
+      return { fields, journal: null, legacy: snapshot[3] };
+    }
+    function _validateCredentialFields(fields) {
+      if (fields[1] === "v2-envelope") inspectEnvelope(fields[0]);
+      else _decodeEncryptedParts(fields[0], fields[1]);
+    }
+    function _validMigrationBackup(text) {
+      try {
+        const obj = JSON.parse(text);
+        if (obj.format !== "notenverwaltung_enc_v1") return false;
+        _decodeEncryptedParts(obj.payload, obj.salt);
+        return true;
+      } catch (_) {
+        return false;
+      }
+    }
+    async function _legacyHash(raw, expectedGeneration) {
+      if (raw === null) return null;
+      try {
+        return _bufToBase64(await _guardAsync(crypto.subtle.digest("SHA-256", new TextEncoder().encode(raw)), expectedGeneration));
+      } catch (error) {
+        if (error && ["STORAGE_EXTERNAL_CHANGE", "STORAGE_GENERATION_STALE", "SESSION_NOT_OWNER"].includes(error.code)) throw error;
+        throw _cryptoOperationError();
+      }
+    }
+    async function _writeCredentialTransaction(operations, expectedGeneration) {
+      const original = _beginSnapshot(expectedGeneration);
+      const after = original.slice(0, 3);
+      for (const operation of operations) {
+        const index = _storageKeys.indexOf(operation.key);
+        if (index < 3) after[index] = operation.type === "remove" ? null : String(operation.value);
+      }
+      const journal = JSON.stringify({
+        format: "notenverwaltung_credentials_v1",
+        before: _completeCredentials(original.slice(0, 3)) ? original.slice(0, 3) : null,
+        after,
+        legacyHash: await _legacyHash(original[3], expectedGeneration)
+      });
+      _writeStorageTransaction([
+        { type: "set", key: STORAGE_KEY_JOURNAL, value: journal },
+        ...operations,
+        { type: "remove", key: STORAGE_KEY_JOURNAL }
+      ], expectedGeneration);
+    }
     function _rollbackFailureError(originalError, rollbackErrors) {
       const rollbackDetails = rollbackErrors.map(function(error2) {
         return error2 && error2.message ? error2.message : String(error2);
@@ -6340,7 +7159,12 @@
     }
     function _assertSession(expectedGeneration, expectedSnapshot = _confirmedSnapshot) {
       _assertStorageGeneration(expectedGeneration);
-      sessionCoordinator2.assertHeld();
+      try {
+        sessionCoordinator2.assertHeld();
+      } catch (error) {
+        _clearSessionPassword();
+        throw error;
+      }
       if (expectedSnapshot && !_sameSnapshot(_readSnapshot(), expectedSnapshot)) {
         const error = _externalChangeError();
         _lockSession();
@@ -6399,10 +7223,21 @@
           failing = null;
           const restored = /* @__PURE__ */ new Set();
           const rollbackErrors = [];
-          for (const index of attempted.slice().reverse()) {
+          const journalIndex = _storageKeys.indexOf(STORAGE_KEY_JOURNAL);
+          const journalWrite = operations.find((operation) => operation.key === STORAGE_KEY_JOURNAL && operation.type === "set");
+          const recoveryJournal = journalWrite && String(journalWrite.value) || original[journalIndex];
+          if (recoveryJournal && attempted.some((index) => index !== journalIndex) && staged[journalIndex] !== recoveryJournal) {
+            assertStaged();
+            localStorage.setItem(STORAGE_KEY_JOURNAL, recoveryJournal);
+            staged[journalIndex] = recoveryJournal;
+          }
+          const rollbackOrder = attempted.slice().reverse().filter((index) => index !== journalIndex);
+          if (attempted.includes(journalIndex)) rollbackOrder.push(journalIndex);
+          for (const index of rollbackOrder) {
             if (restored.has(index)) continue;
             restored.add(index);
             assertStaged();
+            if (index === journalIndex && !staged.every((value, i) => i === journalIndex || value === original[i])) continue;
             failing = { index, value: original[index] };
             try {
               if (original[index] === null) localStorage.removeItem(_storageKeys[index]);
@@ -6497,19 +7332,54 @@
       }
       throw new Error("ungültiges Payload-Format");
     }
-    async function _decryptLocalPayload(payload, password, expectedGeneration) {
-      const parts = String(payload).split(":");
-      if (parts.length !== 2) throw new Error("ungültiges lokales Payload-Format");
-      const saltB64 = localStorage.getItem(STORAGE_KEY_SALT);
-      if (!saltB64) throw new Error("fehlender Salt");
+    async function _decryptLocalPayload(payload, password, expectedGeneration, saltB64 = localStorage.getItem(STORAGE_KEY_SALT)) {
+      if (saltB64 === "v2-envelope") {
+        const opened = await unlockEnvelope(payload, { kind: "password", value: password }).catch((error) => {
+          _assertSession(expectedGeneration);
+          throw error;
+        });
+        try {
+          _assertSession(expectedGeneration);
+          return { json: opened.stateJson, session: opened.session };
+        } catch (error) {
+          disposeEnvelopeSession(opened.session);
+          throw error;
+        }
+      }
+      const parts = _decodeEncryptedParts(payload, saltB64);
       const cached = _sessionPassword === password && _sessionKeyCache && _sessionKeyCache.generation === _sessionGeneration && _sessionKeyCache.saltB64 === saltB64 ? _sessionKeyCache.keyPromise : null;
-      const key = await _guardAsync(cached || _deriveKey(password, _base64ToBuf(saltB64)), expectedGeneration);
-      const decrypted = await _guardAsync(_decryptWithKey(
-        new Uint8Array(_base64ToBuf(parts[0])),
-        key,
-        _base64ToBuf(parts[1])
-      ), expectedGeneration);
+      let key;
+      try {
+        key = await _guardAsync(cached || _deriveKey(password, parts.salt), expectedGeneration);
+      } catch (error) {
+        if (error && ["STORAGE_EXTERNAL_CHANGE", "STORAGE_GENERATION_STALE", "SESSION_NOT_OWNER"].includes(error.code)) throw error;
+        throw _cryptoOperationError();
+      }
+      let decrypted;
+      try {
+        decrypted = await _guardAsync(_decryptWithKey(new Uint8Array(parts.iv), key, parts.cipher), expectedGeneration);
+      } catch (error) {
+        if (error && ["STORAGE_EXTERNAL_CHANGE", "STORAGE_GENERATION_STALE", "SESSION_NOT_OWNER"].includes(error.code)) throw error;
+        if (error && error.name === "OperationError") {
+          const authError = new Error("Passwort falsch oder die verschlüsselten Daten konnten nicht authentifiziert werden.");
+          authError.code = "AUTH";
+          throw authError;
+        }
+        throw _cryptoOperationError();
+      }
       return { json: new TextDecoder().decode(decrypted), key, saltB64 };
+    }
+    async function _decryptLocalRecord(record, password, expectedGeneration) {
+      if (!record.journal) return _decryptLocalPayload(record.fields[0], password, expectedGeneration, record.fields[1]);
+      const candidates = [record.journal.after, record.journal.before, ...record.journal.previous || []].filter(Boolean);
+      for (const [index, candidate] of candidates.entries()) {
+        try {
+          const decrypted = await _decryptLocalPayload(candidate[0], password, expectedGeneration, candidate[1]);
+          return { ...decrypted, recoveredFields: candidate };
+        } catch (error) {
+          if (!error || error.code !== "AUTH" || index === candidates.length - 1) throw error;
+        }
+      }
     }
     async function exportStateEncrypted(password, state) {
       const json = JSON.stringify(state || createInitialState2(/* @__PURE__ */ new Date()));
@@ -6534,6 +7404,7 @@
       } catch (err2) {
         throw new Error("Ungültiges JSON");
       }
+      if (obj && obj.format === "notenverwaltung_envelope") return _importV2(text, { kind: "password", value: password });
       if (!obj || obj.format !== "notenverwaltung_enc_v1" || !obj.salt || !obj.payload) {
         throw new Error("Unbekanntes verschlüsseltes Format");
       }
@@ -6569,15 +7440,36 @@
         throw _stateContentError(err2);
       }
     }
-    async function loadState() {
+    async function loadState(options = {}) {
       let expectedGeneration = _sessionGeneration;
       _beginSnapshot(expectedGeneration);
-      if (_isEncryptedFlagSet()) {
-        const payload = localStorage.getItem(STORAGE_KEY_ENC_PAYLOAD);
-        if (!payload) throw _stateContentError();
+      const record = _readLocalRecord();
+      if (record.journal && record.legacy !== null && await _legacyHash(record.legacy, expectedGeneration) !== record.journal.legacyHash) throw _incompleteLocalStateError();
+      if (record.journal || _completeCredentials(record.fields)) {
         while (true) {
+          if (_v2Session) {
+            _assertSession(expectedGeneration);
+            return _parseRecoveryState(_v2StateJson);
+          }
           const alreadyUnlocked = !!_sessionPassword;
-          const pwd = _sessionPassword || await window.promptPassword({ message: "Der gespeicherte Zustand ist verschlüsselt. Bitte Passwort eingeben:" });
+          let recoveredReceipt = null;
+          const onRecovery = typeof options.onRecoveryRequested === "function" ? async () => {
+            _assertSession(expectedGeneration);
+            const result = await options.onRecoveryRequested();
+            const receipt = result && _receipts.get(result.receipt);
+            if (!receipt || receipt.generation !== _sessionGeneration || !_v2Session) return false;
+            _assertSession(receipt.generation, receipt.snapshot);
+            if (receipt.generation <= expectedGeneration) return false;
+            recoveredReceipt = receipt;
+            _receipts.delete(result.receipt);
+            return true;
+          } : void 0;
+          const pwd = _sessionPassword || await window.promptPassword({ message: "Der gespeicherte Zustand ist verschlüsselt. Bitte Passwort eingeben:", onRecovery });
+          if (recoveredReceipt) {
+            _assertSession(recoveredReceipt.generation, recoveredReceipt.snapshot);
+            if (!_v2Session) throw _staleStorageGenerationError();
+            return _parseRecoveryState(_v2StateJson);
+          }
           _assertSession(expectedGeneration);
           if (!pwd) {
             _lockSession();
@@ -6586,9 +7478,9 @@
           }
           let decrypted;
           try {
-            decrypted = await _decryptLocalPayload(payload, pwd, expectedGeneration);
+            decrypted = await _decryptLocalRecord(record, pwd, expectedGeneration);
           } catch (err2) {
-            if (err2 && ["STORAGE_EXTERNAL_CHANGE", "STORAGE_GENERATION_STALE", "SESSION_NOT_OWNER"].includes(err2.code)) throw err2;
+            if (!err2 || err2.code !== "AUTH") throw err2;
             _assertSession(expectedGeneration);
             console.error("[Storage.loadState] Authentifizierung oder Entschluesselung fehlgeschlagen.");
             const snapshot = _confirmedSnapshot;
@@ -6605,9 +7497,28 @@
             continue;
           }
           _assertSession(expectedGeneration);
-          const state2 = _parseStoredState(decrypted.json);
+          let state2;
+          try {
+            state2 = decrypted.session ? _parseRecoveryState(decrypted.json) : _parseStoredState(decrypted.json);
+          } catch (error) {
+            if (decrypted.session) disposeEnvelopeSession(decrypted.session);
+            throw error;
+          }
+          if (decrypted.recoveredFields) {
+            await _enqueueLocalStorageOperation(() => {
+              _assertSession(expectedGeneration);
+              _writeStorageTransaction([
+                ...decrypted.recoveredFields.map((value, index) => ({ type: "set", key: _storageKeys[index], value })),
+                { type: "remove", key: STORAGE_KEY },
+                ...record.journal.format === "notenverwaltung_credentials_v2" && record.journal.migrationAfter !== null ? [{ type: "set", key: STORAGE_KEY_MIGRATION, value: record.journal.migrationAfter }] : [],
+                { type: "remove", key: STORAGE_KEY_JOURNAL }
+              ], expectedGeneration);
+            });
+            _assertSession(expectedGeneration);
+          }
           if (!alreadyUnlocked) {
-            _replaceSessionSecrets(pwd, decrypted.key, decrypted.saltB64);
+            if (decrypted.session) _replaceV2Session(decrypted.session, decrypted.json);
+            else _replaceSessionSecrets(pwd, decrypted.key, decrypted.saltB64);
           }
           try {
             _resetInactivityTimer();
@@ -6628,9 +7539,10 @@
       const expectedGeneration = _sessionGeneration;
       return _enqueueLocalStorageOperation(async function() {
         _assertSession(expectedGeneration);
-        if (!_isEncryptedFlagSet() || !_sessionPassword) {
+        if (!_isEncryptedFlagSet() || !hasSessionPassword()) {
           throw new Error("Die Anwendung muss verschlüsselt und entsperrt sein, um den bestätigten Zustand zu lesen.");
         }
+        if (_v2Session) return _parseRecoveryState(_v2StateJson);
         const payload = localStorage.getItem(STORAGE_KEY_ENC_PAYLOAD);
         if (!payload) throw _stateContentError();
         const password = _sessionPassword;
@@ -6663,7 +7575,7 @@
         return _saveStateNow(json, expectedGeneration);
       });
     }
-    function _enqueueExclusiveStateReplacement(state) {
+    function _enqueueExclusiveStateReplacement(state, reset = false) {
       let json;
       try {
         json = JSON.stringify(state);
@@ -6672,7 +7584,7 @@
       }
       const expectedGeneration = _sessionGeneration;
       return _enqueueLocalStorageOperation(async function() {
-        await _saveStateNow(json, expectedGeneration);
+        await _saveStateNow(json, expectedGeneration, reset);
         _assertSession(expectedGeneration);
         _advanceSessionGenerationPreservingSecrets();
         return state;
@@ -6684,7 +7596,7 @@
       } catch (error) {
         return Promise.reject(error);
       }
-      if (!_isEncryptedFlagSet() || !_sessionPassword) {
+      if (!_isEncryptedFlagSet() || !hasSessionPassword()) {
         return Promise.reject(new Error("Die Anwendung muss entsperrt und verschlüsselt sein."));
       }
       return _enqueueExclusiveStateReplacement(state);
@@ -6695,17 +7607,27 @@
       } catch (error) {
         return Promise.reject(error);
       }
-      if (!_isEncryptedFlagSet() || !_sessionPassword) {
+      if (!_isEncryptedFlagSet() || !hasSessionPassword()) {
         return Promise.reject(new Error("Die Anwendung muss entsperrt und verschlüsselt sein."));
       }
       const fresh = createInitialState2(/* @__PURE__ */ new Date());
-      return _enqueueExclusiveStateReplacement(fresh);
+      return _enqueueExclusiveStateReplacement(fresh, true);
     }
-    async function _saveStateNow(stateOrJson, expectedGeneration) {
+    async function _saveStateNow(stateOrJson, expectedGeneration, reset = false) {
       const json = typeof stateOrJson === "string" ? stateOrJson : JSON.stringify(stateOrJson);
       _assertSession(expectedGeneration);
       if (!_isEncryptedFlagSet()) {
         throw new Error("Verschlüsselte Speicherung ist nicht eingerichtet. Es wurde nichts gespeichert.");
+      }
+      if (_v2Session) {
+        _parseRecoveryState(json);
+        const envelope = await _guardAsync(reencryptState(_v2Session, json), expectedGeneration);
+        _writeStorageTransaction([
+          { type: "set", key: STORAGE_KEY_ENC_PAYLOAD, value: envelope },
+          ...reset ? [{ type: "remove", key: STORAGE_KEY_MIGRATION }] : []
+        ], expectedGeneration);
+        _v2StateJson = json;
+        return true;
       }
       if (!_sessionPassword) {
         throw new Error("Kein Sitzungspasswort vorhanden. Es wurde nichts gespeichert.");
@@ -6715,28 +7637,38 @@
       _writeStorageTransaction([
         { type: "set", key: STORAGE_KEY_ENC_PAYLOAD, value: encrypted.payload },
         { type: "set", key: STORAGE_KEY_ENC_FLAG, value: "1" },
-        { type: "remove", key: STORAGE_KEY }
+        { type: "remove", key: STORAGE_KEY },
+        ...reset ? [{ type: "remove", key: STORAGE_KEY_MIGRATION }] : []
       ], expectedGeneration);
       return true;
     }
     async function enableEncryption(password, state) {
       _assertSession(_sessionGeneration);
+      if (localStorage.getItem(STORAGE_KEY_SALT) === "v2-envelope") throw _recoveryError("RECOVERY_CONFIRMATION_REQUIRED");
       if (!password) throw new Error("Passwort erforderlich");
       if (password.length < 6) throw new Error("Passwort muss mindestens 6 Zeichen lang sein");
       const json = JSON.stringify(state || createInitialState2(/* @__PURE__ */ new Date()));
       const expectedGeneration = _sessionGeneration;
       return _enqueueLocalStorageOperation(async function() {
         _beginSnapshot(expectedGeneration);
+        const record = _readLocalRecord();
+        if (record.journal) throw _incompleteLocalStateError();
+        if (_completeCredentials(record.fields) && !_sessionPassword) {
+          const error = new Error("Bitte den vorhandenen lokalen Bestand zuerst laden und entsperren. Eine Neueinrichtung wurde gesperrt.");
+          error.code = "STORAGE_SESSION_NOT_INITIALIZED";
+          throw error;
+        }
         const salt = crypto.getRandomValues(new Uint8Array(16));
         const saltB64 = _bufToBase64(salt.buffer);
         const key = await _guardAsync(_deriveKey(password, salt.buffer), expectedGeneration);
         const payload = await _guardAsync(_encryptJsonWithKey(json, key), expectedGeneration);
-        _writeStorageTransaction([
+        await _writeCredentialTransaction([
           { type: "set", key: STORAGE_KEY_ENC_PAYLOAD, value: payload },
           { type: "set", key: STORAGE_KEY_SALT, value: saltB64 },
           { type: "set", key: STORAGE_KEY_ENC_FLAG, value: "1" },
           { type: "remove", key: STORAGE_KEY }
         ], expectedGeneration);
+        _assertSession(expectedGeneration);
         _replaceSessionSecrets(password, key, saltB64);
         try {
           _resetInactivityTimer();
@@ -6746,6 +7678,7 @@
       });
     }
     async function changePassword(oldPassword, newPassword) {
+      if (localStorage.getItem(STORAGE_KEY_SALT) === "v2-envelope") throw _recoveryError("RECOVERY_CONFIRMATION_REQUIRED");
       _assertSession(_sessionGeneration);
       if (!_confirmedSnapshot || !_sessionPassword) {
         const error = new Error("Bitte den lokalen Bestand zuerst laden und entsperren, bevor das Passwort geändert wird.");
@@ -6764,10 +7697,11 @@
         const newSaltB64 = _bufToBase64(newSalt.buffer);
         const newKey = await _guardAsync(_deriveKey(newPassword, newSalt.buffer), expectedGeneration);
         const newPayload = await _guardAsync(_encryptJsonWithKey(decrypted.json, newKey), expectedGeneration);
-        _writeStorageTransaction([
+        await _writeCredentialTransaction([
           { type: "set", key: STORAGE_KEY_ENC_PAYLOAD, value: newPayload },
           { type: "set", key: STORAGE_KEY_SALT, value: newSaltB64 }
         ], expectedGeneration);
+        _assertSession(expectedGeneration);
         _replaceSessionSecrets(newPassword, newKey, newSaltB64);
         try {
           _resetInactivityTimer();
@@ -6777,16 +7711,337 @@
       });
     }
     function hasSessionPassword() {
-      return !!_sessionPassword;
+      return !!(_sessionPassword || _v2Session);
     }
     async function encryptForBackup(json) {
-      if (!_sessionPassword) throw new Error("kein Sitzungspasswort vorhanden");
+      if (!hasSessionPassword()) throw new Error("kein Sitzungspasswort vorhanden");
       const generation = _sessionGeneration;
       _assertSession(generation);
-      return _guardAsync(_encryptJsonWithSalt(json, _sessionPassword), generation);
+      return _guardAsync(_v2Session ? reencryptState(_v2Session, json) : _encryptJsonWithSalt(json, _sessionPassword), generation);
+    }
+    function _recoveryError(code) {
+      const messages = {
+        RECOVERY_CONFIRMATION_REQUIRED: "Der neue Wiederherstellungscode muss zuerst vollständig bestätigt werden.",
+        RECOVERY_TOKEN_INVALID: "Die Vorbereitung ist abgelaufen oder wurde verworfen. Bitte erneut beginnen.",
+        RECOVERY_REPLACEMENT_REQUIRED: "Das Ersetzen des vorhandenen Bestands muss ausdrücklich bestätigt werden.",
+        RECOVERY_MIGRATION_CONFLICT: "Eine abweichende verschlüsselte Alt-Sicherung ist bereits vorhanden.",
+        AUTH: "Der Zugang konnte nicht authentifiziert werden."
+      };
+      const error = new Error(messages[code] || "Die Wiederherstellung konnte nicht abgeschlossen werden.");
+      error.code = code;
+      return error;
+    }
+    function _parseRecoveryState(json) {
+      try {
+        const raw = JSON.parse(json);
+        if (!raw || typeof raw !== "object" || Array.isArray(raw)) throw new Error("root");
+        validateRawTermResults(raw);
+        validateRawUpperSecContexts(raw);
+        validateImportedState(raw);
+        const state = DomainModel2.ensureStateShape(raw);
+        validateImportedState(state);
+        return state;
+      } catch (_) {
+        throw _stateContentError();
+      }
+    }
+    function _summary(json, metadata = null) {
+      const state = _parseRecoveryState(json);
+      return { students: state.students.length, courses: state.courses.length, assessments: state.assessments.length, metadata };
+    }
+    function getRecoveryStatus() {
+      const record = _readLocalRecord();
+      const fields = record.journal ? record.journal.after : record.fields;
+      const metadata = fields[1] === "v2-envelope" ? inspectEnvelope(fields[0]) : null;
+      return {
+        enabled: !!metadata,
+        metadata,
+        migrationBackupAvailable: getRecoveryMigrationBackup() !== null,
+        hasLocalData: !!(record.journal || _completeCredentials(fields) || record.legacy !== null)
+      };
+    }
+    function getRecoveryMigrationBackup() {
+      const text = localStorage.getItem(STORAGE_KEY_MIGRATION);
+      if (text !== null && !_validMigrationBackup(text)) throw _incompleteLocalStateError();
+      return text;
+    }
+    function _capturePreparation() {
+      const generation = _sessionGeneration;
+      const snapshot = _beginSnapshot(generation).slice();
+      return { generation, snapshot, expiresAt: Date.now() + TOKEN_TTL };
+    }
+    function _assertPreparation(entry) {
+      if (!entry || Date.now() >= entry.expiresAt) throw _recoveryError("RECOVERY_TOKEN_INVALID");
+      _assertSession(entry.generation, entry.snapshot);
+    }
+    function _tokenEntry(token, kind) {
+      const entry = _privateTokens.get(token);
+      if (!entry || entry.kind !== kind) throw _recoveryError("RECOVERY_TOKEN_INVALID");
+      try {
+        _assertPreparation(entry);
+      } catch (error) {
+        cancelPreparedProtection(token);
+        throw error;
+      }
+      return entry;
+    }
+    function _registerToken(entry) {
+      _assertPreparation(entry);
+      const token = Object.freeze({});
+      entry.timer = setTimeout(() => {
+        if (_privateTokens.has(token)) _lockSession();
+      }, Math.max(1, entry.expiresAt - Date.now()));
+      _privateTokens.set(token, entry);
+      return token;
+    }
+    function cancelPreparedProtection(token) {
+      const entry = _privateTokens.get(token);
+      if (!entry) return;
+      _privateTokens.delete(token);
+      clearTimeout(entry.timer);
+      if (entry.session) disposeEnvelopeSession(entry.session);
+      entry.session = entry.password = entry.code = entry.json = null;
+    }
+    async function _openChecked(text, access, preparation) {
+      const opened = await unlockEnvelope(text, access).catch((error) => {
+        _assertPreparation(preparation);
+        throw error;
+      });
+      try {
+        _assertPreparation(preparation);
+        _parseRecoveryState(opened.stateJson);
+        return opened;
+      } catch (error) {
+        disposeEnvelopeSession(opened.session);
+        throw error;
+      }
+    }
+    async function _draftFromJson(json, password, context2, details = {}) {
+      if (typeof password !== "string" || password.length < 6) throw new Error("Passwort muss mindestens 6 Zeichen lang sein");
+      _parseRecoveryState(json);
+      _assertPreparation(context2);
+      const candidate = await createEnvelope(json, password, details.datasetId ? { datasetId: details.datasetId } : void 0).catch((error) => {
+        _assertPreparation(context2);
+        throw error;
+      });
+      try {
+        _assertPreparation(context2);
+        for (const access of [{ kind: "password", value: password }, { kind: "recovery", value: candidate.recoveryCode }]) {
+          const checked = await _openChecked(candidate.envelopeText, access, context2);
+          try {
+            if (checked.stateJson !== json) throw _stateContentError();
+          } finally {
+            disposeEnvelopeSession(checked.session);
+          }
+        }
+        _assertPreparation(context2);
+        const metadata = inspectEnvelope(candidate.envelopeText);
+        const entry = {
+          ...context2,
+          ...details,
+          kind: "draft",
+          json,
+          password,
+          code: candidate.recoveryCode,
+          envelopeText: candidate.envelopeText,
+          session: candidate.session,
+          confirmed: false,
+          metadata
+        };
+        const token = _registerToken(entry);
+        return { token, recoveryCode: candidate.recoveryCode, metadata, summary: _summary(json, metadata), replacesExisting: !!details.replacesExisting };
+      } catch (error) {
+        disposeEnvelopeSession(candidate.session);
+        throw error;
+      }
+    }
+    async function prepareRecoveryEnrollment({ password, state } = {}) {
+      const context2 = _capturePreparation();
+      return _enqueueLocalStorageOperation(async () => {
+        _assertPreparation(context2);
+        const record = _readLocalRecord();
+        if (record.journal) throw _incompleteLocalStateError();
+        if (record.fields[1] === "v2-envelope") throw _recoveryError("RECOVERY_CONFIRMATION_REQUIRED");
+        let json, migration = null;
+        if (_completeCredentials(record.fields)) {
+          const decrypted = await _decryptLocalRecord(record, password, context2.generation);
+          _assertPreparation(context2);
+          json = decrypted.json;
+          migration = JSON.stringify({ format: "notenverwaltung_enc_v1", salt: record.fields[1], payload: record.fields[0] });
+        } else if (record.legacy !== null) {
+          json = record.legacy;
+          _parseRecoveryState(json);
+          migration = await exportStateEncrypted(password, JSON.parse(json));
+          _assertPreparation(context2);
+        } else json = JSON.stringify(state || createInitialState2(/* @__PURE__ */ new Date()));
+        if (migration !== null && context2.snapshot[5] !== null && context2.snapshot[5] !== migration) throw _recoveryError("RECOVERY_MIGRATION_CONFLICT");
+        return _draftFromJson(json, password, context2, { migration, replacesExisting: false });
+      }, false);
+    }
+    async function prepareCredentialRotation({ currentPassword, newPassword, reason } = {}) {
+      const context2 = _capturePreparation();
+      return _enqueueLocalStorageOperation(async () => {
+        _assertPreparation(context2);
+        if (!["password-change", "code-replacement"].includes(reason)) throw _recoveryError("RECOVERY_TOKEN_INVALID");
+        const record = _readLocalRecord();
+        if (record.journal || !_completeCredentials(record.fields)) throw _incompleteLocalStateError();
+        if (record.fields[1] !== "v2-envelope") {
+          const decrypted = await _decryptLocalRecord(record, currentPassword, context2.generation);
+          _assertPreparation(context2);
+          const migration = JSON.stringify({ format: "notenverwaltung_enc_v1", salt: record.fields[1], payload: record.fields[0] });
+          if (context2.snapshot[5] !== null && context2.snapshot[5] !== migration) throw _recoveryError("RECOVERY_MIGRATION_CONFLICT");
+          return _draftFromJson(decrypted.json, newPassword, context2, { migration });
+        }
+        const opened = await _openChecked(record.fields[0], { kind: "password", value: currentPassword }, context2);
+        try {
+          return await _draftFromJson(opened.stateJson, newPassword, context2, { datasetId: inspectEnvelope(record.fields[0]).datasetId });
+        } finally {
+          disposeEnvelopeSession(opened.session);
+        }
+      }, false);
+    }
+    async function openRecoverySource({ source, text, code } = {}) {
+      const context2 = _capturePreparation();
+      return _enqueueLocalStorageOperation(async () => {
+        _assertPreparation(context2);
+        if (!["local", "backup"].includes(source)) throw _recoveryError("RECOVERY_TOKEN_INVALID");
+        let candidates;
+        if (source === "local") {
+          const record = _readLocalRecord();
+          if (record.journal && record.legacy !== null && await _legacyHash(record.legacy, context2.generation) !== record.journal.legacyHash) throw _incompleteLocalStateError();
+          candidates = (record.journal ? [record.journal.after, record.journal.before, ...record.journal.previous || []].filter(Boolean) : [record.fields]).filter((fields) => fields[1] === "v2-envelope").map((fields) => fields[0]);
+        } else candidates = [text];
+        if (!candidates.length) throw _encryptedFormatError();
+        for (let index = 0; index < candidates.length; index++) {
+          let opened;
+          try {
+            opened = await _openChecked(candidates[index], { kind: "recovery", value: code }, context2);
+          } catch (error) {
+            if (error.code === "AUTH" && index < candidates.length - 1) continue;
+            throw error;
+          }
+          try {
+            _assertPreparation(context2);
+            const metadata = inspectEnvelope(candidates[index]);
+            const sourceToken = _registerToken({ ...context2, kind: "source", json: opened.stateJson, metadata, source });
+            return { sourceToken, summary: _summary(opened.stateJson, metadata) };
+          } finally {
+            disposeEnvelopeSession(opened.session);
+          }
+        }
+      }, false);
+    }
+    async function prepareRecoveredProtection(sourceToken, { newPassword } = {}) {
+      const source = _tokenEntry(sourceToken, "source");
+      return _enqueueLocalStorageOperation(async () => {
+        _tokenEntry(sourceToken, "source");
+        const draft = await _draftFromJson(source.json, newPassword, source, {
+          datasetId: source.metadata.datasetId,
+          replacesExisting: source.source === "backup" && source.snapshot.slice(0, 5).some((value) => value !== null)
+        });
+        try {
+          _tokenEntry(sourceToken, "source");
+        } catch (error) {
+          cancelPreparedProtection(draft.token);
+          throw error;
+        }
+        cancelPreparedProtection(sourceToken);
+        return draft;
+      }, false);
+    }
+    async function confirmPreparedProtection(token, enteredCode) {
+      const entry = _tokenEntry(token, "draft");
+      const normalized = await normalizeRecoveryCode(enteredCode).catch((error) => {
+        _tokenEntry(token, "draft");
+        throw error;
+      });
+      _tokenEntry(token, "draft");
+      if (normalized !== entry.code) throw _recoveryError("AUTH");
+      entry.confirmed = true;
+    }
+    function commitPreparedProtection(token, options = {}) {
+      return _enqueueLocalStorageOperation(async () => {
+        const entry = _tokenEntry(token, "draft");
+        if (!entry.confirmed) throw _recoveryError("RECOVERY_CONFIRMATION_REQUIRED");
+        if (entry.replacesExisting && options.replaceExisting !== true) throw _recoveryError("RECOVERY_REPLACEMENT_REQUIRED");
+        const original = entry.snapshot;
+        const oldRecord = _readLocalRecord();
+        const before = oldRecord.journal ? oldRecord.journal.after : _completeCredentials(oldRecord.fields) ? oldRecord.fields : null;
+        const after = [entry.envelopeText, "v2-envelope", "1"];
+        const migrationAfter = entry.migration || original[5] || oldRecord.journal && oldRecord.journal.migrationAfter || null;
+        const previous = oldRecord.journal ? [oldRecord.journal.before, ...oldRecord.journal.previous || []] : [];
+        const journal = JSON.stringify({
+          format: "notenverwaltung_credentials_v2",
+          before,
+          after,
+          previous,
+          legacyHash: await _legacyHash(original[3], entry.generation),
+          migrationBefore: original[5],
+          migrationAfter
+        });
+        _tokenEntry(token, "draft");
+        _privateTokens.delete(token);
+        clearTimeout(entry.timer);
+        try {
+          _writeStorageTransaction([
+            { type: "set", key: STORAGE_KEY_JOURNAL, value: journal },
+            ...migrationAfter !== null ? [{ type: "set", key: STORAGE_KEY_MIGRATION, value: migrationAfter }] : [],
+            ...after.map((value, index) => ({ type: "set", key: _storageKeys[index], value })),
+            { type: "remove", key: STORAGE_KEY }
+          ], entry.generation);
+          const committedSnapshot = _confirmedSnapshot.slice();
+          const committed = { ...entry, snapshot: committedSnapshot };
+          for (const access of [{ kind: "password", value: entry.password }, { kind: "recovery", value: entry.code }]) {
+            const checked = await _openChecked(localStorage.getItem(STORAGE_KEY_ENC_PAYLOAD), access, committed);
+            try {
+              if (checked.stateJson !== entry.json) throw _stateContentError();
+            } finally {
+              disposeEnvelopeSession(checked.session);
+            }
+          }
+          _assertPreparation(committed);
+          _writeStorageTransaction([{ type: "remove", key: STORAGE_KEY_JOURNAL }], entry.generation);
+          await Promise.resolve();
+          _assertSession(entry.generation);
+          const session = entry.session;
+          entry.session = null;
+          _replaceV2Session(session, entry.json);
+          const receipt = Object.freeze({});
+          _receipts.set(receipt, { generation: _sessionGeneration, snapshot: _confirmedSnapshot.slice() });
+          return { receipt, metadata: entry.metadata };
+        } catch (error) {
+          if (_sessionGeneration === entry.generation) _lockSession();
+          throw error;
+        } finally {
+          if (entry.session) disposeEnvelopeSession(entry.session);
+          entry.session = entry.password = entry.code = entry.json = null;
+        }
+      });
+    }
+    async function verifyRecoveryCode(options) {
+      const result = await openRecoverySource(options);
+      try {
+        _tokenEntry(result.sourceToken, "source");
+        return result.summary;
+      } finally {
+        cancelPreparedProtection(result.sourceToken);
+      }
+    }
+    async function _importV2(text, access) {
+      const context2 = _capturePreparation();
+      const opened = await _openChecked(text, access, context2);
+      try {
+        _assertPreparation(context2);
+        return _parseRecoveryState(opened.stateJson);
+      } finally {
+        disposeEnvelopeSession(opened.session);
+      }
+    }
+    function importStateEncryptedWithRecovery(text, code) {
+      return _importV2(text, { kind: "recovery", value: code });
     }
     function isEncrypted() {
-      return _isEncryptedFlagSet();
+      return _isEncryptedFlagSet() || localStorage.getItem(STORAGE_KEY_JOURNAL) !== null;
     }
     try {
       ["beforeunload", "pagehide"].forEach((type) => window.addEventListener(type, () => {
@@ -6808,6 +8063,17 @@
     }
     return {
       loadState,
+      getRecoveryStatus,
+      getRecoveryMigrationBackup,
+      prepareRecoveryEnrollment,
+      prepareCredentialRotation,
+      openRecoverySource,
+      prepareRecoveredProtection,
+      confirmPreparedProtection,
+      commitPreparedProtection,
+      cancelPreparedProtection,
+      verifyRecoveryCode,
+      importStateEncryptedWithRecovery,
       loadCurrentSessionState,
       saveState,
       flushPendingWrites,
@@ -7598,8 +8864,8 @@
 
   // node_modules/fflate/esm/browser.js
   var ch2 = {};
-  var wk = (function(c, id, msg, transfer, cb) {
-    var w = new Worker(ch2[id] || (ch2[id] = URL.createObjectURL(new Blob([
+  var wk = (function(c, id2, msg, transfer, cb) {
+    var w = new Worker(ch2[id2] || (ch2[id2] = URL.createObjectURL(new Blob([
       c + ';addEventListener("error",function(e){e=e.error;postMessage({$e$:[e.message,e.code,e.stack]})})'
     ], { type: "text/javascript" }))));
     w.onmessage = function(e) {
@@ -8193,15 +9459,15 @@
     }
     return tl;
   };
-  var wrkr = function(fns, init, id, cb) {
-    if (!ch[id]) {
+  var wrkr = function(fns, init, id2, cb) {
+    if (!ch[id2]) {
       var fnStr = "", td_1 = {}, m = fns.length - 1;
       for (var i = 0; i < m; ++i)
         fnStr = wcln(fns[i], fnStr, td_1);
-      ch[id] = { c: wcln(fns[m], fnStr, td_1), e: td_1 };
+      ch[id2] = { c: wcln(fns[m], fnStr, td_1), e: td_1 };
     }
-    var td2 = mrg({}, ch[id].e);
-    return wk(ch[id].c + ";onmessage=function(e){for(var k in e.data)self[k]=e.data[k];onmessage=" + init.toString() + "}", id, td2, cbfs(td2), cb);
+    var td2 = mrg({}, ch[id2].e);
+    return wk(ch[id2].c + ";onmessage=function(e){for(var k in e.data)self[k]=e.data[k];onmessage=" + init.toString() + "}", id2, td2, cbfs(td2), cb);
   };
   var bDflt = function() {
     return [u8, u16, i32, fleb, fdeb, clim, revfl, revfd, flm, flt, fdm, fdt, rev, deo, et, hMap, wbits, wbits16, hTree, ln, lc, clen, wfblk, wblk, shft, slc, dflt, dopt, deflateSync, pbf];
@@ -8209,8 +9475,8 @@
   var pbf = function(msg) {
     return postMessage(msg, [msg.buffer]);
   };
-  var cbify = function(dat, opts, fns, init, id, cb) {
-    var w = wrkr(fns, init, id, function(err2, dat2) {
+  var cbify = function(dat, opts, fns, init, id2, cb) {
+    var w = wrkr(fns, init, id2, function(err2, dat2) {
       w.terminate();
       cb(err2, dat2);
     });
@@ -8703,8 +9969,8 @@
   // node_modules/write-excel-file/modules/xlsx/files/workbook.xml.rels.js
   function generateWorkbookXmlRels(_ref) {
     var sheetIds = _ref.sheetIds, features = _ref.features, sheetsOptions = _ref.sheetsOptions;
-    var xml = '<?xml version="1.0" ?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">' + sheetIds.map(function(id) {
-      return '<Relationship Id="rId'.concat(id, '" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet').concat(id, '.xml"/>');
+    var xml = '<?xml version="1.0" ?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">' + sheetIds.map(function(id2) {
+      return '<Relationship Id="rId'.concat(id2, '" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet').concat(id2, '.xml"/>');
     }).join("") + '<Relationship Id="rId'.concat(sheetIds.length + 1, '" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/sharedStrings" Target="sharedStrings.xml"/>') + '<Relationship Id="rId'.concat(sheetIds.length + 2, '" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/>') + // Apply any plugins that insert additional content to this XML.
     getAdditionalContent("xl/_rels/workbook.xml.rels", features, sheetsOptions) + "</Relationships>";
     xml = transformContent(xml, "xl/_rels/workbook.xml.rels", features, sheetsOptions);
@@ -10962,13 +12228,13 @@
         return sharedStrings;
       },
       findOrCreateSharedString: function findOrCreateSharedString(string) {
-        var id = sharedStringIdByString[string];
-        if (id === void 0) {
-          id = sharedStrings.length;
-          sharedStringIdByString[string] = id;
+        var id2 = sharedStringIdByString[string];
+        if (id2 === void 0) {
+          id2 = sharedStrings.length;
+          sharedStringIdByString[string] = id2;
           sharedStrings.push(string);
         }
-        return id;
+        return id2;
       }
     };
   }
@@ -11569,316 +12835,6 @@
     return writeXlsxFile(workbookSheets, { fontFamily: "Arial", fontSize: 11 }).toBlob();
   }
 
-  // src/transfer/import-validation.js
-  function validateImportedState(candidate) {
-    if (!candidate || typeof candidate !== "object") throw new Error("Die Datei enthält keinen gültigen Datenbestand.");
-    if (!Array.isArray(candidate.students) || !Array.isArray(candidate.courses) || !Array.isArray(candidate.assessments) || !candidate.settings || typeof candidate.settings !== "object") {
-      throw new Error("Erforderliche Bereiche students, courses, assessments oder settings fehlen.");
-    }
-    const requireUniqueIds = (items, label) => {
-      const ids = /* @__PURE__ */ new Set();
-      for (const item of items) {
-        if (!item || typeof item !== "object" || typeof item.id !== "string" || !item.id.trim()) {
-          throw new Error(label + ": Ein Eintrag ohne ID wurde gefunden.");
-        }
-        if (ids.has(item.id)) throw new Error(label + ": Doppelte ID " + item.id + ".");
-        ids.add(item.id);
-      }
-      return ids;
-    };
-    const studentIds = requireUniqueIds(candidate.students, "Schüler");
-    const courseIds = requireUniqueIds(candidate.courses, "Kurse");
-    requireUniqueIds(candidate.assessments, "Leistungen");
-    if (!Array.isArray(candidate.settings.categories) || !Array.isArray(candidate.settings.weightTemplates)) {
-      throw new Error("Kategorien oder Gewichtungsvorlagen fehlen.");
-    }
-    const categoryIds = requireUniqueIds(candidate.settings.categories, "Kategorien");
-    const weightTemplateIds = requireUniqueIds(candidate.settings.weightTemplates, "Gewichtungsvorlagen");
-    for (const category of candidate.settings.categories) {
-      if (category.active !== void 0 && typeof category.active !== "boolean") {
-        throw new Error("Eine Kategorie besitzt keinen booleschen active-Wert.");
-      }
-    }
-    const categoriesById = new Map(candidate.settings.categories.map((category) => [category.id, category]));
-    const validateWeightItems = (items, label, allowedCategoryIds) => {
-      if (!Array.isArray(items)) throw new Error(label + ": Die Gewichtung ist unvollständig.");
-      for (const item of items) {
-        if (!item || !allowedCategoryIds.has(item.categoryId)) {
-          throw new Error(label + ": Die Gewichtung verweist auf eine unbekannte Kategorie.");
-        }
-        if (typeof item.weightPercent !== "number" || !Number.isFinite(item.weightPercent) || item.weightPercent < 0 || item.weightPercent > 100) {
-          throw new Error(label + ": Gewichte müssen endliche Zahlen zwischen 0 und 100 sein.");
-        }
-      }
-    };
-    const validateArchiveSnapshot = (snapshot, label, referencedTemplateId) => {
-      const prefix = label + ": ";
-      if (!snapshot || typeof snapshot !== "object" || !snapshot.gradeMapping || typeof snapshot.gradeMapping !== "object" || !Array.isArray(snapshot.categories) || !snapshot.halfYearNames || typeof snapshot.halfYearNames !== "object" || !snapshot.halfYearSettings || typeof snapshot.halfYearSettings !== "object") {
-        throw new Error(prefix + "Der Bewertungs-Snapshot ist unvollständig.");
-      }
-      const snapshotCategoryIds = /* @__PURE__ */ new Set();
-      const snapshotSubcategoryIds = /* @__PURE__ */ new Set();
-      for (const category of snapshot.categories) {
-        if (!category || !category.id) throw new Error(prefix + "Eine Kategorie ohne ID wurde gefunden.");
-        if (snapshotCategoryIds.has(category.id)) throw new Error(prefix + "Doppelte Kategorie-ID " + category.id + ".");
-        if (typeof category.active !== "boolean") {
-          throw new Error(prefix + "Eine Kategorie besitzt keinen booleschen active-Wert.");
-        }
-        snapshotCategoryIds.add(category.id);
-        for (const subcategory of category.subcategories || []) {
-          if (!subcategory || !subcategory.id) continue;
-          if (snapshotSubcategoryIds.has(subcategory.id)) throw new Error(prefix + "Eine doppelte Unterkategorie-ID wurde gefunden.");
-          snapshotSubcategoryIds.add(subcategory.id);
-        }
-      }
-      for (const enrollment of snapshot.enrollments || []) {
-        if (!studentIds.has(enrollment.studentId)) throw new Error(prefix + "Eine Einschreibung verweist auf einen unbekannten Schüler.");
-      }
-      const snapshotTemplate = snapshot.weightTemplate;
-      if (snapshotTemplate !== void 0 && snapshotTemplate !== null) {
-        if (typeof snapshotTemplate !== "object" || Array.isArray(snapshotTemplate) || !snapshotTemplate.id || !Array.isArray(snapshotTemplate.items)) {
-          throw new Error(prefix + "Die eingefrorene Gewichtungsvorlage ist ungueltig.");
-        }
-        if (referencedTemplateId !== void 0 && referencedTemplateId !== snapshotTemplate.id) {
-          throw new Error(prefix + "Die eingefrorene Gewichtungsvorlage passt nicht zur Kursreferenz.");
-        }
-        validateWeightItems(snapshotTemplate.items, label + ": Die eingefrorene Gewichtungsvorlage", snapshotCategoryIds);
-      } else if (referencedTemplateId) {
-        throw new Error(prefix + "Die eingefrorene Gewichtungsvorlage fehlt für die Kursreferenz.");
-      }
-    };
-    for (const template of candidate.settings.weightTemplates) {
-      validateWeightItems(template.items, "Gewichtungsvorlage", categoryIds);
-    }
-    const courseScope = (course) => [
-      course.schemaMode || "",
-      Number.isInteger(Number(course.schoolYearStartYear)) ? String(Number(course.schoolYearStartYear)) : "",
-      !!course.archivedAt
-    ].join("|");
-    const importKeysByScope = /* @__PURE__ */ new Set();
-    for (const course of candidate.courses) {
-      if (course.carriedForwardFromCourseId !== void 0 && course.carriedForwardFromCourseId !== null) {
-        if (typeof course.carriedForwardFromCourseId !== "string" || !course.carriedForwardFromCourseId.trim()) {
-          throw new Error("Ein Vorgaengerkurs enthaelt keine gueltige Kurs-ID.");
-        }
-        if (course.carriedForwardFromCourseId === course.id) {
-          throw new Error("Ein Vorgaengerkurs darf nicht auf den Kurs selbst verweisen.");
-        }
-        if (!courseIds.has(course.carriedForwardFromCourseId)) {
-          throw new Error("Ein Vorgaengerkurs verweist auf einen unbekannten Kurs.");
-        }
-      }
-      if (course.importKey !== void 0 && course.importKey !== null) {
-        if (typeof course.importKey !== "string" || !course.importKey.trim() || course.importKey !== course.importKey.trim()) {
-          throw new Error("Ein Kurs enthaelt eine ungueltige externe Kurskennung.");
-        }
-        const scopedImportKey = course.importKey.toLowerCase() + "|" + courseScope(course);
-        if (importKeysByScope.has(scopedImportKey)) {
-          throw new Error("Kurse enthalten eine doppelte externe Kurskennung im selben Gueltigkeitsbereich.");
-        }
-        importKeysByScope.add(scopedImportKey);
-      }
-      const enrolledStudentIds = /* @__PURE__ */ new Set();
-      for (const enrollment of course.enrollments || []) {
-        if (!studentIds.has(enrollment.studentId)) throw new Error("Kurszuordnung verweist auf einen unbekannten Schüler.");
-        if (enrolledStudentIds.has(enrollment.studentId)) throw new Error("Ein Kurs enthält eine doppelte Einschreibung für dieselbe Schüler-ID.");
-        enrolledStudentIds.add(enrollment.studentId);
-      }
-      if (!course.archivedAt && course.weightTemplateId && !weightTemplateIds.has(course.weightTemplateId)) throw new Error("Ein aktiver Kurs verweist auf eine unbekannte Gewichtungsvorlage.");
-      if (course.archivedAt) {
-        const snapshot = course.archiveSnapshot;
-        if (!snapshot || typeof snapshot !== "object" || !snapshot.gradeMapping || typeof snapshot.gradeMapping !== "object" || !Array.isArray(snapshot.categories) || !snapshot.halfYearNames || typeof snapshot.halfYearNames !== "object" || !snapshot.halfYearSettings || typeof snapshot.halfYearSettings !== "object") {
-          throw new Error("Ein archivierter Kurs besitzt keinen vollständigen Bewertungs-Snapshot.");
-        }
-        validateArchiveSnapshot(snapshot, "Archiv-Snapshot", course.weightTemplateId);
-      }
-      if (course.archiveHistory !== void 0 && !Array.isArray(course.archiveHistory)) {
-        throw new Error("Archivverlauf: Der Verlauf ist ungueltig.");
-      }
-      for (const historyEntry of course.archiveHistory || []) {
-        if (!historyEntry || typeof historyEntry !== "object" || typeof historyEntry.archivedAt !== "string" || !historyEntry.archivedAt.trim() || historyEntry.schemaMode !== void 0 && historyEntry.schemaMode !== null && !Object.values(SCHEMA_MODES).includes(historyEntry.schemaMode) || !historyEntry.snapshot || typeof historyEntry.snapshot !== "object") {
-          throw new Error("Archivverlauf: Ein ungueltiger Eintrag wurde gefunden.");
-        }
-        validateArchiveSnapshot(historyEntry.snapshot, "Archivverlauf");
-      }
-    }
-    for (const assessment of candidate.assessments) {
-      const missingTerm = assessment.term === void 0 || assessment.term === null || String(assessment.term).trim() === "";
-      if (!missingTerm && !normalizeAssessmentTerm(assessment.term)) {
-        throw new Error("Eine Leistung besitzt ein unbekanntes Halbjahr.");
-      }
-      if (assessment.termAssignment !== void 0 && assessment.termAssignment !== null && assessment.termAssignment !== "auto" && assessment.termAssignment !== "manual") {
-        throw new Error("Eine Leistung besitzt eine unbekannte Herkunft der Halbjahres-Zuordnung.");
-      }
-      if (!courseIds.has(assessment.courseId)) throw new Error("Eine Leistung verweist auf einen unbekannten Kurs.");
-      const parentCourse = candidate.courses.find((c) => c.id === assessment.courseId);
-      const assessmentCategories = parentCourse && parentCourse.archivedAt ? parentCourse.archiveSnapshot.categories : candidate.settings.categories;
-      const assessmentCategory = assessmentCategories.find((category) => category.id === assessment.categoryId);
-      if (assessment.categoryId && !assessmentCategory) throw new Error("Eine Leistung verweist auf eine unbekannte Kategorie.");
-      if (assessment.subcategoryId && (!assessmentCategory || !(assessmentCategory.subcategories || []).some((subcategory) => subcategory.id === assessment.subcategoryId))) {
-        throw new Error("Eine Leistung verweist auf eine unbekannte Unterkategorie.");
-      }
-      for (const studentId of Object.keys(assessment.scores || {})) if (!studentIds.has(studentId)) throw new Error("Ein Noteneintrag verweist auf einen unbekannten Schüler.");
-    }
-    return true;
-  }
-  function validateMergeIdentityPreflight(base, incoming) {
-    validateImportedState(base);
-    validateRawTermResults(base);
-    validateRawUpperSecContexts(base);
-    validateImportedState(incoming);
-    validateRawTermResults(incoming);
-    validateRawUpperSecContexts(incoming);
-    const norm = (value) => String(value || "").trim().toLowerCase();
-    const structuralCourseScope = (course) => [
-      course.schemaMode || "",
-      Number.isInteger(Number(course.schoolYearStartYear)) ? String(Number(course.schoolYearStartYear)) : ""
-    ].join("|");
-    const importCourseScope = (course) => [structuralCourseScope(course), !!course.archivedAt].join("|");
-    const scopedImportKey = (course) => course && course.importKey ? norm(course.importKey) + "|" + importCourseScope(course) : "";
-    const baseCoursesById = new Map(base.courses.map((course) => [course.id, course]));
-    const baseCoursesByImportKey = /* @__PURE__ */ new Map();
-    for (const course of base.courses) {
-      const key = scopedImportKey(course);
-      if (key) baseCoursesByImportKey.set(key, course);
-    }
-    const courseTargetIds = /* @__PURE__ */ new Map();
-    const claimedBaseTargets = /* @__PURE__ */ new Map();
-    for (const course of incoming.courses) {
-      const idTarget = baseCoursesById.get(course.id) || null;
-      if (idTarget && structuralCourseScope(idTarget) !== structuralCourseScope(course)) {
-        throw new Error("Die Kurs-ID " + course.id + " widerspricht dem strukturellen Kurskontext im vorhandenen Bestand.");
-      }
-      const key = scopedImportKey(course);
-      const importKeyTarget = key ? baseCoursesByImportKey.get(key) || null : null;
-      if (idTarget && importKeyTarget && idTarget !== importKeyTarget) {
-        throw new Error("Die Kursidentität " + course.id + " ist zwischen ID und externer Kurskennung widersprüchlich.");
-      }
-      const target = idTarget || importKeyTarget;
-      if (target) {
-        const previousClaim = claimedBaseTargets.get(target.id);
-        if (previousClaim && previousClaim !== course.id) {
-          throw new Error("Mehrere eingehende Kurse beanspruchen denselben Zielkurs " + target.id + ".");
-        }
-        claimedBaseTargets.set(target.id, course.id);
-      }
-      courseTargetIds.set(course.id, target ? target.id : course.id);
-    }
-    const baseAssessmentsById = new Map(base.assessments.map((assessment) => [assessment.id, assessment]));
-    for (const assessment of incoming.assessments) {
-      const targetCourseId = courseTargetIds.get(assessment.courseId);
-      const idTarget = baseAssessmentsById.get(assessment.id);
-      if (idTarget && idTarget.courseId !== targetCourseId) {
-        throw new Error("Die Leistungs-ID " + assessment.id + " verweist im Import auf einen anderen Kurs.");
-      }
-    }
-    for (const course of incoming.courses) {
-      if (!course.carriedForwardFromCourseId) continue;
-      const targetCourseId = courseTargetIds.get(course.id);
-      const targetPredecessorId = courseTargetIds.get(course.carriedForwardFromCourseId);
-      if (!targetPredecessorId) {
-        throw new Error("Ein Vorgaengerkurs kann beim Merge nicht eindeutig aufgeloest werden.");
-      }
-      if (targetCourseId === targetPredecessorId) {
-        throw new Error("Ein Vorgaengerkurs darf beim Merge nicht auf denselben Zielkurs verweisen.");
-      }
-    }
-    return { courseTargetIds };
-  }
-  function validateRawTermResults(candidate) {
-    const studentIds = new Set((candidate && candidate.students || []).map((student) => student && student.id));
-    for (const course of candidate && candidate.courses || []) {
-      if (!course || course.termResults === void 0) continue;
-      if (!Array.isArray(course.termResults)) throw new Error("Ein Kurs enthaelt ungueltige Festsetzungen.");
-      const seen = /* @__PURE__ */ new Set();
-      for (const result of course.termResults) {
-        const key = result && `${result.studentId}|${result.term}`;
-        const valid = course.schemaMode === SCHEMA_MODES.UPPERSEC && result && studentIds.has(result.studentId) && /^\d{4}-H[12]$/.test(String(result.term || "")) && Number.isInteger(result.points) && result.points >= 0 && result.points <= 15;
-        if (!valid) throw new Error("Ein Kurs enthaelt eine ungueltige Festsetzung.");
-        if (seen.has(key)) throw new Error("Ein Kurs enthaelt eine doppelte Festsetzung.");
-        seen.add(key);
-      }
-    }
-    return true;
-  }
-  function validateRawUpperSecContexts(candidate) {
-    const courseTypes = new Set(Object.values(UPPERSEC_COURSE_TYPES));
-    const qualificationYears = new Set(Object.values(QUALIFICATION_YEARS));
-    const validateContextAndEnrollments = (source, schemaMode, label, rejectAnyDuplicate) => {
-      const prefix = label ? label + ": " : "";
-      const context = source.upperSecContext;
-      const isUpperSec = schemaMode === SCHEMA_MODES.UPPERSEC;
-      if (!isUpperSec && context !== void 0 && context !== null) {
-        throw new Error(prefix + "Ein Sek-I-Kurs enthaelt Sek-II-Kontext.");
-      }
-      if (isUpperSec && context !== void 0 && context !== null) {
-        if (typeof context !== "object" || Array.isArray(context)) {
-          throw new Error(prefix + "Ein Sek-II-Kurs enthaelt einen ungueltigen Kontext.");
-        }
-        if (context.courseType !== void 0 && context.courseType !== null && !courseTypes.has(context.courseType)) {
-          throw new Error(prefix + "Ein Sek-II-Kurs enthaelt eine ungueltige Kursart.");
-        }
-        if (context.qualificationYear !== void 0 && context.qualificationYear !== null && !qualificationYears.has(context.qualificationYear)) {
-          throw new Error(prefix + "Ein Sek-II-Kurs enthaelt einen ungueltigen Qualifikationsabschnitt.");
-        }
-        if (context.weightingDeviationReason !== void 0 && context.weightingDeviationReason !== null && (typeof context.weightingDeviationReason !== "string" || context.weightingDeviationReason.length > 1e3)) {
-          throw new Error(prefix + "Eine paedagogische Begruendung ist zu lang oder ungueltig.");
-        }
-      }
-      if (source.enrollments !== void 0 && !Array.isArray(source.enrollments)) {
-        throw new Error(prefix + "Ein Kurs enthaelt ungueltige Einschreibungen.");
-      }
-      const flagsByStudentId = /* @__PURE__ */ new Map();
-      for (const enrollment of source.enrollments || []) {
-        if (!enrollment || typeof enrollment !== "object") continue;
-        if (enrollment.writtenExamSubjectQ4 !== void 0 && typeof enrollment.writtenExamSubjectQ4 !== "boolean") {
-          throw new Error(prefix + "Eine Einschreibung enthaelt ein ungueltiges Q4-Pruefungsfach.");
-        }
-        if (flagsByStudentId.has(enrollment.studentId) && (rejectAnyDuplicate || flagsByStudentId.get(enrollment.studentId) !== enrollment.writtenExamSubjectQ4)) {
-          throw new Error(prefix + "Ein Kurs enthaelt eine " + (rejectAnyDuplicate ? "doppelte" : "widerspruechliche doppelte") + " Einschreibung.");
-        }
-        flagsByStudentId.set(enrollment.studentId, enrollment.writtenExamSubjectQ4);
-      }
-    };
-    for (const course of candidate && candidate.courses || []) {
-      if (!course || typeof course !== "object") continue;
-      validateContextAndEnrollments(course, course.schemaMode, "", false);
-      const snapshots = [];
-      if (course.archivedAt && course.archiveSnapshot && typeof course.archiveSnapshot === "object") {
-        snapshots.push({ snapshot: course.archiveSnapshot, label: "Archiv-Snapshot" });
-      }
-      if (Array.isArray(course.archiveHistory)) {
-        for (const entry of course.archiveHistory) {
-          if (entry && entry.snapshot && typeof entry.snapshot === "object") {
-            snapshots.push({
-              snapshot: entry.snapshot,
-              schemaMode: entry.schemaMode || entry.snapshot.schemaMode || course.schemaMode,
-              label: "Archivverlauf"
-            });
-          }
-        }
-      }
-      for (const archived of snapshots) {
-        const snapshot = archived.snapshot;
-        const label = archived.label;
-        validateContextAndEnrollments(snapshot, archived.schemaMode || course.schemaMode, label, true);
-        if (snapshot.categoryRoles !== void 0 && snapshot.categoryRoles !== null) {
-          if (typeof snapshot.categoryRoles !== "object" || Array.isArray(snapshot.categoryRoles)) {
-            throw new Error(label + ": Die Kategorienrollen sind ungueltig.");
-          }
-          const writtenCategoryId = snapshot.categoryRoles.upperSecWrittenCategoryId;
-          if (writtenCategoryId !== void 0 && writtenCategoryId !== null) {
-            const categoryIds = new Set((Array.isArray(snapshot.categories) ? snapshot.categories : []).filter((category) => category && category.id).map((category) => category.id));
-            if (typeof writtenCategoryId !== "string" || !categoryIds.has(writtenCategoryId)) {
-              throw new Error(label + ": Die Kategorienrolle verweist auf eine unbekannte Klausurkategorie.");
-            }
-          }
-        }
-      }
-    }
-    return true;
-  }
-
   // src/transfer/import-merge.js
   function createImportMerge({ ensureStateShape: ensureStateShape2, createEmptyState: createEmptyState2, generateId: generateId2 }) {
     function mergeImportedStateIntoCurrent2(base, incoming) {
@@ -12428,15 +13384,15 @@
     svg.appendChild(path);
     parent.appendChild(svg);
   }
-  function createCourseSymbolPicker({ document: document2, id, course, onChange }) {
+  function createCourseSymbolPicker({ document: document2, id: id2, course, onChange }) {
     const root = document2.createElement("div");
     root.className = "courses-editor-field course-symbol-picker";
     const label = document2.createElement("label");
     label.className = "courses-editor-label";
     label.textContent = "Kurssymbol";
-    label.setAttribute("for", id);
+    label.setAttribute("for", id2);
     const select = document2.createElement("select");
-    select.id = id;
+    select.id = id2;
     for (const option of [{ id: "auto", label: "Automatisch nach Fach" }, ...COURSE_SYMBOLS]) {
       const item = document2.createElement("option");
       item.value = option.id;
@@ -12844,13 +13800,356 @@
     };
   }
 
+  // src/ui/recovery-dialog.js
+  function createRecoveryUi({ window: window2, document: document2, Storage: Storage2, downloadText }) {
+    let active = null;
+    function el(tag, text, parent, doc = document2) {
+      const node = doc.createElement(tag);
+      if (text) node.textContent = text;
+      if (parent) parent.appendChild(node);
+      return node;
+    }
+    function erase(node) {
+      for (const field of node.querySelectorAll("input,textarea")) field.value = "";
+      node.textContent = "";
+      if (node.parentNode) node.parentNode.removeChild(node);
+    }
+    function closePrints(op) {
+      for (const popup of op.prints.splice(0)) {
+        try {
+          popup.document.body.textContent = "";
+          popup.close();
+        } catch (error) {
+        }
+      }
+    }
+    function finish(op, result = op.committed || null) {
+      if (!op.alive) return;
+      op.alive = false;
+      if (op.cancelStep) op.cancelStep();
+      if (op.overlay) erase(op.overlay);
+      closePrints(op);
+      for (const token of op.tokens) Storage2.cancelPreparedProtection(token);
+      op.tokens.clear();
+      if (active === op) active = null;
+      op.resolve(result);
+    }
+    function dispose() {
+      if (active) finish(active);
+    }
+    for (const event of ["sessionCleared", "pagehide"]) window2.addEventListener(event, dispose);
+    function run(work) {
+      if (active) return Promise.resolve(null);
+      return new Promise((resolve) => {
+        const op = { alive: true, tokens: /* @__PURE__ */ new Set(), prints: [], overlay: null, cancelStep: null, resolve };
+        active = op;
+        Promise.resolve().then(() => work(op)).then((result) => finish(op, result || null), async () => {
+          if (op.alive) await step(op, "Vorgang nicht bestätigt", "Der Abschluss konnte nicht bestätigt werden. Öffne die Anwendung erneut und prüfe den Bestand mit den bisherigen oder den neu bestätigten Zugangsdaten. Bewahre vorhandene Sicherungen auf.", [], "Schließen");
+          if (op.commitFailed) Storage2.lockSession();
+          finish(op);
+        });
+      });
+    }
+    function remember(op, value, key = "token") {
+      if (!op.alive) {
+        if (value && value[key]) Storage2.cancelPreparedProtection(value[key]);
+        return false;
+      }
+      op.tokens.add(value[key]);
+      return true;
+    }
+    function step(op, title, text, fields = [], action = "Weiter", extra = null, validate = null) {
+      if (!op.alive) return Promise.resolve(null);
+      if (op.overlay) erase(op.overlay);
+      closePrints(op);
+      return new Promise((resolve) => {
+        const overlay = el("section");
+        overlay.dataset.sessionSensitiveOverlay = "true";
+        overlay.dataset.recoveryDialog = "true";
+        overlay.__closeForSessionLock = () => finish(op);
+        overlay.setAttribute("role", "dialog");
+        overlay.setAttribute("aria-modal", "true");
+        overlay.setAttribute("aria-label", title);
+        Object.assign(overlay.style, { position: "fixed", inset: "0", background: "rgba(0,0,0,.5)", zIndex: "100200", display: "flex", alignItems: "center", justifyContent: "center" });
+        const card = el("div", "", overlay);
+        Object.assign(card.style, { background: "var(--bg-card,white)", color: "var(--text-main,#222)", padding: "1.2rem", borderRadius: "8px", width: "min(520px,calc(100vw - 2rem))", boxSizing: "border-box", maxHeight: "calc(100vh - 2rem)", overflowY: "auto" });
+        el("h2", title, card);
+        el("p", text, card);
+        const inputs = fields.map((field) => {
+          const label = el("label", field.label, card);
+          const input = el(field.type === "textarea" ? "textarea" : "input", "", label);
+          input.type = field.type || "text";
+          input.setAttribute("aria-label", field.label);
+          input.autocomplete = field.type === "password" ? "new-password" : "off";
+          input.spellcheck = false;
+          input.setAttribute("spellcheck", "false");
+          input.setAttribute("autocorrect", "off");
+          input.setAttribute("autocapitalize", "off");
+          if (field.accept) input.accept = field.accept;
+          Object.assign(input.style, { display: "block", width: "100%", boxSizing: "border-box", margin: ".3rem 0 .8rem", padding: ".4rem" });
+          return input;
+        });
+        const error = el("p", "", card);
+        error.setAttribute("role", "alert");
+        const row = el("div", "", card);
+        Object.assign(row.style, { display: "flex", gap: ".5rem", flexWrap: "wrap" });
+        let busy = false;
+        let settled = false;
+        const complete = (value) => {
+          if (settled) return;
+          settled = true;
+          window2.removeEventListener("keydown", keydown);
+          op.cancelStep = null;
+          resolve(value);
+        };
+        const cancel = el("button", op.committed ? "Schließen" : "Abbrechen", row);
+        cancel.type = "button";
+        cancel.addEventListener("click", () => {
+          if (!op.committing) {
+            complete(null);
+            finish(op);
+          }
+        });
+        const submit = el("button", action, row);
+        submit.type = "button";
+        async function proceed() {
+          if (busy || !op.alive || settled) return;
+          busy = true;
+          submit.disabled = true;
+          error.textContent = "";
+          try {
+            const values = inputs.map((input) => input.type === "file" ? input.files && input.files[0] : input.value);
+            const result = validate ? await validate(values, inputs, {
+              beginCommit() {
+                op.committing = true;
+                cancel.disabled = true;
+                submit.textContent = "Speichern…";
+                for (const input of inputs) input.disabled = true;
+                error.textContent = "Der bestätigte Schutz wird gespeichert und zurückgelesen. Bitte warten.";
+              }
+            }) : values;
+            op.committing = false;
+            if (op.alive && !settled) complete(result);
+          } catch (err2) {
+            if (op.committing) {
+              op.committing = false;
+              op.commitFailed = true;
+              complete(null);
+              return;
+            }
+            if (op.alive) error.textContent = err2 && err2.code === "RECOVERY_TOKEN_INVALID" ? "Der vorbereitete Zugang ist abgelaufen oder ungültig. Bitte abbrechen und neu beginnen." : "Prüfung fehlgeschlagen. Bitte Eingaben prüfen oder den Vorgang neu beginnen.";
+          } finally {
+            busy = false;
+            if (op.alive) submit.disabled = false;
+          }
+        }
+        submit.addEventListener("click", proceed);
+        function keydown(event) {
+          if (event.key === "Escape") {
+            event.preventDefault();
+            if (!op.committing) {
+              complete(null);
+              finish(op);
+            }
+          }
+          if (event.key === "Enter" && inputs.includes(document2.activeElement) && document2.activeElement.tagName !== "TEXTAREA") {
+            event.preventDefault();
+            proceed();
+          }
+          if (event.key === "Tab") {
+            const focusable = Array.from(card.querySelectorAll("input,textarea,button")).filter((node) => !node.disabled);
+            if (focusable.length === 0) {
+              event.preventDefault();
+              return;
+            }
+            const first = focusable[0], last = focusable[focusable.length - 1];
+            if (event.shiftKey && document2.activeElement === first) {
+              event.preventDefault();
+              last.focus();
+            } else if (!event.shiftKey && document2.activeElement === last) {
+              event.preventDefault();
+              first.focus();
+            }
+          }
+        }
+        op.cancelStep = () => complete(null);
+        window2.addEventListener("keydown", keydown);
+        if (extra) extra(card, row);
+        op.overlay = overlay;
+        document2.body.appendChild(overlay);
+        if (inputs[0]) inputs[0].focus();
+        else submit.focus();
+      });
+    }
+    async function password(op, title, confirmation, current = false) {
+      const fields = [{ label: current ? "Aktuelles Passwort" : "Neues Passwort", type: "password" }];
+      if (confirmation) fields.push({ label: "Neues Passwort wiederholen", type: "password" });
+      const values = await step(op, title, confirmation ? "Mindestens 6 Zeichen. Das Passwort wird unverändert übernommen." : "Bestätige deinen bisherigen Zugang.", fields, "Weiter", null, (values2) => {
+        if (!values2[0] || confirmation && (values2[0].length < 6 || values2[0] !== values2[1])) throw new Error("PASSWORD");
+        return values2;
+      });
+      return values ? values[0] : null;
+    }
+    function summaryText(summary) {
+      const info = summary.metadata || {};
+      return "Authentifizierter Bestand: " + summary.students + " Schüler, " + summary.courses + " Kurse, " + summary.assessments + " Leistungen. Sicherungszeit: " + (info.savedAt || "nicht verfügbar") + ". Kennung: " + (info.datasetId || "") + " / " + (info.generationId || "") + ".";
+    }
+    async function confirmDraft(op, draft, replaceExisting = false) {
+      if (!remember(op, draft)) return null;
+      const saved = await step(op, "Wiederherstellungscode sichern", "Dieser Code ist ein gleichwertiger geheimer Zugang. Bewahre ihn getrennt von Sicherungen auf. Er wird nach Abschluss nicht erneut angezeigt. Bestehende Dateien behalten ihre alten Zugangsdaten.", [], "Code gesichert – weiter", (card, row) => {
+        const code = el("pre", draft.recoveryCode, card);
+        code.dataset.recoveryCode = "true";
+        Object.assign(code.style, { whiteSpace: "pre-wrap", overflowWrap: "anywhere", userSelect: "all" });
+        const print = el("button", "Code drucken", row);
+        print.type = "button";
+        print.addEventListener("click", () => {
+          if (!op.alive) return;
+          const popup = window2.open("", "_blank", "width=700,height=500");
+          if (!popup) return;
+          op.prints.push(popup);
+          popup.document.title = "Notenverwaltung – Wiederherstellungscode";
+          popup.document.body.textContent = "";
+          el("h1", "Notenverwaltung – Wiederherstellungscode", popup.document.body, popup.document);
+          el("pre", draft.recoveryCode, popup.document.body, popup.document);
+          el("p", "Erstellt: " + (draft.metadata.createdAt || "") + "\nBestand: " + (draft.metadata.datasetId || "") + "\nGeneration: " + (draft.metadata.generationId || ""), popup.document.body, popup.document);
+          popup.print();
+        });
+      });
+      if (!saved || !op.alive) return null;
+      const committed = await step(op, "Gesicherten Code prüfen", "Gib den vollständigen Code aus deiner getrennt aufbewahrten Kopie ein. Erst danach wird der neue Schutz gespeichert.", [{ label: "Wiederherstellungscode vollständig eingeben", type: "textarea" }], "Code bestätigen und speichern", null, async (values, inputs, controls) => {
+        await Storage2.confirmPreparedProtection(draft.token, values[0]);
+        if (!op.alive) return null;
+        controls.beginCommit();
+        return Storage2.commitPreparedProtection(draft.token, { replaceExisting });
+      });
+      if (op.commitFailed) throw new Error("RECOVERY_COMMIT_UNCONFIRMED");
+      if (!op.alive || !committed) return null;
+      op.tokens.delete(draft.token);
+      op.committed = committed;
+      return committed;
+    }
+    async function offerBackup(op) {
+      const old = Storage2.getRecoveryMigrationBackup();
+      await step(op, "Zugang eingerichtet", "Passwort und Wiederherstellungscode gelten für den aktuellen Bestand und neue Sicherungen. Erstelle jetzt eine neue Sicherung. Ältere Sicherungen behalten ihre bisherigen Zugangsdaten.", [], "Fertig", (card, row) => {
+        const backup = el("button", "Neues Backup herunterladen", row);
+        backup.type = "button";
+        backup.addEventListener("click", async () => {
+          if (backup.disabled || !op.alive) return;
+          backup.disabled = true;
+          try {
+            const state = await Storage2.loadCurrentSessionState();
+            if (!op.alive) return;
+            const text = await Storage2.encryptForBackup(JSON.stringify(state));
+            if (op.alive) await downloadText(text, "notenverwaltung_recovery_backup.json");
+          } catch (error) {
+            if (op.alive) el("p", "Backup konnte nicht erstellt werden. Bitte später über Backup sichern.", card);
+          } finally {
+            if (op.alive) backup.disabled = false;
+          }
+        });
+        if (old) {
+          const previous = el("button", "Verschlüsselte Alt-Kopie herunterladen", row);
+          previous.type = "button";
+          previous.addEventListener("click", () => {
+            if (op.alive) downloadText(old, "notenverwaltung_vor_wiederherstellung.json");
+          });
+        }
+      });
+    }
+    function enroll({ password: suppliedPassword, state } = {}) {
+      return run(async (op) => {
+        const status = Storage2.getRecoveryStatus();
+        if (status.hasLocalData && !status.enabled && !await step(op, "Wiederherstellung nachrüsten", "Der Bestand erhält ein neues Format. Ältere HTML-Versionen können neue Daten und Sicherungen nicht lesen. Eine vorhandene verschlüsselte Alt-Kopie bleibt erhalten.", [], "Nachrüstung beginnen")) return null;
+        const encrypted = status.hasLocalData && Storage2.isEncrypted();
+        const pw = suppliedPassword || await password(op, encrypted ? "Bisheriges Passwort bestätigen" : "Passwort einrichten", !encrypted, encrypted);
+        if (!pw || !op.alive) return null;
+        const draft = await Storage2.prepareRecoveryEnrollment({ password: pw, state });
+        const result = await confirmDraft(op, draft);
+        if (result && op.alive) await offerBackup(op);
+        return result;
+      });
+    }
+    function rotate({ currentPassword, newPassword, reason = "password-change" } = {}) {
+      return run(async (op) => {
+        if (!Storage2.getRecoveryStatus().enabled && !await step(op, "Wiederherstellung ergänzen", "Mit dem Passwortwechsel erhält der Bestand einen Wiederherstellungscode und ein neues Format. Ältere HTML-Versionen können neue Daten und Sicherungen nicht lesen. Eine verschlüsselte Alt-Kopie bleibt erhalten.", [], "Nachrüstung beginnen")) return null;
+        const current = currentPassword || await password(op, "Aktuelles Passwort bestätigen", false, true);
+        if (!current || !op.alive) return null;
+        const next = newPassword || (reason === "code-replacement" ? current : await password(op, "Passwort ändern", true));
+        if (!next || !op.alive) return null;
+        const draft = await Storage2.prepareCredentialRotation({ currentPassword: current, newPassword: next, reason });
+        const result = await confirmDraft(op, draft);
+        if (result && op.alive) await offerBackup(op);
+        return result;
+      });
+    }
+    async function source(op, checking) {
+      let selected = "local";
+      const choice = await step(op, checking ? "Code prüfen" : "Zugang wiederherstellen", "Wähle den lokalen Bestand oder eine Sicherungsdatei mit Wiederherstellungscode. Alte Dateien ohne Codezugang benötigen ihr bisheriges Passwort.", [], "Weiter", (card, row) => {
+        const local = el("button", "Lokalen Bestand wählen", row);
+        local.type = "button";
+        const file = el("button", "Sicherungsdatei wählen", row);
+        file.type = "button";
+        const hint = el("p", "Auswahl: lokaler Bestand", card);
+        local.addEventListener("click", () => {
+          selected = "local";
+          hint.textContent = "Auswahl: lokaler Bestand";
+        });
+        file.addEventListener("click", () => {
+          selected = "backup";
+          hint.textContent = "Auswahl: Sicherungsdatei";
+        });
+      });
+      if (!choice || !op.alive) return null;
+      const fields = selected === "backup" ? [{ label: "Verschlüsselte Sicherungsdatei", type: "file", accept: ".json" }] : [];
+      fields.push({ label: "Vorhandenen Wiederherstellungscode eingeben", type: "textarea" });
+      return step(op, "Bestand öffnen und prüfen", "Der Code muss zu genau diesem Bestand bzw. dieser Sicherungsdatei gehören.", fields, "Bestand authentifizieren", null, async (values) => {
+        let text;
+        if (selected === "backup") {
+          if (!values[0] || values[0].size > 20 * 1024 * 1024) throw new Error("FILE");
+          text = await values[0].text();
+        }
+        if (!op.alive) return null;
+        const args = { source: selected, ...text === void 0 ? {} : { text }, code: values[selected === "backup" ? 1 : 0] };
+        if (checking) return { summary: await Storage2.verifyRecoveryCode(args) };
+        const opened = await Storage2.openRecoverySource(args);
+        if (!op.alive) {
+          Storage2.cancelPreparedProtection(opened.sourceToken);
+          return null;
+        }
+        return { ...opened, source: selected };
+      });
+    }
+    function recover() {
+      return run(async (op) => {
+        const opened = await source(op, false);
+        if (!opened || !remember(op, opened, "sourceToken")) return null;
+        const replacement = opened.source === "backup" && Storage2.getRecoveryStatus().hasLocalData;
+        if (!await step(op, "Bestand geprüft", summaryText(opened.summary) + (replacement ? " ACHTUNG: Der vorhandene lokale Bestand wird vollständig ersetzt." : ""), [], replacement ? "Vorhandenen Bestand ausdrücklich ersetzen" : "Diesen Bestand wiederherstellen")) return null;
+        const next = await password(op, "Neues Passwort festlegen", true);
+        if (!next || !op.alive) return null;
+        const draft = await Storage2.prepareRecoveredProtection(opened.sourceToken, { newPassword: next });
+        const result = await confirmDraft(op, draft, replacement);
+        if (result && op.alive) await offerBackup(op);
+        return result;
+      });
+    }
+    function checkCode() {
+      return run(async (op) => {
+        const opened = await source(op, true);
+        if (opened && op.alive) await step(op, "Code erfolgreich geprüft", summaryText(opened.summary) + " Der Bestand wurde nicht übernommen oder ersetzt.", [], "Schließen");
+        return null;
+      });
+    }
+    return Object.freeze({ enroll, rotate, recover, checkCode, dispose });
+  }
+
   // src/legacy/application.js
   var DISPLAY_LOCALE = "de-DE";
   var DISPLAY_TIME_ZONE = Intl.DateTimeFormat().resolvedOptions().timeZone;
   var APP_RELEASE = Object.freeze({
-    version: "1.6.0",
-    dateIso: "2026-10-06",
-    dateLabel: "06.10.2026"
+    version: "1.7.0",
+    dateIso: "2026-10-16",
+    dateLabel: "16.10.2026"
   });
   window.promptText = function(opts) {
     opts = opts || {};
@@ -12947,9 +14246,14 @@
     opts = opts || {};
     const message = opts.message || "Passwort eingeben:";
     const confirm = !!opts.confirm;
+    let recoveryInFlight = false;
+    let closed = false;
     return new Promise((resolve) => {
       try {
         let cleanup = function() {
+          closed = true;
+          input.value = "";
+          if (input2) input2.value = "";
           try {
             document.body.removeChild(overlay);
           } catch (e) {
@@ -12959,6 +14263,7 @@
           cleanup();
           resolve(null);
         }, onOk = function() {
+          if (closed || recoveryInFlight) return;
           const v = input.value || "";
           if (confirm) {
             const v2 = input2 ? input2.value || "" : "";
@@ -12980,6 +14285,7 @@
           cleanup();
           resolve(v);
         }, onKey = function(ev) {
+          if (recoveryInFlight) return;
           if (ev.key === "Escape") {
             cleanupCancel();
           }
@@ -13016,7 +14322,11 @@
         dialog.appendChild(msg);
         const input = document.createElement("input");
         input.type = "password";
-        input.autocomplete = confirm ? "new-password" : "current-password";
+        input.autocomplete = opts.secretKind === "recovery-code" ? "off" : confirm ? "new-password" : "current-password";
+        input.spellcheck = false;
+        input.setAttribute("spellcheck", "false");
+        input.setAttribute("autocorrect", "off");
+        input.setAttribute("autocapitalize", "off");
         input.style.width = "100%";
         input.style.padding = "0.4rem";
         input.style.boxSizing = "border-box";
@@ -13026,6 +14336,10 @@
           input2 = document.createElement("input");
           input2.type = "password";
           input2.autocomplete = "new-password";
+          input2.spellcheck = false;
+          input2.setAttribute("spellcheck", "false");
+          input2.setAttribute("autocorrect", "off");
+          input2.setAttribute("autocapitalize", "off");
           input2.placeholder = "Passwort wiederholen";
           input2.style.width = "100%";
           input2.style.marginTop = "0.4rem";
@@ -13048,6 +14362,40 @@
         okBtn.addEventListener("click", onOk);
         row.appendChild(cancelBtn);
         row.appendChild(okBtn);
+        if (typeof opts.onRecovery === "function") {
+          const recoveryBtn = document.createElement("button");
+          recoveryBtn.type = "button";
+          recoveryBtn.textContent = "Zugang wiederherstellen";
+          recoveryBtn.addEventListener("click", async function() {
+            if (recoveryInFlight || closed) return;
+            recoveryInFlight = true;
+            input.value = "";
+            if (input2) input2.value = "";
+            overlay.hidden = true;
+            okBtn.disabled = true;
+            recoveryBtn.disabled = true;
+            try {
+              const recovered = await opts.onRecovery();
+              if (closed) return;
+              if (recovered === true) {
+                cleanup();
+                resolve(null);
+                return;
+              }
+            } catch (error) {
+              if (!closed) window.alert("Wiederherstellung nicht abgeschlossen. Bitte erneut versuchen.");
+            } finally {
+              recoveryInFlight = false;
+              if (!closed) {
+                overlay.hidden = false;
+                okBtn.disabled = false;
+                recoveryBtn.disabled = false;
+                input.focus();
+              }
+            }
+          });
+          row.appendChild(recoveryBtn);
+        }
         dialog.appendChild(row);
         overlay.appendChild(dialog);
         document.body.appendChild(overlay);
@@ -13132,6 +14480,16 @@
     diagnostics: createGradingDiagnostics()
   });
   var UiShell = (function() {
+    let _recoveryUi = null;
+    function recoveryUi() {
+      if (!_recoveryUi) _recoveryUi = createRecoveryUi({
+        window,
+        document,
+        Storage,
+        downloadText: (text, filename) => downloadBlobFile(text, "application/json;charset=utf-8", filename)
+      });
+      return _recoveryUi;
+    }
     function resolveGradeColorBand(schemaMode, numericValue, rawString) {
       if (numericValue === null || numericValue === void 0 || !Number.isFinite(Number(numericValue))) {
         return null;
@@ -13160,6 +14518,7 @@
     let _sessionRootId = null;
     const LOST_INPUT_NOTICE = "Die letzte Eingabe wurde nicht gespeichert. Bitte nach dem Entsperren prüfen und erneut eingeben.";
     function _renderSessionBlock(root, status, rootElementId = _sessionRootId || root.id) {
+      removeSessionSensitiveOverlays();
       document.title = "Notenverwaltung · Version " + APP_RELEASE.version;
       while (root.firstChild) root.removeChild(root.firstChild);
       root.hidden = false;
@@ -13198,6 +14557,23 @@
       const actions = document.createElement("div");
       actions.className = "lock-card__actions";
       actions.appendChild(retry);
+      if (status !== "busy" && status !== "unsupported") {
+        const recovery = document.createElement("button");
+        recovery.type = "button";
+        recovery.textContent = "Zugang wiederherstellen";
+        recovery.addEventListener("click", async () => {
+          if (recovery.disabled) return;
+          recovery.disabled = true;
+          try {
+            await init(rootElementId, true);
+          } catch (error) {
+            window.alert("Wiederherstellung nicht abgeschlossen. Bitte erneut versuchen.");
+          } finally {
+            recovery.disabled = false;
+          }
+        });
+        actions.appendChild(recovery);
+      }
       actions.appendChild(cancel);
       card.appendChild(actions);
       section.appendChild(card);
@@ -13207,7 +14583,7 @@
       } catch (error) {
       }
     }
-    async function init(rootElementId) {
+    async function init(rootElementId, recoverFirst = false) {
       const root = document.getElementById(rootElementId);
       if (!root) {
         const error = new Error("Anwendungsbereich nicht gefunden.");
@@ -13224,6 +14600,15 @@
         return;
       }
       try {
+        if (recoverFirst) {
+          const recovered = await recoveryUi().recover();
+          if (attempt !== _startupEpoch) return;
+          sessionCoordinator.assertHeld();
+          if (!recovered) {
+            Storage.lockSession();
+            return;
+          }
+        }
         await _initOwned(rootElementId, attempt, !_hasInitialized);
         if (attempt === _startupEpoch) _hasInitialized = true;
       } catch (error) {
@@ -13248,6 +14633,7 @@
     let _activeAuroraInteractionCleanup = null;
     function _handleSessionCleared() {
       _startupEpoch += 1;
+      if (_recoveryUi) _recoveryUi.dispose();
       try {
         if (typeof maskBeforeHardBoundary === "function") maskBeforeHardBoundary();
         if (typeof _activeSessionClearedRender === "function") {
@@ -13466,7 +14852,7 @@
       if (!course || course.schemaMode !== DomainModel.SCHEMA_MODES.UPPERSEC) {
         return { visible: false };
       }
-      const context = course.upperSecContext || {};
+      const context2 = course.upperSecContext || {};
       const courseTypeLabels = {
         [DomainModel.UPPERSEC_COURSE_TYPES.BASIC]: "Grundkurs",
         [DomainModel.UPPERSEC_COURSE_TYPES.ADVANCED]: "Leistungskurs",
@@ -13482,12 +14868,12 @@
       const recommendationLabel = gradingContext.status === "recommendation" ? `Empfehlung: ${gradingContext.expectedExamCount} Klausur${gradingContext.expectedExamCount === 1 ? "" : "en"}, Klausurteil ${gradingContext.expectedExamCount === 1 ? "1/3" : "1/2"}` : gradingContext.message;
       const activeWeightingLabel = course.weightTemplateId ? `Aktive Gewichtung: ${activeTemplate ? activeTemplate.name || "Vorlage" : "Unbekannte oder entfernte Vorlage"}` : "Aktive Gewichtung: Gleichverteilung";
       const isDeviation = gradingContext.isWeightingDeviation === true;
-      const reason = context.weightingDeviationReason;
+      const reason = context2.weightingDeviationReason;
       return {
         visible: true,
-        contextComplete: !!(courseTypeLabels[context.courseType] && qualificationYearLabels[context.qualificationYear]),
-        courseTypeLabel: courseTypeLabels[context.courseType] || "Bitte auswählen",
-        qualificationYearLabel: qualificationYearLabels[context.qualificationYear] || "Bitte auswählen",
+        contextComplete: !!(courseTypeLabels[context2.courseType] && qualificationYearLabels[context2.qualificationYear]),
+        courseTypeLabel: courseTypeLabels[context2.courseType] || "Bitte auswählen",
+        qualificationYearLabel: qualificationYearLabels[context2.qualificationYear] || "Bitte auswählen",
         qualificationPhase: gradingContext.qualificationPhase,
         expectedExamCount: gradingContext.expectedExamCount,
         recommendedWeightTemplateId: gradingContext.recommendedWeightTemplateId,
@@ -13546,7 +14932,7 @@
     }
     function createUpperSecContextFields(options) {
       if (!options || options.schemaMode !== DomainModel.SCHEMA_MODES.UPPERSEC) return null;
-      const context = options.context || {};
+      const context2 = options.context || {};
       const referenceDate = options.now ? new Date(options.now) : /* @__PURE__ */ new Date();
       const contextTerm = options.term || GradingLogic.resolveAssessmentTermFromDateValue(
         referenceDate,
@@ -13589,11 +14975,11 @@
         { value: DomainModel.UPPERSEC_COURSE_TYPES.BASIC, label: "Grundkurs" },
         { value: DomainModel.UPPERSEC_COURSE_TYPES.ADVANCED, label: "Leistungskurs" },
         { value: DomainModel.UPPERSEC_COURSE_TYPES.OTHER, label: "Sonstiger Kurs" }
-      ], context.courseType);
+      ], context2.courseType);
       const qualificationYearSelect = appendSelect("Qualifikationsabschnitt *", [
         { value: DomainModel.QUALIFICATION_YEARS.Q1_Q2, label: "Q1/Q2" },
         { value: DomainModel.QUALIFICATION_YEARS.Q3_Q4, label: "Q3/Q4" }
-      ], context.qualificationYear);
+      ], context2.qualificationYear);
       const presentationBox = document.createElement("div");
       presentationBox.style.gridColumn = "1 / -1";
       presentationBox.className = "info-box";
@@ -13620,7 +15006,7 @@
       const reasonInput = document.createElement("textarea");
       reasonInput.rows = 3;
       reasonInput.maxLength = 1e3;
-      reasonInput.value = context.weightingDeviationReason || "";
+      reasonInput.value = context2.weightingDeviationReason || "";
       reasonInput.style.display = "block";
       reasonInput.style.width = "100%";
       reasonLabel.appendChild(reasonInput);
@@ -13774,13 +15160,13 @@
     }
     function isAssessmentNotScheduledForStudent(course, assessment, studentId, settings) {
       if (!course || !assessment || !studentId || !assessment.term) return false;
-      const context = GradingLogic.resolveUpperSecGradingContext(
+      const context2 = GradingLogic.resolveUpperSecGradingContext(
         course,
         studentId,
         assessment.term,
         settings
       );
-      if (context.status !== "general-only") return false;
+      if (context2.status !== "general-only") return false;
       const activeCategoryIds = new Set(
         (Array.isArray(settings && settings.categories) ? settings.categories : []).filter((category) => category && category.active).map((category) => category.id)
       );
@@ -14013,7 +15399,14 @@
         error.code = "APP_ROOT_MISSING";
         throw error;
       }
-      let state = await Storage.loadState();
+      let state = await Storage.loadState({ onRecoveryRequested: async function() {
+        if (attempt !== _startupEpoch) return null;
+        sessionCoordinator.assertHeld();
+        const result = await recoveryUi().recover();
+        if (attempt !== _startupEpoch) return null;
+        sessionCoordinator.assertHeld();
+        return result;
+      } });
       if (attempt !== _startupEpoch) return;
       sessionCoordinator.assertHeld();
       if (Storage.isEncrypted() && !Storage.hasSessionPassword()) {
@@ -14623,6 +16016,7 @@
       function startManualLock() {
         if (manualLock) return manualLock.promise;
         if (sessionCoordinator.getStatus() !== "held" || !Storage.hasSessionPassword()) return Promise.resolve();
+        if (_recoveryUi) _recoveryUi.dispose();
         const overlay = document.createElement("section");
         overlay.className = "privacy-lock-overlay";
         overlay.setAttribute("role", "dialog");
@@ -14753,6 +16147,38 @@
           if (uiStateEpoch !== operationEpoch) throw createStateCommitAbortedError();
           return operation(operationEpoch);
         });
+      }
+      let protectionOperation = null;
+      function runProtectionTransition(mode) {
+        if (protectionOperation) return protectionOperation;
+        const startingEpoch = uiStateEpoch;
+        protectionOperation = (async function() {
+          const captured = encryptionRequired ? { ok: true, snapshot: JSON.parse(JSON.stringify(state)) } : await persistenceBoundary.capture();
+          if (!captured.ok || startingEpoch !== uiStateEpoch) {
+            if (startingEpoch === uiStateEpoch) window.alert("Bitte zuerst offene Eingaben prüfen und speichern.");
+            return;
+          }
+          await runExclusiveStateOperation(async function(operationEpoch) {
+            root.inert = true;
+            try {
+              const ui = recoveryUi();
+              const result = mode === "enroll" ? await ui.enroll({ state: captured.snapshot }) : await ui.rotate({ reason: mode });
+              if (uiStateEpoch !== operationEpoch || !result) return;
+              sessionCoordinator.assertHeld();
+              state = await Storage.loadCurrentSessionState();
+              if (uiStateEpoch !== operationEpoch) return;
+              encryptionRequired = false;
+              render();
+            } finally {
+              if (uiStateEpoch === operationEpoch && sessionCoordinator.getStatus() === "held") root.inert = false;
+            }
+          });
+        })().catch(function(error) {
+          if (!isStateCommitAborted(error)) window.alert("Änderung der Zugangsdaten nicht abgeschlossen. Bitte erneut versuchen.");
+        }).finally(function() {
+          protectionOperation = null;
+        });
+        return protectionOperation;
       }
       async function reconcileExclusiveState(operationEpoch) {
         if (uiStateEpoch !== operationEpoch || !Storage.hasSessionPassword() || typeof Storage.loadCurrentSessionState !== "function") return false;
@@ -15029,11 +16455,11 @@
             }
             const payload = await Storage.encryptForBackup(JSON.stringify(captured.snapshot, null, 2));
             if (uiStateEpoch !== backupEpoch || !dashboardIsAllowed() || sessionCoordinator.getStatus() !== "held") return;
-            const timestamp = formatUtcFileTimestamp(/* @__PURE__ */ new Date());
+            const timestamp2 = formatUtcFileTimestamp(/* @__PURE__ */ new Date());
             downloadBlobFile(
               payload,
               "text/json;charset=utf-8",
-              `notenverwaltung_backup_${timestamp}.enc.json`
+              `notenverwaltung_backup_${timestamp2}.enc.json`
             );
             window.alert("Backup-Download gestartet. Bitte Datei im Downloadordner prüfen.");
           } catch (err2) {
@@ -17435,8 +18861,8 @@
                 const url = URL.createObjectURL(blob);
                 const a = document.createElement("a");
                 a.href = url;
-                const timestamp = formatUtcFileTimestamp(/* @__PURE__ */ new Date());
-                a.download = "notenverwaltung_archiv_" + timestamp + ".enc.json";
+                const timestamp2 = formatUtcFileTimestamp(/* @__PURE__ */ new Date());
+                a.download = "notenverwaltung_archiv_" + timestamp2 + ".enc.json";
                 document.body.appendChild(a);
                 a.click();
                 a.remove();
@@ -18453,13 +19879,13 @@ ${buildPrintHeaderCss()}
               termSelect.appendChild(opt);
             }
             termSelect.value = defaultTermValue;
-          }, appendStudentField = function(parent, labelText, id, input) {
+          }, appendStudentField = function(parent, labelText, id2, input) {
             const field = document.createElement("div");
             field.className = "students-field";
             const label = document.createElement("label");
             label.textContent = labelText;
-            label.setAttribute("for", id);
-            input.id = id;
+            label.setAttribute("for", id2);
+            input.id = id2;
             field.appendChild(label);
             field.appendChild(input);
             parent.appendChild(field);
@@ -18775,10 +20201,10 @@ ${buildPrintHeaderCss()}
             function updateDetailPrintScope() {
               detailPrintPerson.textContent = "Person: " + (student.lastName || "") + (student.lastName && student.firstName ? ", " : "") + (student.firstName || "");
               detailPrintCourses.textContent = "Kurse: " + (reportCourses.length > 0 ? reportCourses.map((course) => {
-                const context = [];
-                if (course.classLabel) context.push(course.classLabel);
-                if (course.archivedAt) context.push("archiviert");
-                return (course.name || "Kurs") + (context.length > 0 ? " (" + context.join(", ") + ")" : "");
+                const context2 = [];
+                if (course.classLabel) context2.push(course.classLabel);
+                if (course.archivedAt) context2.push("archiviert");
+                return (course.name || "Kurs") + (context2.length > 0 ? " (" + context2.join(", ") + ")" : "");
               }).join("; ") : "Keine Berichtskurse");
               detailPrintTerm.textContent = "Zeitraumauswahl: " + (detailTermSelect ? selectedOptionText(detailTermSelect, "Alle Halbjahre") : "Alle Halbjahre");
             }
@@ -19757,12 +21183,12 @@ ${buildPrintHeaderCss()}
           row._gradesheetStatusSummary = summary;
         }
         function connectRowStatusControl(row, statusSelect) {
-          const id = "gradesheet-entry-status-" + ++gradesheetStatusControlSequence;
-          statusSelect.id = id;
+          const id2 = "gradesheet-entry-status-" + ++gradesheetStatusControlSequence;
+          statusSelect.id = id2;
           const summary = row._gradesheetStatusSummary;
           if (!summary) return;
           const controlledIds = String(summary.dataset.controlIds || "").split(/\s+/).filter(Boolean);
-          controlledIds.push(id);
+          controlledIds.push(id2);
           summary.dataset.controlIds = controlledIds.join(" ");
           summary.setAttribute("aria-controls", summary.dataset.controlIds);
         }
@@ -24534,33 +25960,8 @@ ${buildPrintHeaderCss()}
           const setupBtn = document.createElement("button");
           setupBtn.type = "button";
           setupBtn.textContent = "Verschlüsselung jetzt einrichten";
-          setupBtn.addEventListener("click", async function() {
-            const setupDialogEpoch = uiStateEpoch;
-            const pw = await window.promptPassword({ message: "Neues Passwort für die Verschlüsselung eingeben (mind. 6 Zeichen):", confirm: true });
-            if (uiStateEpoch !== setupDialogEpoch) return;
-            if (!pw) {
-              Storage.lockSession();
-              return;
-            }
-            if (pw.length < 6) {
-              try {
-                window.alert("Bitte ein Passwort mit mindestens 6 Zeichen eingeben.");
-              } catch (e) {
-              }
-              ;
-              return;
-            }
-            const encryptionEpoch = invalidateUiStateEpoch();
-            try {
-              await Storage.enableEncryption(pw, state);
-              if (uiStateEpoch !== encryptionEpoch) return;
-              encryptionRequired = false;
-              window.alert("Verschlüsselung aktiviert. Du kannst nun die Anwendung verwenden.");
-              render();
-            } catch (err2) {
-              console.error("Fehler beim Aktivieren der Verschlüsselung:", err2);
-              window.alert("Aktivierung der Verschlüsselung fehlgeschlagen. Siehe Konsole.");
-            }
+          setupBtn.addEventListener("click", function() {
+            return runProtectionTransition("enroll");
           });
           btnRow.appendChild(setupBtn);
           mustBox.appendChild(btnRow);
@@ -25240,92 +26641,43 @@ ${buildPrintHeaderCss()}
         } catch (e) {
           pwBtn.textContent = "Verschlüsselung verwalten";
         }
-        pwBtn.addEventListener("click", async function() {
-          const passwordDialogEpoch = uiStateEpoch;
-          try {
-            if (typeof Storage !== "undefined" && Storage.isEncrypted && Storage.isEncrypted()) {
-              const oldPw = await window.promptPassword({ message: "Altes Passwort eingeben:", confirm: false });
-              if (uiStateEpoch !== passwordDialogEpoch) return;
-              if (!oldPw) return;
-              const newPw = await window.promptPassword({ message: "Neues Passwort eingeben:", confirm: true });
-              if (uiStateEpoch !== passwordDialogEpoch) return;
-              if (!newPw) return;
-              if (newPw.length < 6) {
-                try {
-                  window.alert("Bitte ein Passwort mit mindestens 6 Zeichen eingeben.");
-                } catch (e) {
-                }
-                return;
-              }
-              if (uiStateEpoch !== passwordDialogEpoch) return;
-              try {
-                await runExclusiveStateOperation(async function(passwordEpoch) {
-                  try {
-                    await Storage.changePassword(oldPw, newPw);
-                  } catch (error) {
-                    await reconcileExclusiveState(passwordEpoch);
-                    if (uiStateEpoch !== passwordEpoch) throw createStateCommitAbortedError();
-                    throw error;
-                  }
-                  if (uiStateEpoch !== passwordEpoch) throw createStateCommitAbortedError();
-                  if (!await reconcileExclusiveState(passwordEpoch)) throw createStateCommitAbortedError();
-                });
-                try {
-                  window.alert("Passwort erfolgreich geändert.");
-                } catch (e) {
-                }
-              } catch (err2) {
-                if (!isStateCommitAborted(err2)) {
-                  console.error("Fehler beim Ändern des Passworts:", err2);
-                  try {
-                    window.alert("Passwortänderung fehlgeschlagen. Überprüfe das alte Passwort.");
-                  } catch (e) {
-                  }
-                }
-              }
-            } else {
-              const pw = await window.promptPassword({ message: "Neues Passwort für die Verschlüsselung eingeben:", confirm: true });
-              if (uiStateEpoch !== passwordDialogEpoch) return;
-              if (!pw) {
-                if (!Storage.isEncrypted()) Storage.lockSession();
-                return;
-              }
-              if (pw.length < 6) {
-                try {
-                  window.alert("Bitte ein Passwort mit mindestens 6 Zeichen eingeben.");
-                } catch (e) {
-                }
-                ;
-                return;
-              }
-              const encryptionEpoch = invalidateUiStateEpoch();
-              try {
-                await Storage.enableEncryption(pw, state);
-                if (uiStateEpoch !== encryptionEpoch) return;
-                try {
-                  window.alert("Verschlüsselung aktiviert.");
-                } catch (e) {
-                }
-                encryptionRequired = false;
-                render();
-              } catch (err2) {
-                console.error("Fehler beim Aktivieren der Verschlüsselung:", err2);
-                try {
-                  window.alert("Aktivierung der Verschlüsselung fehlgeschlagen.");
-                } catch (e) {
-                }
-              }
-            }
-          } catch (e) {
-            console.error("Fehler im Verschlüsselungs-Handler:", e);
-            try {
-              window.alert("Fehler beim Verarbeiten. Siehe Konsole.");
-            } catch (ex) {
-            }
-          }
+        pwBtn.addEventListener("click", function() {
+          return runProtectionTransition(Storage.isEncrypted() ? "password-change" : "enroll");
         });
         pwRow.appendChild(pwBtn);
         secBox.appendChild(pwRow);
+        const recoveryStatus = Storage.getRecoveryStatus();
+        const recoveryInfo = document.createElement("p");
+        recoveryInfo.textContent = recoveryStatus.enabled ? "Wiederherstellungscode: eingerichtet. Generation vom " + recoveryStatus.metadata.createdAt + ". Bestandskennung: " + recoveryStatus.metadata.datasetId + ". Generation: " + recoveryStatus.metadata.generationId + "." : "Wiederherstellungscode: noch nicht eingerichtet. Ergänze einen getrennt aufbewahrten zweiten Zugang für den Fall eines Passwortverlusts.";
+        secBox.appendChild(recoveryInfo);
+        const recoveryActions = document.createElement("div");
+        recoveryActions.className = "transfer-actions";
+        function recoveryAction(label2, action) {
+          const button = document.createElement("button");
+          button.type = "button";
+          button.textContent = label2;
+          button.addEventListener("click", action);
+          recoveryActions.appendChild(button);
+        }
+        if (recoveryStatus.enabled) {
+          recoveryAction("Code prüfen", function() {
+            return recoveryUi().checkCode();
+          });
+          recoveryAction("Code ersetzen", function() {
+            return runProtectionTransition("code-replacement");
+          });
+        } else if (Storage.isEncrypted()) {
+          recoveryAction("Wiederherstellungscode jetzt einrichten", function() {
+            return runProtectionTransition("enroll");
+          });
+        }
+        if (recoveryStatus.migrationBackupAvailable) {
+          recoveryAction("Verschlüsselte Alt-Kopie herunterladen", function() {
+            const text = Storage.getRecoveryMigrationBackup();
+            if (text) downloadBlobFile(text, "application/json;charset=utf-8", "notenverwaltung_vor_wiederherstellung.json");
+          });
+        }
+        secBox.appendChild(recoveryActions);
         settingsAreaPanels.get("security").appendChild(secBox);
         const gmBox = document.createElement("div");
         gmBox.className = "info-box";
@@ -25497,7 +26849,7 @@ ${buildPrintHeaderCss()}
           if (!course || course.schemaMode !== DomainModel.SCHEMA_MODES.UPPERSEC) {
             return ["Sek I", "", "", ""];
           }
-          const context = course.upperSecContext || {};
+          const context2 = course.upperSecContext || {};
           const courseTypeLabels = {
             [DomainModel.UPPERSEC_COURSE_TYPES.BASIC]: "GK",
             [DomainModel.UPPERSEC_COURSE_TYPES.ADVANCED]: "LK",
@@ -25509,9 +26861,9 @@ ${buildPrintHeaderCss()}
           };
           return [
             "Sek II",
-            courseTypeLabels[context.courseType] || "",
-            qualificationYearLabels[context.qualificationYear] || "",
-            enrollment && context.courseType === DomainModel.UPPERSEC_COURSE_TYPES.BASIC && context.qualificationYear === DomainModel.QUALIFICATION_YEARS.Q3_Q4 ? enrollment.writtenExamSubjectQ4 === true ? "Ja" : "Nein" : ""
+            courseTypeLabels[context2.courseType] || "",
+            qualificationYearLabels[context2.qualificationYear] || "",
+            enrollment && context2.courseType === DomainModel.UPPERSEC_COURSE_TYPES.BASIC && context2.qualificationYear === DomainModel.QUALIFICATION_YEARS.Q3_Q4 ? enrollment.writtenExamSubjectQ4 === true ? "Ja" : "Nein" : ""
           ];
         }
         function downloadTextFile(content, mimeType, filename) {
@@ -26166,7 +27518,24 @@ ${buildPrintHeaderCss()}
               }
               let parsedState;
               let sourceLabel = "JSON-Datei";
-              if (maybe && maybe.format === "notenverwaltung_enc_v1") {
+              if (maybe && maybe.format === "notenverwaltung_envelope") {
+                if (maybe.version !== 2) throw new Error("Unbekanntes verschlüsseltes Backupformat.");
+                const pw = await window.promptPassword({
+                  message: "Passwort zum Entschlüsseln der Datei eingeben oder „Zugang wiederherstellen“ für den Wiederherstellungscode wählen:",
+                  confirm: false,
+                  onRecovery: async function() {
+                    const code = await window.promptPassword({ message: "Vollständigen Wiederherstellungscode dieser Sicherungsdatei eingeben:", secretKind: "recovery-code" });
+                    if (!code || readId !== jsonFileReadId || uiStateEpoch !== selectionEpoch) return false;
+                    parsedState = await Storage.importStateEncryptedWithRecovery(text, code);
+                    return readId === jsonFileReadId && uiStateEpoch === selectionEpoch;
+                  }
+                });
+                if (!parsedState) {
+                  if (!pw) return;
+                  parsedState = await Storage.importStateEncryptedFromText(text, pw);
+                }
+                sourceLabel = "Verschlüsseltes Backup";
+              } else if (maybe && maybe.format === "notenverwaltung_enc_v1") {
                 const pw = await window.promptPassword({ message: "Passwort zum Entschlüsseln der Datei eingeben:", confirm: false });
                 if (!pw) return;
                 parsedState = await Storage.importStateEncryptedFromText(text, pw);
@@ -26177,6 +27546,7 @@ ${buildPrintHeaderCss()}
                 parsedState = JSON.parse(await Storage._decryptPayload(text, pw));
                 sourceLabel = "Verschlüsseltes Backup";
               } else {
+                if (maybe && typeof maybe.format === "string") throw new Error("Unbekanntes Backupformat.");
                 parsedState = maybe || JSON.parse(text);
               }
               if (readId !== jsonFileReadId || uiStateEpoch !== selectionEpoch) return;
@@ -27926,6 +29296,24 @@ ${buildPrintHeaderCss()}
               }
             });
             btnRow.appendChild(unlockBtn);
+            const recoveryBtn = document.createElement("button");
+            recoveryBtn.type = "button";
+            recoveryBtn.textContent = "Zugang wiederherstellen";
+            recoveryBtn.addEventListener("click", async function() {
+              if (unlockInFlight) return;
+              unlockInFlight = true;
+              recoveryBtn.disabled = true;
+              invalidateUiStateEpoch();
+              try {
+                await init(rootElementId, true);
+              } catch (error) {
+                window.alert("Wiederherstellung nicht abgeschlossen. Bitte erneut versuchen.");
+              } finally {
+                unlockInFlight = false;
+                recoveryBtn.disabled = false;
+              }
+            });
+            btnRow.appendChild(recoveryBtn);
             btnRow.appendChild(cancelBtn);
             dialog.appendChild(btnRow);
             block.appendChild(dialog);
@@ -28076,7 +29464,7 @@ ${buildPrintHeaderCss()}
         ];
         record(
           "Wave 3A: Berliner Profile nutzen belegte Alt-IDs genau einmal",
-          wave3aRecommendedIds.every((id) => migratedWave3a.settings.weightTemplates.filter((template) => template.id === id).length === 1) && migratedWave3a.settings.weightTemplates.filter((template) => wave3aRecommendedIds.includes(template.id)).every((template) => template.items.some((item) => item.categoryId === wave3aOralId) && template.items.some((item) => item.categoryId === wave3aWrittenId))
+          wave3aRecommendedIds.every((id2) => migratedWave3a.settings.weightTemplates.filter((template) => template.id === id2).length === 1) && migratedWave3a.settings.weightTemplates.filter((template) => wave3aRecommendedIds.includes(template.id)).every((template) => template.items.some((item) => item.categoryId === wave3aOralId) && template.items.some((item) => item.categoryId === wave3aWrittenId))
         );
         const wave3bState = DomainModel.createEmptyState();
         const wave3bCategories = wave3bState.settings.categories;
@@ -28792,7 +30180,7 @@ ${buildPrintHeaderCss()}
         ];
         record(
           "Wave 11 M31: LK Q1 bis Q4 verwendet die zentrale Klausurmatrix",
-          wave11LkContexts.map((context) => context.qualificationPhase).join(",") === "Q1,Q2,Q3,Q4" && wave11LkContexts.map((context) => context.expectedExamCount).join(",") === "2,2,2,1"
+          wave11LkContexts.map((context2) => context2.qualificationPhase).join(",") === "Q1,Q2,Q3,Q4" && wave11LkContexts.map((context2) => context2.expectedExamCount).join(",") === "2,2,2,1"
         );
         const wave11SekICourse = DomainModel.createCourse({ id: "course_wave11_seki", name: "Wave-11-Sek-I" });
         record(
@@ -28994,6 +30382,13 @@ ${buildPrintHeaderCss()}
         if (typeof err2.message === "string" && err2.message.startsWith(archiveMessagePrefix) && err2.message.endsWith(archiveMessageSuffix)) {
           safeMessage = err2.message;
         }
+      }
+      if (err2 && err2.code === "LOCAL_STORAGE_INTEGRITY_INVALID") {
+        safeMessage = "Der lokale verschlüsselte Bestand ist unvollständig oder widersprüchlich. Eine Neueinrichtung wurde zum Schutz der Originaldaten gesperrt. Bitte den Bestand für eine Wiederherstellung aufbewahren.";
+      } else if (err2 && err2.code === "ENCRYPTED_FORMAT_INVALID") {
+        safeMessage = "Das Format der verschlüsselten Daten ist beschädigt oder unvollständig. Die Originaldaten wurden nicht verändert.";
+      } else if (err2 && err2.code === "CRYPTO_OPERATION_FAILED") {
+        safeMessage = "Die kryptografische Verarbeitung ist technisch fehlgeschlagen. Bitte den Browser neu starten oder einen unterstützten Browser verwenden. Die Originaldaten wurden nicht verändert.";
       }
       renderStartupFailure(rootElementId, safeMessage);
     }

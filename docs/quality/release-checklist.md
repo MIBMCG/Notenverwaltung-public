@@ -1,35 +1,27 @@
-# Freigabecheckliste für Notenverwaltung 1.6.0
+# Freigabecheckliste für Notenverwaltung 1.7.0
 
-Stand: lokal am 06.10.2026 gebaut, unveröffentlicht. Diese Liste ist kein PASS-Nachweis.
-Für jeden Punkt Commit, Datum, Prüfer, Soll/Ist und Beleg festhalten; offene
-Punkte mit `NOT RUN`, konkrete Hürden mit `BLOCKED` kennzeichnen.
+Stand: 16.10.2026. Veröffentlichung durch den Nutzer beauftragt. Diese Liste
+beschreibt die erforderlichen Nachweise; sie nimmt ihr Ergebnis nicht vorweg.
+Prüfprotokolle, CI-Läufe und GitHub-Release ordnen Ergebnisse dem Commit zu.
 
-- [ ] Bestehende Task-9-Nachweise und den ausdrücklichen Nutzerentscheid
-      vom 05.10.2026 gemäß [Abnahme und Prüfgrenzen](../ABNAHME.md) übernehmen
-      und prüfen. Der manuelle Wiederholungsauftrag ist beendet; fehlende
-      frische Nachweise bleiben NOT RUN, Teilbeobachtungen begrenzt.
-- [ ] Technische Gesamtsuite, Syntax, Build-Identität, Befundregister,
-      Dokumentlinks sowie Releasepaket am endgültigen Commit prüfen.
-- [ ] Nur die zehn zugelassenen Root-Dateien in das Anwendungspaket aufnehmen;
-      neun innere und die äußere SHA-256-Prüfsumme prüfen.
-- [ ] Lizenz, Drittanbieterhinweise, neutrale Assets und ausdrückliche
-      Dateiauswahl im frischen öffentlichen Snapshot prüfen.
-- [ ] Falls die Veröffentlichung nach dem 06.10.2026 erfolgt, Datum in Programm,
-      Dokumenten und Releasehinweisen aktualisieren, neu bauen und den neuen
-      Hash sowie die Versions-/Datumsansichten gezielt prüfen.
-- [ ] Zielrepository, Tag, Paket, Hashes, Releasebeschreibung und
-      Gesamtprüfbericht zur konkreten Veröffentlichungsentscheidung vorlegen.
-- [ ] Nach Zustimmung das neue Repository zunächst privat anlegen,
-      geprüften Quellstand pushen und CI prüfen; Tag und Releaseentwurf nur
-      vorbereiten, noch nicht veröffentlichen.
-- [ ] Erst nach genehmigter öffentlicher Sichtbarkeit GitHubs privates
-      Vulnerability Reporting aktivieren und extern verifizieren.
-- [ ] Danach ausschließlich SECURITY.md auf dem Standardbranch ändern und
-      den separaten Diff eng reviewen: Release-Root/Tag/ZIP/Hashes unverändert,
-      HTML und Paketbaum bytegleich. Kein neues 1.6.0-Paket vom Folgecommit.
-- [ ] Erst nach diesem Reportinggate das vorbereitete Release veröffentlichen.
-      Danach anonymen Download, Prüfsummen, Quellarchiv und frischen Quellklon
-      technisch kontrollieren. Für Start und Wiederherstellung ausschließlich
-      vorhandene nutzerberichtete Praxis und begrenzte Teilbeobachtungen mit
-      ihren ursprünglichen Versions-/Hashgrenzen dokumentieren; keine neue
-      manuelle Wiederholung und keinen neuen Desktop-PASS ableiten.
+- Produktversion 1.7.0, Datum 16.10.2026 und aktuelle Dokumentation abgleichen.
+- Vollständige Testsuite, Syntax, Build-Identität, Befundregister und Dokumentlinks
+  prüfen. Keine Dateisystem-Schutzprüfung zur Umgehung lokaler Umgebungsfehler ändern.
+- Alle vier GitHub-CI-Kombinationen auf dem endgültigen Quellstand abwarten:
+  Windows/Node 22 und 24, Ubuntu/Node 20 und 22.
+- Releasepaket doppelt bauen und Bytegleichheit, genau zehn Root-Dateien,
+  neun innere SHA-256-Hashes und die äußere ZIP-Prüfsumme prüfen.
+- Lizenz, Drittanbieterhinweise, neutrale Assets und ausdrückliche öffentliche
+  Dateiauswahl kontrollieren. Keine echten Daten, Geheimnisse oder Supportdateien.
+- Erfolgreiche Nutzertests für Code-Nachrüstung und Wiederherstellung festhalten.
+  Nicht genannte Plattformen und Wiederherstellungsvarianten bleiben unbestätigt;
+  weitere Grenzen stehen in [ABNAHME.md](../ABNAHME.md).
+- Änderung über Pull Request in das bestehende öffentliche Repository integrieren;
+  geprüften Branch- und Merge-Stand vergleichen. Tag `v1.7.0` nicht nachträglich verschieben.
+- Aktives privates Vulnerability Reporting prüfen. ZIP, Prüfsumme und Hinweise als
+  reguläres GitHub-Release veröffentlichen; ältere Downloads unverändert lassen.
+- Anonymen Download zurückprüfen, Tag-/Branch-SHAs und öffentlichen Quellstand
+  kontrollieren. Lokalen öffentlichen Hauptbranch ohne Überschreiben fremder
+  Änderungen auf den veröffentlichten Stand bringen.
+
+Werkzeuge und Befehle: [Veröffentlichung](PUBLICATION.md).

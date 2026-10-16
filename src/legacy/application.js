@@ -44,6 +44,7 @@ import { buildDashboardCards } from '../ui/dashboard-data.js';
 import { mountCourseCards } from '../ui/course-cards.js';
 import { createCourseSymbolPicker } from '../ui/course-symbol-picker.js';
 import { createStateCommitter } from '../ui/state-commit.js';
+import { createRecoveryUi } from '../ui/recovery-dialog.js';
 
 const DISPLAY_LOCALE = 'de-DE';
 const DISPLAY_TIME_ZONE = Intl.DateTimeFormat().resolvedOptions().timeZone;
@@ -58,9 +59,9 @@ const DISPLAY_TIME_ZONE = Intl.DateTimeFormat().resolvedOptions().timeZone;
 
     // Sichtbare Programmversion. Unabhängig von state.version, das nur das Datenformat bezeichnet.
     const APP_RELEASE = Object.freeze({
-      version: "1.6.0",
-      dateIso: "2026-10-06",
-      dateLabel: "06.10.2026"
+  version: "1.7.0",
+  dateIso: "2026-10-16",
+  dateLabel: "16.10.2026"
     });
 
     // ------------------------------------------------------
@@ -180,6 +181,8 @@ const DISPLAY_TIME_ZONE = Intl.DateTimeFormat().resolvedOptions().timeZone;
       opts = opts || {};
       const message = opts.message || 'Passwort eingeben:';
       const confirm = !!opts.confirm;
+      let recoveryInFlight = false;
+      let closed = false;
 
       return new Promise((resolve) => {
         try {
@@ -216,7 +219,9 @@ const DISPLAY_TIME_ZONE = Intl.DateTimeFormat().resolvedOptions().timeZone;
 
           const input = document.createElement('input');
           input.type = 'password';
-          input.autocomplete = confirm ? 'new-password' : 'current-password';
+          input.autocomplete = opts.secretKind === 'recovery-code' ? 'off' : (confirm ? 'new-password' : 'current-password');
+          input.spellcheck = false;
+          input.setAttribute('spellcheck', 'false'); input.setAttribute('autocorrect', 'off'); input.setAttribute('autocapitalize', 'off');
           input.style.width = '100%';
           input.style.padding = '0.4rem';
           input.style.boxSizing = 'border-box';
@@ -227,6 +232,8 @@ const DISPLAY_TIME_ZONE = Intl.DateTimeFormat().resolvedOptions().timeZone;
             input2 = document.createElement('input');
             input2.type = 'password';
             input2.autocomplete = 'new-password';
+            input2.spellcheck = false;
+            input2.setAttribute('spellcheck', 'false'); input2.setAttribute('autocorrect', 'off'); input2.setAttribute('autocapitalize', 'off');
             input2.placeholder = 'Passwort wiederholen';
             input2.style.width = '100%';
             input2.style.marginTop = '0.4rem';
@@ -253,6 +260,29 @@ const DISPLAY_TIME_ZONE = Intl.DateTimeFormat().resolvedOptions().timeZone;
 
           row.appendChild(cancelBtn);
           row.appendChild(okBtn);
+          if (typeof opts.onRecovery === 'function') {
+            const recoveryBtn = document.createElement('button');
+            recoveryBtn.type = 'button';
+            recoveryBtn.textContent = 'Zugang wiederherstellen';
+            recoveryBtn.addEventListener('click', async function () {
+              if (recoveryInFlight || closed) return;
+              recoveryInFlight = true;
+              input.value = ''; if (input2) input2.value = '';
+              overlay.hidden = true;
+              okBtn.disabled = true; recoveryBtn.disabled = true;
+              try {
+                const recovered = await opts.onRecovery();
+                if (closed) return;
+                if (recovered === true) { cleanup(); resolve(null); return; }
+              } catch (error) {
+                if (!closed) window.alert('Wiederherstellung nicht abgeschlossen. Bitte erneut versuchen.');
+              } finally {
+                recoveryInFlight = false;
+                if (!closed) { overlay.hidden = false; okBtn.disabled = false; recoveryBtn.disabled = false; input.focus(); }
+              }
+            });
+            row.appendChild(recoveryBtn);
+          }
           dialog.appendChild(row);
 
           overlay.appendChild(dialog);
@@ -261,6 +291,8 @@ const DISPLAY_TIME_ZONE = Intl.DateTimeFormat().resolvedOptions().timeZone;
           input.focus();
 
           function cleanup() {
+            closed = true;
+            input.value = ''; if (input2) input2.value = '';
             try { document.body.removeChild(overlay); } catch (e) {}
             window.removeEventListener('keydown', onKey);
           }
@@ -268,6 +300,7 @@ const DISPLAY_TIME_ZONE = Intl.DateTimeFormat().resolvedOptions().timeZone;
           function cleanupCancel() { cleanup(); resolve(null); }
 
           function onOk() {
+            if (closed || recoveryInFlight) return;
             const v = input.value || '';
             if (confirm) {
               const v2 = input2 ? (input2.value || '') : '';
@@ -285,6 +318,7 @@ const DISPLAY_TIME_ZONE = Intl.DateTimeFormat().resolvedOptions().timeZone;
           }
 
           function onKey(ev) {
+            if (recoveryInFlight) return;
             if (ev.key === 'Escape') { cleanupCancel(); }
             if (ev.key === 'Enter') { onOk(); }
           }
@@ -395,6 +429,14 @@ const DISPLAY_TIME_ZONE = Intl.DateTimeFormat().resolvedOptions().timeZone;
      *  (Grundlayout, Navigation, Kursauswahl, Dark Mode)
      * =======================================================*/
     const UiShell = (function () {
+      let _recoveryUi = null;
+      function recoveryUi() {
+        if (!_recoveryUi) _recoveryUi = createRecoveryUi({
+          window, document, Storage,
+          downloadText: (text, filename) => downloadBlobFile(text, 'application/json;charset=utf-8', filename)
+        });
+        return _recoveryUi;
+      }
 
       function resolveGradeColorBand(schemaMode, numericValue, rawString) {
         if (numericValue === null || numericValue === undefined || !Number.isFinite(Number(numericValue))) {
@@ -427,6 +469,7 @@ const DISPLAY_TIME_ZONE = Intl.DateTimeFormat().resolvedOptions().timeZone;
       const LOST_INPUT_NOTICE = 'Die letzte Eingabe wurde nicht gespeichert. Bitte nach dem Entsperren prüfen und erneut eingeben.';
 
       function _renderSessionBlock(root, status, rootElementId = _sessionRootId || root.id) {
+        removeSessionSensitiveOverlays();
         document.title = 'Notenverwaltung · Version ' + APP_RELEASE.version;
         while (root.firstChild) root.removeChild(root.firstChild);
         root.hidden = false;
@@ -468,6 +511,18 @@ const DISPLAY_TIME_ZONE = Intl.DateTimeFormat().resolvedOptions().timeZone;
         const actions = document.createElement('div');
         actions.className = 'lock-card__actions';
         actions.appendChild(retry);
+        if (status !== 'busy' && status !== 'unsupported') {
+          const recovery = document.createElement('button');
+          recovery.type = 'button'; recovery.textContent = 'Zugang wiederherstellen';
+          recovery.addEventListener('click', async () => {
+            if (recovery.disabled) return;
+            recovery.disabled = true;
+            try { await init(rootElementId, true); }
+            catch (error) { window.alert('Wiederherstellung nicht abgeschlossen. Bitte erneut versuchen.'); }
+            finally { recovery.disabled = false; }
+          });
+          actions.appendChild(recovery);
+        }
         actions.appendChild(cancel);
         card.appendChild(actions);
         section.appendChild(card);
@@ -475,7 +530,7 @@ const DISPLAY_TIME_ZONE = Intl.DateTimeFormat().resolvedOptions().timeZone;
         try { retry.focus(); } catch (error) {}
       }
 
-      async function init(rootElementId) {
+      async function init(rootElementId, recoverFirst = false) {
         const root = document.getElementById(rootElementId);
         if (!root) { const error = new Error('Anwendungsbereich nicht gefunden.'); error.code = 'APP_ROOT_MISSING'; throw error; }
         _sessionRootId = rootElementId;
@@ -485,6 +540,12 @@ const DISPLAY_TIME_ZONE = Intl.DateTimeFormat().resolvedOptions().timeZone;
         if (attempt !== _startupEpoch) return;
         if (result !== 'acquired') { _renderSessionBlock(root, result); return; }
         try {
+          if (recoverFirst) {
+            const recovered = await recoveryUi().recover();
+            if (attempt !== _startupEpoch) return;
+            sessionCoordinator.assertHeld();
+            if (!recovered) { Storage.lockSession(); return; }
+          }
           await _initOwned(rootElementId, attempt, !_hasInitialized);
           if (attempt === _startupEpoch) _hasInitialized = true;
         } catch (error) {
@@ -509,6 +570,7 @@ const DISPLAY_TIME_ZONE = Intl.DateTimeFormat().resolvedOptions().timeZone;
 
       function _handleSessionCleared() {
         _startupEpoch += 1;
+        if (_recoveryUi) _recoveryUi.dispose();
         try {
           if (typeof maskBeforeHardBoundary === 'function') maskBeforeHardBoundary();
           if (typeof _activeSessionClearedRender === 'function') {
@@ -1346,7 +1408,14 @@ const DISPLAY_TIME_ZONE = Intl.DateTimeFormat().resolvedOptions().timeZone;
           throw error;
         }
 
-        let state = await Storage.loadState();
+        let state = await Storage.loadState({ onRecoveryRequested: async function () {
+          if (attempt !== _startupEpoch) return null;
+          sessionCoordinator.assertHeld();
+          const result = await recoveryUi().recover();
+          if (attempt !== _startupEpoch) return null;
+          sessionCoordinator.assertHeld();
+          return result;
+        } });
         if (attempt !== _startupEpoch) return;
         sessionCoordinator.assertHeld();
         if (Storage.isEncrypted() && !Storage.hasSessionPassword()) { Storage.lockSession(); return; }
@@ -2009,6 +2078,7 @@ const DISPLAY_TIME_ZONE = Intl.DateTimeFormat().resolvedOptions().timeZone;
         function startManualLock() {
           if (manualLock) return manualLock.promise;
           if (sessionCoordinator.getStatus() !== 'held' || !Storage.hasSessionPassword()) return Promise.resolve();
+          if (_recoveryUi) _recoveryUi.dispose();
           const overlay = document.createElement('section');
           overlay.className = 'privacy-lock-overlay';
           overlay.setAttribute('role', 'dialog');
@@ -2134,6 +2204,40 @@ const DISPLAY_TIME_ZONE = Intl.DateTimeFormat().resolvedOptions().timeZone;
             if (uiStateEpoch !== operationEpoch) throw createStateCommitAbortedError();
             return operation(operationEpoch);
           });
+        }
+
+        let protectionOperation = null;
+        function runProtectionTransition(mode) {
+          if (protectionOperation) return protectionOperation;
+          const startingEpoch = uiStateEpoch;
+          protectionOperation = (async function () {
+            const captured = encryptionRequired
+              ? { ok: true, snapshot: JSON.parse(JSON.stringify(state)) }
+              : await persistenceBoundary.capture();
+            if (!captured.ok || startingEpoch !== uiStateEpoch) {
+              if (startingEpoch === uiStateEpoch) window.alert('Bitte zuerst offene Eingaben prüfen und speichern.');
+              return;
+            }
+            await runExclusiveStateOperation(async function (operationEpoch) {
+              root.inert = true;
+              try {
+                const ui = recoveryUi();
+                const result = mode === 'enroll' ? await ui.enroll({ state: captured.snapshot })
+                  : await ui.rotate({ reason: mode });
+                if (uiStateEpoch !== operationEpoch || !result) return;
+                sessionCoordinator.assertHeld();
+                state = await Storage.loadCurrentSessionState();
+                if (uiStateEpoch !== operationEpoch) return;
+                encryptionRequired = false;
+                render();
+              } finally {
+                if (uiStateEpoch === operationEpoch && sessionCoordinator.getStatus() === 'held') root.inert = false;
+              }
+            });
+          })().catch(function (error) {
+            if (!isStateCommitAborted(error)) window.alert('Änderung der Zugangsdaten nicht abgeschlossen. Bitte erneut versuchen.');
+          }).finally(function () { protectionOperation = null; });
+          return protectionOperation;
         }
 
         async function reconcileExclusiveState(operationEpoch) {
@@ -12710,24 +12814,7 @@ ${buildPrintHeaderCss()}
             const setupBtn = document.createElement('button');
             setupBtn.type = 'button';
             setupBtn.textContent = 'Verschlüsselung jetzt einrichten';
-            setupBtn.addEventListener('click', async function () {
-              const setupDialogEpoch = uiStateEpoch;
-              const pw = await window.promptPassword({ message: 'Neues Passwort für die Verschlüsselung eingeben (mind. 6 Zeichen):', confirm: true });
-              if (uiStateEpoch !== setupDialogEpoch) return;
-              if (!pw) { Storage.lockSession(); return; }
-              if (pw.length < 6) { try { window.alert('Bitte ein Passwort mit mindestens 6 Zeichen eingeben.'); } catch (e) {} ; return; }
-              const encryptionEpoch = invalidateUiStateEpoch();
-              try {
-                await Storage.enableEncryption(pw, state);
-                if (uiStateEpoch !== encryptionEpoch) return;
-                encryptionRequired = false;
-                window.alert('Verschlüsselung aktiviert. Du kannst nun die Anwendung verwenden.');
-                render();
-              } catch (err) {
-                console.error('Fehler beim Aktivieren der Verschlüsselung:', err);
-                window.alert('Aktivierung der Verschlüsselung fehlgeschlagen. Siehe Konsole.');
-              }
-            });
+            setupBtn.addEventListener('click', function () { return runProtectionTransition('enroll'); });
 
             btnRow.appendChild(setupBtn);
             mustBox.appendChild(btnRow);
@@ -13469,62 +13556,39 @@ ${buildPrintHeaderCss()}
             pwBtn.textContent = 'Verschlüsselung verwalten';
           }
 
-          pwBtn.addEventListener('click', async function () {
-            const passwordDialogEpoch = uiStateEpoch;
-            try {
-              if (typeof Storage !== 'undefined' && Storage.isEncrypted && Storage.isEncrypted()) {
-                const oldPw = await window.promptPassword({ message: 'Altes Passwort eingeben:', confirm: false });
-                if (uiStateEpoch !== passwordDialogEpoch) return;
-                if (!oldPw) return;
-                const newPw = await window.promptPassword({ message: 'Neues Passwort eingeben:', confirm: true });
-                if (uiStateEpoch !== passwordDialogEpoch) return;
-                if (!newPw) return;
-                if (newPw.length < 6) { try { window.alert('Bitte ein Passwort mit mindestens 6 Zeichen eingeben.'); } catch (e) {} return; }
-                if (uiStateEpoch !== passwordDialogEpoch) return;
-                try {
-                  await runExclusiveStateOperation(async function (passwordEpoch) {
-                    try {
-                      await Storage.changePassword(oldPw, newPw);
-                    } catch (error) {
-                      await reconcileExclusiveState(passwordEpoch);
-                      if (uiStateEpoch !== passwordEpoch) throw createStateCommitAbortedError();
-                      throw error;
-                    }
-                    if (uiStateEpoch !== passwordEpoch) throw createStateCommitAbortedError();
-                    if (!await reconcileExclusiveState(passwordEpoch)) throw createStateCommitAbortedError();
-                  });
-                  try { window.alert('Passwort erfolgreich geändert.'); } catch (e) {}
-                } catch (err) {
-                  if (!isStateCommitAborted(err)) {
-                    console.error('Fehler beim Ändern des Passworts:', err);
-                    try { window.alert('Passwortänderung fehlgeschlagen. Überprüfe das alte Passwort.'); } catch (e) {}
-                  }
-                }
-              } else {
-                const pw = await window.promptPassword({ message: 'Neues Passwort für die Verschlüsselung eingeben:', confirm: true });
-                if (uiStateEpoch !== passwordDialogEpoch) return;
-                if (!pw) { if (!Storage.isEncrypted()) Storage.lockSession(); return; }
-                if (pw.length < 6) { try { window.alert('Bitte ein Passwort mit mindestens 6 Zeichen eingeben.'); } catch (e) {} ; return; }
-                const encryptionEpoch = invalidateUiStateEpoch();
-                try {
-                  await Storage.enableEncryption(pw, state);
-                  if (uiStateEpoch !== encryptionEpoch) return;
-                  try { window.alert('Verschlüsselung aktiviert.'); } catch (e) {}
-                  encryptionRequired = false;
-                  render();
-                } catch (err) {
-                  console.error('Fehler beim Aktivieren der Verschlüsselung:', err);
-                  try { window.alert('Aktivierung der Verschlüsselung fehlgeschlagen.'); } catch (e) {}
-                }
-              }
-            } catch (e) {
-              console.error('Fehler im Verschlüsselungs-Handler:', e);
-              try { window.alert('Fehler beim Verarbeiten. Siehe Konsole.'); } catch (ex) {}
-            }
+          pwBtn.addEventListener('click', function () {
+            return runProtectionTransition(Storage.isEncrypted() ? 'password-change' : 'enroll');
           });
 
           pwRow.appendChild(pwBtn);
           secBox.appendChild(pwRow);
+
+          const recoveryStatus = Storage.getRecoveryStatus();
+          const recoveryInfo = document.createElement('p');
+          recoveryInfo.textContent = recoveryStatus.enabled
+            ? 'Wiederherstellungscode: eingerichtet. Generation vom ' + recoveryStatus.metadata.createdAt +
+              '. Bestandskennung: ' + recoveryStatus.metadata.datasetId + '. Generation: ' + recoveryStatus.metadata.generationId + '.'
+            : 'Wiederherstellungscode: noch nicht eingerichtet. Ergänze einen getrennt aufbewahrten zweiten Zugang für den Fall eines Passwortverlusts.';
+          secBox.appendChild(recoveryInfo);
+          const recoveryActions = document.createElement('div');
+          recoveryActions.className = 'transfer-actions';
+          function recoveryAction(label, action) {
+            const button = document.createElement('button'); button.type = 'button'; button.textContent = label;
+            button.addEventListener('click', action); recoveryActions.appendChild(button);
+          }
+          if (recoveryStatus.enabled) {
+            recoveryAction('Code prüfen', function () { return recoveryUi().checkCode(); });
+            recoveryAction('Code ersetzen', function () { return runProtectionTransition('code-replacement'); });
+          } else if (Storage.isEncrypted()) {
+            recoveryAction('Wiederherstellungscode jetzt einrichten', function () { return runProtectionTransition('enroll'); });
+          }
+          if (recoveryStatus.migrationBackupAvailable) {
+            recoveryAction('Verschlüsselte Alt-Kopie herunterladen', function () {
+              const text = Storage.getRecoveryMigrationBackup();
+              if (text) downloadBlobFile(text, 'application/json;charset=utf-8', 'notenverwaltung_vor_wiederherstellung.json');
+            });
+          }
+          secBox.appendChild(recoveryActions);
 
           // Sicherheit/Session-Timeout in eigenes Panel (passt thematisch besser)
           settingsAreaPanels.get('security').appendChild(secBox);
@@ -14491,7 +14555,25 @@ ${buildPrintHeaderCss()}
                 try { maybe = JSON.parse(text); } catch (e) { maybe = null; }
                 let parsedState;
                 let sourceLabel = 'JSON-Datei';
-                if (maybe && maybe.format === "notenverwaltung_enc_v1") {
+                if (maybe && maybe.format === 'notenverwaltung_envelope') {
+                  if (maybe.version !== 2) throw new Error('Unbekanntes verschlüsseltes Backupformat.');
+                  const pw = await window.promptPassword({
+                    message: 'Passwort zum Entschlüsseln der Datei eingeben oder „Zugang wiederherstellen“ für den Wiederherstellungscode wählen:',
+                    confirm: false,
+                    onRecovery: async function () {
+                      const code = await window.promptPassword({ message: 'Vollständigen Wiederherstellungscode dieser Sicherungsdatei eingeben:', secretKind: 'recovery-code' });
+                      if (!code || readId !== jsonFileReadId || uiStateEpoch !== selectionEpoch) return false;
+                      parsedState = await Storage.importStateEncryptedWithRecovery(text, code);
+                      return readId === jsonFileReadId && uiStateEpoch === selectionEpoch;
+                    }
+                  });
+                  if (!parsedState) {
+                    if (!pw) return;
+                    parsedState = await Storage.importStateEncryptedFromText(text, pw);
+                  }
+                  sourceLabel = 'Verschlüsseltes Backup';
+                }
+                else if (maybe && maybe.format === "notenverwaltung_enc_v1") {
                   const pw = await window.promptPassword({ message: "Passwort zum Entschlüsseln der Datei eingeben:", confirm: false });
                   if (!pw) return;
                   parsedState = await Storage.importStateEncryptedFromText(text, pw);
@@ -14503,6 +14585,7 @@ ${buildPrintHeaderCss()}
                   parsedState = JSON.parse(await Storage._decryptPayload(text, pw));
                   sourceLabel = 'Verschlüsseltes Backup';
                 } else {
+                  if (maybe && typeof maybe.format === 'string') throw new Error('Unbekanntes Backupformat.');
                   parsedState = maybe || JSON.parse(text);
                 }
                 if (readId !== jsonFileReadId || uiStateEpoch !== selectionEpoch) return;
@@ -16415,6 +16498,17 @@ ${buildPrintHeaderCss()}
               });
 
               btnRow.appendChild(unlockBtn);
+              const recoveryBtn = document.createElement('button');
+              recoveryBtn.type = 'button'; recoveryBtn.textContent = 'Zugang wiederherstellen';
+              recoveryBtn.addEventListener('click', async function () {
+                if (unlockInFlight) return;
+                unlockInFlight = true; recoveryBtn.disabled = true;
+                invalidateUiStateEpoch();
+                try { await init(rootElementId, true); }
+                catch (error) { window.alert('Wiederherstellung nicht abgeschlossen. Bitte erneut versuchen.'); }
+                finally { unlockInFlight = false; recoveryBtn.disabled = false; }
+              });
+              btnRow.appendChild(recoveryBtn);
               btnRow.appendChild(cancelBtn);
               dialog.appendChild(btnRow);
               block.appendChild(dialog);
@@ -17465,6 +17559,13 @@ ${buildPrintHeaderCss()}
               err.message.endsWith(archiveMessageSuffix)) {
             safeMessage = err.message;
           }
+        }
+        if (err && err.code === 'LOCAL_STORAGE_INTEGRITY_INVALID') {
+          safeMessage = 'Der lokale verschlüsselte Bestand ist unvollständig oder widersprüchlich. Eine Neueinrichtung wurde zum Schutz der Originaldaten gesperrt. Bitte den Bestand für eine Wiederherstellung aufbewahren.';
+        } else if (err && err.code === 'ENCRYPTED_FORMAT_INVALID') {
+          safeMessage = 'Das Format der verschlüsselten Daten ist beschädigt oder unvollständig. Die Originaldaten wurden nicht verändert.';
+        } else if (err && err.code === 'CRYPTO_OPERATION_FAILED') {
+          safeMessage = 'Die kryptografische Verarbeitung ist technisch fehlgeschlagen. Bitte den Browser neu starten oder einen unterstützten Browser verwenden. Die Originaldaten wurden nicht verändert.';
         }
         renderStartupFailure(rootElementId, safeMessage);
       }

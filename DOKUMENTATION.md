@@ -12,9 +12,9 @@ Der verschlüsselte Datenbestand liegt im lokalen Browserprofil und ist an
 dessen Speicherbereich und Öffnungsart gebunden. Die HTML-Datei enthält keine
 eingegebenen Noten. Vor einem Update im alten Fenster sichern, den Download
 prüfen und alle Fenster der alten Fassung schließen. Danach im Zielbrowser den
-erwarteten Bestand prüfen. Version 1.6.0 ist ein unveröffentlichter
-Desktop-Prüfkandidat; [Prüfstand und Grenzen](docs/ABNAHME.md) nennen den
-Status der Browserabnahme.
+erwarteten Bestand prüfen. Version 1.7.0 vom 16.10.2026 ergänzt den separaten
+Offline-Wiederherstellungscode. [Prüfstand und Grenzen](docs/ABNAHME.md)
+unterscheiden technische Nachweise, Nutzerrückmeldung und Browserabnahme.
 
 ## Für die Entwicklung
 
@@ -44,10 +44,9 @@ Entwicklungswerkzeugen; die ausgelieferte Datei benötigt weiterhin keine
 Paketverwaltung und keine Serverkomponente. `Notenverwaltung.html` kann direkt
 im Browser geöffnet werden. Alle Nutzdaten werden lokal im Browser gespeichert.
 
-Programmfassung: **1.6.0, unveröffentlichter Prüfkandidat**. Ein
-Veröffentlichungsdatum wird erst für den finalen Build gesetzt. Die letzte
-private Freigabe war 1.5.1. Maßgeblich sind die
-[Release-Hinweise für 1.6.0](docs/releases/1.6.0.md).
+Programmfassung: **1.7.0 vom 16.10.2026**. Öffentliche Downloads gehören zum
+Repository MIBMCG/Notenverwaltung-public; die frühere private Ablage ist davon
+getrennt. Maßgeblich sind die [Release-Hinweise für 1.7.0](docs/releases/1.7.0.md).
 Die sichtbare Versionsnummer ist unabhängig von `state.version`, das nur das
 gespeicherte Datenformat bezeichnet. Ältere Prüfnachweise und Versionsangaben
 in den folgenden Abschnitten sind historische Zwischenstände.
@@ -65,9 +64,11 @@ dem fachlichen Kurs-/Personenaustausch und überträgt keine Symbolwahl.
 ### Anwendung starten
 
 1. Den Projektordner oeffnen.
-2. `Notenverwaltung.html` in einem nach der Desktopabnahme unterstützten
-   Dateibrowser oeffnen.
-3. Beim ersten Start die Verschluesselung einrichten, wenn die Anwendung dies verlangt.
+2. `Notenverwaltung.html` im vorgesehenen Browser oeffnen.
+3. Beim ersten Start Passwort und Wiederherstellungscode einrichten; den Code
+   getrennt sichern und vollständig zur Bestätigung erneut eingeben. Bestehende
+   Bestände bleiben mit ihrem bisherigen Passwort nutzbar und können den
+   Code unter **Einstellungen → Sicherheit** freiwillig nachrüsten.
 
 ### Schule und Logo anpassen (ab 1.4.0)
 
@@ -109,11 +110,11 @@ Die Anwendung benoetigt einen Browser mit Unterstuetzung fuer:
 - moderne DOM-APIs
 
 Das frühe M06-Architekturgate für `file:` wurde mit Edge, Chrome und Firefox
-abgeschlossen. Die vollständige Desktopabnahme der integrierten Fassung 1.6.0
-steht noch aus; bis dahin wird keine verbindliche Browserliste behauptet.
+abgeschlossen. Daraus folgt keine vollständige Browserabnahme für Version 1.7.0.
+Die erfolgreiche Nutzerrückmeldung zu Nachrüstung und Wiederherstellung nennt
+keinen Browser und kein Betriebssystem. Safari/macOS sind damit nicht bestätigt.
 Fehlt die verlässliche Sperre, bleibt die Bearbeitung deaktiviert. Andere
-Profile und Öffnungspfade können getrennte Bestände haben. Safari/macOS sind
-für diese Fassung noch nicht real geprüft.
+Profile und Öffnungspfade können getrennte Bestände haben.
 
 ## 3. Architektur
 
@@ -182,17 +183,24 @@ Wichtige Aufgaben:
 
 - Speichern des kompletten States im Browser-`localStorage`.
 - Verpflichtende Verschluesselung des gespeicherten Zustands.
-- Session-Passwort nur im Arbeitsspeicher halten.
+- V1-Session-Passwort beziehungsweise private V2-Schlüsselsitzung nur im
+  Arbeitsspeicher halten; kein dauerhaftes Klartextpasswort und kein gespeicherter Code.
 - Automatisches Sperren der Sitzung nach Inaktivitaet.
 - Export und Import verschluesselter Backups.
 - Rueckwaertskompatibilitaet zu alten Klartext- oder aelteren verschluesselten Speicherformaten.
+- Bestätigte V2-Übergänge für Einrichtung, Code-Nachrüstung, Passwortwechsel,
+  Codeersatz und Wiederherstellung über lokalen Bestand oder Backup-Datei.
 
 Wichtige `localStorage`-Keys:
 
 - `notenverwaltung_v1_state`: Legacy-Klartextzustand.
 - `notenverwaltung_v1_encrypted`: Flag fuer aktive Verschluesselung.
 - `notenverwaltung_v1_state_enc`: verschluesselter Payload.
-- `notenverwaltung_v1_salt`: Salt fuer die lokale Verschluesselung.
+- `notenverwaltung_v1_salt`: Salt fuer V1; bei V2 die Formatmarkierung `v2-envelope`.
+- `notenverwaltung_v2_migration_backup`: verschlüsselte Alt-Kopie beim Umstieg.
+
+Der historisch benannte Payload-Key enthält bei V2 das selbstenthaltende
+Envelope; der Schlüsselname ist keine Aussage über das aktive Format.
 - `notenverwaltung_theme`: gespeichertes Theme.
 
 Wichtige Funktionen:
@@ -449,7 +457,12 @@ Die Einstellungen umfassen:
 - Verschluesselung.
 - Session-Timeout.
 
-Beim ersten Start oder wenn kein verschluesselter Zustand vorhanden ist, wird die Einrichtung der Verschluesselung hervorgehoben.
+Beim ersten Start werden Passwort und Code eingerichtet; erst die vollständige
+Rückeingabe des gesicherten Codes bestätigt den neuen Schutz. Bestehende Bestände
+ohne Code erhalten ein freiwilliges Nachrüstangebot. Unter **Einstellungen →
+Sicherheit** sind außerdem **Code prüfen**, **Code ersetzen** und **Passwort ändern**
+erreichbar. Passwortwechsel und Codeersatz erzeugen einen neuen Code. Die
+[Kurzanleitung](docs/KURZANLEITUNG.md#erster-start-und-passwort) beschreibt die Schritte.
 
 ### 4.9 Import und Export
 
@@ -465,7 +478,12 @@ Die Import-/Export-Ansicht unterstuetzt:
 
 Beim Import wird der Zustand ueber `DomainModel.ensureStateShape(...)` normalisiert.
 
-JSON- und Backupimporte werden vor der Uebernahme strukturell und referenziell validiert. Dabei werden auch doppelte Einschreibungen derselben Schueler-ID innerhalb eines Kurses sowie doppelte Unterkategorie-IDs innerhalb eines Archiv-Snapshots abgelehnt. Die Anwendung baut zuerst einen getrennten Kandidaten-State auf und speichert ihn verschluesselt, bevor er zum aktiven Zustand wird. Der Ersetzen-Modus verlangt zwei Bestaetigungen und behaelt die lokalen Halbjahresgrenzen und Halbjahresnamen bei. Das Passwort einer Backup-Datei dient nur zu deren Entschluesselung und aendert nicht das aktuelle Anwendungspasswort.
+JSON- und Backupimporte werden vor der Uebernahme strukturell und referenziell validiert. Dabei werden auch doppelte Einschreibungen derselben Schueler-ID innerhalb eines Kurses sowie doppelte Unterkategorie-IDs innerhalb eines Archiv-Snapshots abgelehnt. Die Anwendung baut zuerst einen getrennten Kandidaten-State auf und speichert ihn verschluesselt, bevor er zum aktiven Zustand wird. Der Ersetzen-Modus verlangt zwei Bestaetigungen und behaelt die lokalen Halbjahresgrenzen und Halbjahresnamen bei. Das Passwort oder der Code einer Backup-Datei dient nur zu deren Entschluesselung.
+Ein normaler Import behält Passwort, Code und Generation des lokalen Bestands.
+Die getrennte Funktion **Zugang wiederherstellen** richtet dagegen ein neues
+Passwort und einen neuen bestätigten Code ein; eine Dateiwiederherstellung
+übernimmt den vollständigen Dateiinhalt einschließlich seiner Einstellungen
+und verlangt das ausdrückliche Ersetzen eines vorhandenen lokalen Bestands.
 
 Beim Zusammenfuehren bleiben Personen- und Leistungs-IDs erhalten. Gleiche Namen oder Leistungstitel begruenden keine gemeinsame Identitaet. Kurse werden ueber ihre ID oder eine eindeutige externe Kennung im passenden Schema-, Schuljahres- und Archivkontext zugeordnet. Widerspruechliche Kursidentitaeten und Leistungs-IDs, die auf einen anderen Zielkurs verweisen, brechen die Uebernahme vor dem Speichern ab. Dadurch fuegt der wiederholte Import desselben Bestands keine Kopien dieser Personen, Kurse oder Leistungen hinzu. Vorhandene lokale Scorewerte und Leistungsmetadaten gewinnen bei Konflikten; die Vorschau und Abschlussmeldung nennen Metadatenkonflikte getrennt von Scorekonflikten.
 
@@ -486,7 +504,10 @@ bestätigte Änderungen gespeichert. Eine ungültige Eingabe, ein Speicherfehler
 oder ein Sitzungswechsel verhindert den Download. Die Erfolgsmeldung bestätigt
 nur dessen Start; eine kontrollierte Wiederherstellung prüft die Datei.
 
-Das Backup setzt eine entsperrte aktive Sitzung voraus. Es verschlüsselt den aktuell vollständig erfassten Snapshot mit dem Sitzungspasswort. Ohne aktive Sitzung wird kein Backup erstellt. Der Downloadname folgt dem Muster:
+Das Backup setzt eine entsperrte aktive Sitzung voraus. Es verschlüsselt den
+aktuell vollständig erfassten Snapshot mit dem aktiven lokalen Schutz. Bei V2
+öffnen das zugehörige Passwort oder der zugehörige Code die Datei; ohne aktive
+Sitzung wird kein Backup erstellt. Der Downloadname folgt dem Muster:
 
 ```text
 notenverwaltung_backup_YYYY-MM-DDTHH-MM-SS.enc.json
@@ -720,79 +741,79 @@ Bestands- oder Passwortwechsel. Dazu liest
 der Lesevorgang fragt kein Passwort ab, stellt keine Sitzung wieder her und
 bricht bei einer zwischenzeitlichen Sperre ab.
 
-### Verschluesselung
+### Verschlüsselung und Wiederherstellung ab 1.7.0
 
-Die Anwendung nutzt Web Crypto:
+Neue Einrichtungen und freiwillig nachgerüstete Bestände verwenden ein
+selbstenthaltendes V2-Envelope aus src/infrastructure/recovery-envelope.js:
 
-- Algorithmus: AES-GCM
-- Schluessellaenge: 256 Bit
-- Key Derivation: PBKDF2
-- Hash: SHA-256
-- Iterationen: 200000
-- Salt: 16 Byte
-- IV: 12 Byte
+- Datenverschlüsselung mit zufälligem AES-256-GCM-Datenschlüssel, 128-Bit-Tag
+  und jeweils frischem 12-Byte-IV.
+- Getrennte Schlüsselhüllen über Passwort und Wiederherstellungscode.
+  Passwortableitung: PBKDF2-SHA256 mit 600000 Iterationen und 16-Byte-Salt.
+- Der Code entsteht aus 256 Zufallsbits, wird mit Prüfsumme als Base32 in
+  Vierergruppen mit Präfix NV2- angezeigt und nur während Einrichtung oder
+  Erneuerung ausgegeben. Er ist ein gleichwertiger geheimer Zugang.
+- Format, Kennungen, Generation, beide Hüllen und Sicherungszeitpunkt sind
+  authentifiziert. In der aktiven V2-Sitzung hält Storage eine private
+  Schlüsselsitzung; Passwort und Code werden nicht dauerhaft im Klartext gespeichert.
 
-Das Passwort wird als Session-Passwort im Arbeitsspeicher gehalten und nicht dauerhaft im Klartext gespeichert. Nach Inaktivitaet wird die Sitzung gesperrt und das Passwort aus dem Speicher entfernt. Bei der Ersteinrichtung wird das Session-Passwort erst nach einem vollstaendig erfolgreichen verschluesselten Schreibvorgang uebernommen; ein Teilschreibfehler stellt den vorherigen lokalen Speicherstand wieder her.
+Passwörter benötigen mindestens sechs Zeichen. Ein neuer Schutz wird zunächst
+nur vorbereitet. Erst die vollständige Rückeingabe des gesicherten Codes erlaubt
+die Speicherung. Passwortwechsel, Codeersatz und Wiederherstellung erneuern
+Datenschlüssel, Code und Generation. Lokale Wiederherstellung und
+Dateiwiederherstellung sind ohne das bisherige Passwort erreichbar, sofern der
+passende Code bereits eingerichtet wurde. Sind Passwort und Code verloren,
+gibt es keinen Reset, kein Masterpasswort und keinen Support-Zugang.
+Ein gesperrter V1-Altbestand ohne Code kann nicht nachträglich geöffnet werden.
 
-Passwoerter muessen auch im Storage-Modul mindestens sechs Zeichen lang sein. Ein erfolgreicher Passwortwechsel erzeugt einen neuen zufaelligen 16-Byte-Salt und verschluesselt den vorhandenen Zustand damit neu. Schlaegt die Aktualisierung von Payload oder Salt fehl, bleiben der bisherige verschluesselte Zustand und das alte Passwort verwendbar.
+Sitzungs-, Besitzer-, Snapshot- und Generationsprüfungen schützen die Übergänge
+auch über asynchrone Arbeitsschritte hinweg. Journal, Rücklesen über beide
+Zugänge und eine verschlüsselte Migrationskopie sichern bestätigte Änderungen.
+Sperren, Abbruch oder Besitzerverlust verwerfen Vorbereitungen und Codeansichten.
+Eine nicht bestätigte Speicherung ist kein Erfolg; vorhandene Sicherungen
+aufbewahren und den lesbaren Bestand nach erneutem Öffnen kontrollieren.
+Technische Fehlerprüfungen belegen keine physische Crash-Durabilität auf jedem Gerät.
+
+Bestehende V1-Bestände ohne Code bleiben nutzbar. Ihre historische Kryptografie
+(AES-256-GCM, PBKDF2-SHA256 mit 200000 Iterationen, 16-Byte-Salt und 12-Byte-IV)
+und Passwortverarbeitung werden nicht still verändert. Ein bewusstes Nachrüsten
+stellt auf V2 um und erhält eine verschlüsselte Alt-Kopie zum Download.
+**V2-Bestände und V2-Backups benötigen Version 1.7.0 oder neuer.** Alte Dateien
+ändern sich dadurch nicht und behalten ihre damaligen Zugangsdaten.
 
 ### Backup-Formate
 
-Die Dateiendung `.enc.json` allein bestimmt nicht das Format. Die Schreib- und
-Lesepfade sind wie folgt zugeordnet:
+Die Dateiendung .enc.json allein bestimmt nicht das Format. Die Anwendung
+unterscheidet die folgenden Formate; unbekannte verschlüsselte Formate werden
+abgelehnt und bei Fehlern nicht als Klartext interpretiert.
 
-| Pfad | Erzeugtes oder akzeptiertes Format | Umfang / Voraussetzung |
+| Format | Verwendung | Zugang / Portabilität |
 | --- | --- | --- |
-| Header: **Backup speichern** | Schreibt portables Raw `salt:iv:ciphertext` | Vollstaendiger Anwendungsstand; Sitzungspasswort oder Passwortabfrage |
-| Archiv: Export eines archivierten Kurses | Schreibt portables Raw `salt:iv:ciphertext` | Archivierter Kurs, seine Leistungen, referenzierte Schueler und Einstellungen; Sitzungspasswort erforderlich |
-| Interne API `Storage.exportStateEncrypted(password, state)` | Schreibt strukturiertes `notenverwaltung_enc_v1` | Uebergebener State; kein Aufruf durch die beiden genannten UI-Exportwege |
-| UI: JSON-Import | Liest strukturiertes Format, portables Raw und altes Raw | Backup-Passwort; bei altem Raw zusaetzlich der zugehoerige lokale Salt |
+| V2: notenverwaltung_envelope, version: 2 | Lokaler Bestand und UI-Backups mit Codezugang | Passwort oder passender Code; selbstenthaltend, benötigt 1.7.0 oder neuer |
+| V1: notenverwaltung_enc_v1 mit salt und payload | Bisherige strukturierte Sicherungen und interne Legacy-Export-API | Damaliges Passwort; Salt in der Datei |
+| V1 Raw: salt:iv:ciphertext | UI-Backups aus Beständen ohne Code | Damaliges Passwort; eigenständig portabel |
+| Altes Raw: iv:ciphertext | Historische Sicherungen | Damaliges Passwort und passender lokaler Salt erforderlich |
 
-Der JSON-Import leitet das strukturierte Format an
-`Storage.importStateEncryptedFromText`, Raw an `Storage._decryptPayload` weiter.
-Anschliessend wird der importierte Stand validiert, normalisiert und verschluesselt
-gespeichert. Die interne strukturierte Importfunktion akzeptiert nur das
-strukturierte Format, nicht Raw.
+Header- und Archivbackup verwenden den aktuellen lokalen Schutz. Der Header
+sichert den vollständigen Bestand; ein Archivexport enthält den betreffenden
+Kurs, Leistungen, referenzierte Personen und Einstellungen. Ein Backup aus einem
+V2-Bestand enthält die passenden Zugangshüllen und einen frisch verschlüsselten
+Snapshot mit aktualisierter Sicherungszeit.
 
-#### Strukturiertes Format
+Normaler Import validiert die Quelle, baut einen Kandidaten und speichert ihn
+mit dem bestehenden lokalen Passwort und gegebenenfalls Code. Die Quellzugänge
+ersetzen den lokalen Schutz nicht. Lokale Halbjahresgrenzen und -namen bleiben
+beim normalen Import erhalten. **Zugang wiederherstellen** ist ein eigener
+Ablauf mit neuem Passwort und Code und übernimmt bei einer Dateiquelle den
+vollständigen Dateiinhalt einschließlich seiner Einstellungen.
 
-```json
-{
-  "format": "notenverwaltung_enc_v1",
-  "salt": "...",
-  "payload": "iv:ciphertext"
-}
-```
-
-Der Salt ist in der Datei enthalten. Zum Entschluesseln auf einem anderen Geraet
-wird das Backup-Passwort benoetigt, kein Salt aus dem bisherigen Browser.
-
-#### Raw-Format
-
-```text
-salt:iv:ciphertext
-```
-
-Auch dieses dreiteilige Format enthaelt seinen Salt und ist mit dem
-Backup-Passwort auf andere Geraete uebertragbar. Es ist das aktuelle Format der
-oben genannten UI-Backups, obwohl der Dateiname auf `.enc.json` endet.
-
-Aeltere Raw-Formate koennen auch aus zwei Teilen bestehen:
-
-```text
-iv:ciphertext
-```
-
-Dieses zweiteilige Altformat ist nicht eigenstaendig portabel: Neben dem Passwort
-ist der passende Salt unter `notenverwaltung_v1_salt` im lokalen Browserspeicher
-erforderlich. Das Passwort allein genuegt nicht. Ein anderer Browser, ein anderes
-Profil oder ein anderer Speicherbereich stellt diesen Salt nicht automatisch bereit.
-
-Die laufende Anwendung speichert ihren verschluesselten lokalen Stand ebenfalls
-zweiteilig unter `notenverwaltung_v1_state_enc`, mit separat gespeichertem Salt
-unter `notenverwaltung_v1_salt`. Dieser lokale Speicher ist kein heruntergeladenes
-portables Backup. Fuer einen Geraetewechsel **Backup speichern** verwenden und
-die erzeugte Datei mit dem zugehoerigen Passwort auf dem Zielgeraet importieren.
+Die verschlüsselte Alt-Kopie einer Migration und frühere Backups bleiben
+unverändert. Nach Nachrüstung, Passwortwechsel, Codeersatz oder Wiederherstellung
+immer ein neues Backup erstellen und Code und Sicherung getrennt verwahren.
+Vor einem Update alle Fenster der alten Fassung schließen. Ein anderer Browser,
+ein anderes Profil oder ein anderer Öffnungspfad kann einen getrennten Bestand
+zeigen; die HTML-Datei enthält keine Noten. Für einen Umzug ein portables Backup
+verwenden und im Zielbrowser kontrolliert wiederherstellen.
 
 ## 7. Importformate
 
@@ -879,6 +900,7 @@ Der Excel-Export ist nicht fuer den Re-Import gedacht. Er dient als lesbare Uebe
 Der JSON-Import kann:
 
 - Klartext-State-Dateien laden.
+- V2-Backups mit Passwort oder zugehörigem Code laden.
 - verschluesselte `notenverwaltung_enc_v1`-Dateien laden.
 - Raw-verschluesselte Backups laden.
 - importierte Daten optional mit dem aktuellen Datenbestand zusammenfuehren.
@@ -1064,7 +1086,9 @@ Nach Aenderungen an der App:
 - Einige UI-Styles werden direkt per JavaScript gesetzt.
 - Debug- und Testcode existiert im Produktivdokument, ist aber durch `__debugMode` geschuetzt.
 - Browserdaten sind profilgebunden; ein Browserwechsel bedeutet ohne Backup einen anderen Datenbestand.
-- Verschluesselte Backups sind ohne Passwort nicht wiederherstellbar.
+- V2-Backups benötigen ihr damaliges Passwort oder ihren passenden Code.
+  Sind beide verloren, ist keine Wiederherstellung möglich. Alte Sicherungen
+  ohne Codezugang benötigen weiterhin ihr damaliges Passwort.
 - Aenderungen an Crypto-Parametern oder Speicherkeys koennen bestehende Daten unlesbar machen.
 
 ## 11. Manuelle Testfaelle
@@ -1084,11 +1108,21 @@ Erwartung: Der Wert wird gespeichert und nach Neuladen wieder angezeigt.
 
 ### Verschluesselung und Passwortwechsel
 
-1. Verschluesselung mit einem mindestens sechs Zeichen langen Passwort einrichten und die Anwendung neu laden.
+1. Verschlüsselung mit einem mindestens sechs Zeichen langen Passwort
+   einrichten. Den Code sichern, vollständig erneut eingeben und neu laden.
 2. Einen Passwortwechsel auf weniger als sechs Zeichen versuchen.
-3. Das Passwort auf ein anderes gueltiges Passwort aendern und erneut laden.
+3. Ein anderes gültiges Passwort setzen; den neu erzeugten Code sichern und
+   vollständig bestätigen. Danach neu laden und entsperren.
+4. Mit synthetischen Daten die Wiederherstellung über lokalen Bestand und
+   Backup-Datei getrennt prüfen; jeweils neues Passwort und neuen Code bestätigen.
+5. Alte Backups mit ihren damaligen Zugangsdaten öffnen; bei normalem Import
+   die unveränderten lokalen Zugangsdaten kontrollieren.
 
-Erwartung: Die Ersteinrichtung bleibt nach dem Neuladen lesbar. Das zu kurze neue Passwort wird abgelehnt. Nach einem erfolgreichen Wechsel funktioniert nur das neue Passwort; der lokale Salt wurde erneuert. Automatisierte Fehler-Injektionstests belegen zusaetzlich, dass Teilschreibfehler bei Einrichtung und Passwortwechsel den vorherigen verschluesselten Bestand nicht beschaedigen.
+Erwartung: Abbruch vor Codebestätigung übernimmt keinen neuen Schutz. Zu kurze
+Passwörter werden abgelehnt. Ein bestätigter Wechsel erzeugt eine neue Generation
+mit neuem Code; alte Codes öffnen den neuen Bestand nicht. Alte Dateien bleiben
+unverändert. Technische Fehlerprüfungen und ihre Grenzen sind im
+[Implementierungsnachweis](docs/quality/password-recovery-verification.md) dokumentiert.
 
 ### Sek-I-Berechnung
 
