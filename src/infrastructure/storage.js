@@ -396,9 +396,13 @@ export function createStorage({ DomainModel, createInitialState, sessionCoordina
             const rollbackErrors = [];
             const journalIndex = _storageKeys.indexOf(STORAGE_KEY_JOURNAL);
             const journalWrite = operations.find(operation => operation.key === STORAGE_KEY_JOURNAL && operation.type === 'set');
-            const recoveryJournal = original[journalIndex] || (journalWrite && String(journalWrite.value));
+            // A repeated recovery's new journal includes both its new candidate
+            // and every candidate in the original journal. Keep that encompassing
+            // journal until all other fields are restored; the original journal
+            // alone cannot describe a still-active new-generation payload.
+            const recoveryJournal = (journalWrite && String(journalWrite.value)) || original[journalIndex];
             // Cleanup may mutate then throw. Re-establish recovery protection
-            // BEFORE reverting any credential, and discard it only LAST.
+            // BEFORE reverting any credential, and restore the original journal LAST.
             if (recoveryJournal && attempted.some(index => index !== journalIndex) && staged[journalIndex] !== recoveryJournal) {
               assertStaged();
               localStorage.setItem(STORAGE_KEY_JOURNAL, recoveryJournal);

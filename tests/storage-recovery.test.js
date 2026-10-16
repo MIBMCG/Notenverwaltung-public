@@ -206,3 +206,60 @@ test('a rejected crypto completion after owner loss clears the previously unlock
  app=await openStorageSession({cryptoImpl:facade});const d=await setup(app);fail=true;
  await assert.rejects(app.Storage.openRecoverySource({source:'local',code:d.recoveryCode}));assert.equal(app.Storage.hasSessionPassword(),false);await app.Storage.lockSession();
 });
+async function interruptedRotationFixture() {
+ const app=await openStorageSession();await setup(app);
+ const d=await app.Storage.prepareCredentialRotation({currentPassword:OLD,newPassword:NEW,reason:'password-change'});
+ await app.Storage.confirmPreparedProtection(d.token,d.recoveryCode);let bytes;
+ observe(app.storage,(current,key)=>{if(key===JOURNAL&&!bytes)bytes=current;});
+ await app.Storage.commitPreparedProtection(d.token);await app.Storage.lockSession();
+ return {bytes,code:d.recoveryCode};
+}
+async function failRepeatedRecovery(fixture,firstFailure,firstMode,secondOffset=null,secondMode='before') {
+ const app=await openStorageSession({storage:restore(fixture.bytes)});
+ const source=await app.Storage.openRecoverySource({source:'local',code:fixture.code});
+ const draft=await app.Storage.prepareRecoveredProtection(source.sourceToken,{newPassword:'Synthetic third password'});
+ await app.Storage.confirmPreparedProtection(draft.token,draft.recoveryCode);
+ let calls=0;const prefixes=[];
+ for(const method of ['setItem','removeItem']) {
+  const original=app.storage[method].bind(app.storage);
+  app.storage[method]=(...args)=>{
+   calls++;
+   const mode=calls===firstFailure?firstMode:calls===firstFailure+secondOffset&&secondOffset!==null?secondMode:null;
+   if(mode==='before')throw new Error('Synthetic repeated recovery before-write failure');
+   original(...args);prefixes.push({call:calls,bytes:snapshot(app.storage)});
+   if(mode==='after')throw new Error('Synthetic repeated recovery mutate-then-throw failure');
+  };
+ }
+ await assert.rejects(app.Storage.commitPreparedProtection(draft.token));
+ assert.equal(app.Storage.hasSessionPassword(),false);
+ const result={prefixes,calls,bytes:snapshot(app.storage),generation:draft.metadata.generationId};
+ await app.Storage.lockSession();return result;
+}
+async function assertRepeatedRecoveryReadable(bytes,thirdGeneration,label) {
+ const candidate=bytes[JOURNAL]?JSON.parse(bytes[JOURNAL]).after[0]:bytes[PAYLOAD];
+ const password=JSON.parse(candidate).generationId===thirdGeneration?'Synthetic third password':NEW;
+ const reader=await openStorageSession({storage:restore(bytes),password});
+ try {
+  const loaded=await reader.Storage.loadState();
+  assert.equal(reader.Storage.hasSessionPassword(),true,label);
+  assert.equal(loaded.settings.schoolProfile.name,'Synthetic original',label);
+ } finally {await reader.Storage.lockSession();}
+}
+
+test('every rollback write prefix of a second recovery retains a readable complete generation',async()=>{
+ const fixture=await interruptedRotationFixture();
+ for(const mode of ['before','after'])for(let failAt=1;failAt<=6;failAt++){
+  const result=await failRepeatedRecovery(fixture,failAt,mode);
+  for(const prefix of result.prefixes)await assertRepeatedRecoveryReadable(prefix.bytes,result.generation,`${mode} failure ${failAt}, prefix ${prefix.call}`);
+ }
+});
+
+test('a second before-write or mutate-then-throw rollback failure during repeated recovery stays readable',async()=>{
+ const fixture=await interruptedRotationFixture();
+ const probe=await failRepeatedRecovery(fixture,3,'after');
+ for(const secondMode of ['before','after'])for(let offset=1;offset<=probe.calls-3;offset++){
+  const result=await failRepeatedRecovery(fixture,3,'after',offset,secondMode);
+  for(const prefix of result.prefixes)await assertRepeatedRecoveryReadable(prefix.bytes,result.generation,`second ${secondMode} ${offset}, prefix ${prefix.call}`);
+  await assertRepeatedRecoveryReadable(result.bytes,result.generation,`second ${secondMode} ${offset}, final`);
+ }
+});
