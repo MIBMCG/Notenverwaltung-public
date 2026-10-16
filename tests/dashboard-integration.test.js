@@ -1531,7 +1531,8 @@ test('alle echten Designleistenwege erhalten einen offenen ungültigen Notenedit
     family: 'aurora', appearance: 'light', accent: 'violet', background: 'petrol', motion: 'calm'
   });
 
-  const reloaded = await loadDashboardUi({ storage: app.storage });
+  await app.Storage.lockSession();
+  const reloaded = await loadDashboardUi({ storage: app.storage, useExistingStorage: true });
   await reloaded.UiShell.init('app');
   assert.equal(findByAttribute(reloaded.root, 'data-family-choice', 'aurora').getAttribute('aria-pressed'), 'true');
   assert.equal(findByAttribute(reloaded.root, 'id', 'appearance-mode').value, 'light');
@@ -1589,7 +1590,7 @@ test('ein Hell-zu-Dunkel-Wechsel korrigiert den Vordergrund vorhandener farbiger
 test('eine alte Dark-Mode-Auswahl wird als vollständige Darstellung migriert und Karten folgen der gewählten Familie ohne Neuaufbau', async () => {
   const storage = localStorageStub();
   storage.setItem('notenverwaltung_theme', 'dark');
-  const probe = await loadDashboardUi({ storage });
+  const probe = await loadDashboardUi({ storage, encrypted: false });
   const state = probe.DomainModel.createEmptyState();
   probe.DomainModel.addCourseToState(state, probe.DomainModel.createCourse({ id: 'appearance-course', name: 'Chemie', subject: 'Chemie', classLabel: '10a' }));
   const app = await loadDashboardUi({ state, storage });

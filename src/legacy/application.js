@@ -17466,6 +17466,13 @@ ${buildPrintHeaderCss()}
             safeMessage = err.message;
           }
         }
+        if (err && err.code === 'LOCAL_STORAGE_INTEGRITY_INVALID') {
+          safeMessage = 'Der lokale verschlüsselte Bestand ist unvollständig oder widersprüchlich. Eine Neueinrichtung wurde zum Schutz der Originaldaten gesperrt. Bitte den Bestand für eine Wiederherstellung aufbewahren.';
+        } else if (err && err.code === 'ENCRYPTED_FORMAT_INVALID') {
+          safeMessage = 'Das Format der verschlüsselten Daten ist beschädigt oder unvollständig. Die Originaldaten wurden nicht verändert.';
+        } else if (err && err.code === 'CRYPTO_OPERATION_FAILED') {
+          safeMessage = 'Die kryptografische Verarbeitung ist technisch fehlgeschlagen. Bitte den Browser neu starten oder einen unterstützten Browser verwenden. Die Originaldaten wurden nicht verändert.';
+        }
         renderStartupFailure(rootElementId, safeMessage);
       }
     }

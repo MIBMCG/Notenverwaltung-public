@@ -207,6 +207,8 @@ test('the real encrypted startup shows archive repair guidance as text', async (
   const unsafeCourseId = 'archive-<img src=x onerror=synthetic-test>';
   const app = await loadRealUiApplication({ includeStartup: true });
   await app.sessionCoordinator.acquire();
+  app.sandbox.window.promptPassword = async () => password;
+  await app.Storage.loadState();
   await app.Storage.enableEncryption(password, {
     courses: [{
       id: unsafeCourseId,

@@ -6175,10 +6175,11 @@
     const STORAGE_KEY_ENC_FLAG = "notenverwaltung_v1_encrypted";
     const STORAGE_KEY_ENC_PAYLOAD = "notenverwaltung_v1_state_enc";
     const STORAGE_KEY_SALT = "notenverwaltung_v1_salt";
+    const STORAGE_KEY_JOURNAL = "notenverwaltung_v1_credential_journal";
     if (!sessionCoordinator2 || typeof sessionCoordinator2.assertHeld !== "function") {
       throw new TypeError("sessionCoordinator ist erforderlich.");
     }
-    const _storageKeys = [STORAGE_KEY_ENC_PAYLOAD, STORAGE_KEY_SALT, STORAGE_KEY_ENC_FLAG, STORAGE_KEY];
+    const _storageKeys = [STORAGE_KEY_ENC_PAYLOAD, STORAGE_KEY_SALT, STORAGE_KEY_ENC_FLAG, STORAGE_KEY, STORAGE_KEY_JOURNAL];
     let _confirmedSnapshot = null;
     const _pendingWrites = /* @__PURE__ */ new Set();
     let _sessionPassword = null;
@@ -6316,6 +6317,88 @@
       error.code = "LOCAL_STORAGE_INTEGRITY_INVALID";
       return error;
     }
+    function _encryptedFormatError() {
+      const error = new Error("Das Format der verschlüsselten Daten ist beschädigt oder unvollständig. Die Originaldaten wurden nicht verändert.");
+      error.code = "ENCRYPTED_FORMAT_INVALID";
+      return error;
+    }
+    function _cryptoOperationError() {
+      const error = new Error("Die kryptografische Verarbeitung ist technisch fehlgeschlagen. Bitte den Browser neu starten oder einen unterstützten Browser verwenden. Die Originaldaten wurden nicht verändert.");
+      error.code = "CRYPTO_OPERATION_FAILED";
+      return error;
+    }
+    function _decodeEncryptedParts(payload, saltB64) {
+      const parts = typeof payload === "string" ? payload.split(":") : [];
+      const decode = (value) => {
+        if (typeof value !== "string" || !/^[A-Za-z0-9+/]+={0,2}$/.test(value)) throw _encryptedFormatError();
+        try {
+          return _base64ToBuf(value);
+        } catch (error) {
+          throw _encryptedFormatError();
+        }
+      };
+      if (parts.length !== 2) throw _encryptedFormatError();
+      const salt = decode(saltB64), iv = decode(parts[0]), cipher = decode(parts[1]);
+      if (salt.byteLength !== 16 || iv.byteLength !== 12 || cipher.byteLength < 16) throw _encryptedFormatError();
+      return { salt, iv, cipher };
+    }
+    function _incompleteLocalStateError() {
+      return _localStorageIntegrityError("Der lokale verschlüsselte Bestand ist unvollständig oder widersprüchlich. Eine Neueinrichtung wurde zum Schutz der Originaldaten gesperrt. Bitte den Bestand für eine Wiederherstellung aufbewahren.");
+    }
+    function _completeCredentials(fields) {
+      return Array.isArray(fields) && fields.length === 3 && typeof fields[0] === "string" && fields[0].length > 0 && typeof fields[1] === "string" && fields[1].length > 0 && fields[2] === "1";
+    }
+    function _readLocalRecord() {
+      const snapshot = _readSnapshot();
+      const fields = snapshot.slice(0, 3);
+      if (snapshot[4] !== null) {
+        let journal;
+        try {
+          journal = JSON.parse(snapshot[4]);
+        } catch (error) {
+          throw _incompleteLocalStateError();
+        }
+        if (!journal || journal.format !== "notenverwaltung_credentials_v1" || !_completeCredentials(journal.after) || !(journal.before === null || _completeCredentials(journal.before)) || !(journal.legacyHash === null || typeof journal.legacyHash === "string" && /^[A-Za-z0-9+/]{43}=$/.test(journal.legacyHash))) {
+          throw _incompleteLocalStateError();
+        }
+        const before = journal.before || [null, null, null];
+        if (!fields.every((value, index) => value === before[index] || value === journal.after[index]) || snapshot[3] !== null && journal.legacyHash === null) throw _incompleteLocalStateError();
+        _decodeEncryptedParts(journal.after[0], journal.after[1]);
+        if (journal.before) _decodeEncryptedParts(journal.before[0], journal.before[1]);
+        return { fields, journal, legacy: snapshot[3] };
+      }
+      if (fields.some((value) => value !== null) && !_completeCredentials(fields)) throw _incompleteLocalStateError();
+      if (_completeCredentials(fields)) _decodeEncryptedParts(fields[0], fields[1]);
+      return { fields, journal: null, legacy: snapshot[3] };
+    }
+    async function _legacyHash(raw, expectedGeneration) {
+      if (raw === null) return null;
+      try {
+        return _bufToBase64(await _guardAsync(crypto.subtle.digest("SHA-256", new TextEncoder().encode(raw)), expectedGeneration));
+      } catch (error) {
+        if (error && ["STORAGE_EXTERNAL_CHANGE", "STORAGE_GENERATION_STALE", "SESSION_NOT_OWNER"].includes(error.code)) throw error;
+        throw _cryptoOperationError();
+      }
+    }
+    async function _writeCredentialTransaction(operations, expectedGeneration) {
+      const original = _beginSnapshot(expectedGeneration);
+      const after = original.slice(0, 3);
+      for (const operation of operations) {
+        const index = _storageKeys.indexOf(operation.key);
+        if (index < 3) after[index] = operation.type === "remove" ? null : String(operation.value);
+      }
+      const journal = JSON.stringify({
+        format: "notenverwaltung_credentials_v1",
+        before: _completeCredentials(original.slice(0, 3)) ? original.slice(0, 3) : null,
+        after,
+        legacyHash: await _legacyHash(original[3], expectedGeneration)
+      });
+      _writeStorageTransaction([
+        { type: "set", key: STORAGE_KEY_JOURNAL, value: journal },
+        ...operations,
+        { type: "remove", key: STORAGE_KEY_JOURNAL }
+      ], expectedGeneration);
+    }
     function _rollbackFailureError(originalError, rollbackErrors) {
       const rollbackDetails = rollbackErrors.map(function(error2) {
         return error2 && error2.message ? error2.message : String(error2);
@@ -6399,10 +6482,21 @@
           failing = null;
           const restored = /* @__PURE__ */ new Set();
           const rollbackErrors = [];
-          for (const index of attempted.slice().reverse()) {
+          const journalIndex = _storageKeys.indexOf(STORAGE_KEY_JOURNAL);
+          const journalWrite = operations.find((operation) => operation.key === STORAGE_KEY_JOURNAL && operation.type === "set");
+          const recoveryJournal = original[journalIndex] || journalWrite && String(journalWrite.value);
+          if (recoveryJournal && attempted.some((index) => index !== journalIndex) && staged[journalIndex] !== recoveryJournal) {
+            assertStaged();
+            localStorage.setItem(STORAGE_KEY_JOURNAL, recoveryJournal);
+            staged[journalIndex] = recoveryJournal;
+          }
+          const rollbackOrder = attempted.slice().reverse().filter((index) => index !== journalIndex);
+          if (attempted.includes(journalIndex)) rollbackOrder.push(journalIndex);
+          for (const index of rollbackOrder) {
             if (restored.has(index)) continue;
             restored.add(index);
             assertStaged();
+            if (index === journalIndex && !staged.slice(0, 4).every((value, i) => value === original[i])) continue;
             failing = { index, value: original[index] };
             try {
               if (original[index] === null) localStorage.removeItem(_storageKeys[index]);
@@ -6497,19 +6591,41 @@
       }
       throw new Error("ungültiges Payload-Format");
     }
-    async function _decryptLocalPayload(payload, password, expectedGeneration) {
-      const parts = String(payload).split(":");
-      if (parts.length !== 2) throw new Error("ungültiges lokales Payload-Format");
-      const saltB64 = localStorage.getItem(STORAGE_KEY_SALT);
-      if (!saltB64) throw new Error("fehlender Salt");
+    async function _decryptLocalPayload(payload, password, expectedGeneration, saltB64 = localStorage.getItem(STORAGE_KEY_SALT)) {
+      const parts = _decodeEncryptedParts(payload, saltB64);
       const cached = _sessionPassword === password && _sessionKeyCache && _sessionKeyCache.generation === _sessionGeneration && _sessionKeyCache.saltB64 === saltB64 ? _sessionKeyCache.keyPromise : null;
-      const key = await _guardAsync(cached || _deriveKey(password, _base64ToBuf(saltB64)), expectedGeneration);
-      const decrypted = await _guardAsync(_decryptWithKey(
-        new Uint8Array(_base64ToBuf(parts[0])),
-        key,
-        _base64ToBuf(parts[1])
-      ), expectedGeneration);
+      let key;
+      try {
+        key = await _guardAsync(cached || _deriveKey(password, parts.salt), expectedGeneration);
+      } catch (error) {
+        if (error && ["STORAGE_EXTERNAL_CHANGE", "STORAGE_GENERATION_STALE", "SESSION_NOT_OWNER"].includes(error.code)) throw error;
+        throw _cryptoOperationError();
+      }
+      let decrypted;
+      try {
+        decrypted = await _guardAsync(_decryptWithKey(new Uint8Array(parts.iv), key, parts.cipher), expectedGeneration);
+      } catch (error) {
+        if (error && ["STORAGE_EXTERNAL_CHANGE", "STORAGE_GENERATION_STALE", "SESSION_NOT_OWNER"].includes(error.code)) throw error;
+        if (error && error.name === "OperationError") {
+          const authError = new Error("Passwort falsch oder die verschlüsselten Daten konnten nicht authentifiziert werden.");
+          authError.code = "AUTH";
+          throw authError;
+        }
+        throw _cryptoOperationError();
+      }
       return { json: new TextDecoder().decode(decrypted), key, saltB64 };
+    }
+    async function _decryptLocalRecord(record, password, expectedGeneration) {
+      if (!record.journal) return _decryptLocalPayload(record.fields[0], password, expectedGeneration, record.fields[1]);
+      const candidates = [record.journal.after, record.journal.before].filter(Boolean);
+      for (const [index, candidate] of candidates.entries()) {
+        try {
+          const decrypted = await _decryptLocalPayload(candidate[0], password, expectedGeneration, candidate[1]);
+          return { ...decrypted, recoveredFields: candidate };
+        } catch (error) {
+          if (!error || error.code !== "AUTH" || index === candidates.length - 1) throw error;
+        }
+      }
     }
     async function exportStateEncrypted(password, state) {
       const json = JSON.stringify(state || createInitialState2(/* @__PURE__ */ new Date()));
@@ -6572,9 +6688,9 @@
     async function loadState() {
       let expectedGeneration = _sessionGeneration;
       _beginSnapshot(expectedGeneration);
-      if (_isEncryptedFlagSet()) {
-        const payload = localStorage.getItem(STORAGE_KEY_ENC_PAYLOAD);
-        if (!payload) throw _stateContentError();
+      const record = _readLocalRecord();
+      if (record.journal && record.legacy !== null && await _legacyHash(record.legacy, expectedGeneration) !== record.journal.legacyHash) throw _incompleteLocalStateError();
+      if (record.journal || _completeCredentials(record.fields)) {
         while (true) {
           const alreadyUnlocked = !!_sessionPassword;
           const pwd = _sessionPassword || await window.promptPassword({ message: "Der gespeicherte Zustand ist verschlüsselt. Bitte Passwort eingeben:" });
@@ -6586,9 +6702,9 @@
           }
           let decrypted;
           try {
-            decrypted = await _decryptLocalPayload(payload, pwd, expectedGeneration);
+            decrypted = await _decryptLocalRecord(record, pwd, expectedGeneration);
           } catch (err2) {
-            if (err2 && ["STORAGE_EXTERNAL_CHANGE", "STORAGE_GENERATION_STALE", "SESSION_NOT_OWNER"].includes(err2.code)) throw err2;
+            if (!err2 || err2.code !== "AUTH") throw err2;
             _assertSession(expectedGeneration);
             console.error("[Storage.loadState] Authentifizierung oder Entschluesselung fehlgeschlagen.");
             const snapshot = _confirmedSnapshot;
@@ -6606,6 +6722,17 @@
           }
           _assertSession(expectedGeneration);
           const state2 = _parseStoredState(decrypted.json);
+          if (decrypted.recoveredFields) {
+            await _enqueueLocalStorageOperation(() => {
+              _assertSession(expectedGeneration);
+              _writeStorageTransaction([
+                ...decrypted.recoveredFields.map((value, index) => ({ type: "set", key: _storageKeys[index], value })),
+                { type: "remove", key: STORAGE_KEY },
+                { type: "remove", key: STORAGE_KEY_JOURNAL }
+              ], expectedGeneration);
+            });
+            _assertSession(expectedGeneration);
+          }
           if (!alreadyUnlocked) {
             _replaceSessionSecrets(pwd, decrypted.key, decrypted.saltB64);
           }
@@ -6727,16 +6854,24 @@
       const expectedGeneration = _sessionGeneration;
       return _enqueueLocalStorageOperation(async function() {
         _beginSnapshot(expectedGeneration);
+        const record = _readLocalRecord();
+        if (record.journal) throw _incompleteLocalStateError();
+        if (_completeCredentials(record.fields) && !_sessionPassword) {
+          const error = new Error("Bitte den vorhandenen lokalen Bestand zuerst laden und entsperren. Eine Neueinrichtung wurde gesperrt.");
+          error.code = "STORAGE_SESSION_NOT_INITIALIZED";
+          throw error;
+        }
         const salt = crypto.getRandomValues(new Uint8Array(16));
         const saltB64 = _bufToBase64(salt.buffer);
         const key = await _guardAsync(_deriveKey(password, salt.buffer), expectedGeneration);
         const payload = await _guardAsync(_encryptJsonWithKey(json, key), expectedGeneration);
-        _writeStorageTransaction([
+        await _writeCredentialTransaction([
           { type: "set", key: STORAGE_KEY_ENC_PAYLOAD, value: payload },
           { type: "set", key: STORAGE_KEY_SALT, value: saltB64 },
           { type: "set", key: STORAGE_KEY_ENC_FLAG, value: "1" },
           { type: "remove", key: STORAGE_KEY }
         ], expectedGeneration);
+        _assertSession(expectedGeneration);
         _replaceSessionSecrets(password, key, saltB64);
         try {
           _resetInactivityTimer();
@@ -6764,10 +6899,11 @@
         const newSaltB64 = _bufToBase64(newSalt.buffer);
         const newKey = await _guardAsync(_deriveKey(newPassword, newSalt.buffer), expectedGeneration);
         const newPayload = await _guardAsync(_encryptJsonWithKey(decrypted.json, newKey), expectedGeneration);
-        _writeStorageTransaction([
+        await _writeCredentialTransaction([
           { type: "set", key: STORAGE_KEY_ENC_PAYLOAD, value: newPayload },
           { type: "set", key: STORAGE_KEY_SALT, value: newSaltB64 }
         ], expectedGeneration);
+        _assertSession(expectedGeneration);
         _replaceSessionSecrets(newPassword, newKey, newSaltB64);
         try {
           _resetInactivityTimer();
@@ -6786,7 +6922,7 @@
       return _guardAsync(_encryptJsonWithSalt(json, _sessionPassword), generation);
     }
     function isEncrypted() {
-      return _isEncryptedFlagSet();
+      return _isEncryptedFlagSet() || localStorage.getItem(STORAGE_KEY_JOURNAL) !== null;
     }
     try {
       ["beforeunload", "pagehide"].forEach((type) => window.addEventListener(type, () => {
@@ -28994,6 +29130,13 @@ ${buildPrintHeaderCss()}
         if (typeof err2.message === "string" && err2.message.startsWith(archiveMessagePrefix) && err2.message.endsWith(archiveMessageSuffix)) {
           safeMessage = err2.message;
         }
+      }
+      if (err2 && err2.code === "LOCAL_STORAGE_INTEGRITY_INVALID") {
+        safeMessage = "Der lokale verschlüsselte Bestand ist unvollständig oder widersprüchlich. Eine Neueinrichtung wurde zum Schutz der Originaldaten gesperrt. Bitte den Bestand für eine Wiederherstellung aufbewahren.";
+      } else if (err2 && err2.code === "ENCRYPTED_FORMAT_INVALID") {
+        safeMessage = "Das Format der verschlüsselten Daten ist beschädigt oder unvollständig. Die Originaldaten wurden nicht verändert.";
+      } else if (err2 && err2.code === "CRYPTO_OPERATION_FAILED") {
+        safeMessage = "Die kryptografische Verarbeitung ist technisch fehlgeschlagen. Bitte den Browser neu starten oder einen unterstützten Browser verwenden. Die Originaldaten wurden nicht verändert.";
       }
       renderStartupFailure(rootElementId, safeMessage);
     }
