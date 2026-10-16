@@ -97,4 +97,3 @@ for (const format of ['raw-portable', 'structured']) {
     await source.Storage.lockSession();
   });
 }
-

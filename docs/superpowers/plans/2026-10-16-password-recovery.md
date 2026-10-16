@@ -1,6 +1,6 @@
 # Password Recovery Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [x]`) syntax for tracking.
 
 **Goal:** Vorab gesicherter Offline-Code ermöglicht vollständige Wiederherstellung
 lokaler Notendaten und neuer Backups bei vergessenem Passwort.
@@ -65,11 +65,11 @@ konkrete Nutzlast. AAD und Schema exakt aus Spec. Fehlercodes:
 `ENCRYPTED_FORMAT_INVALID`, `RECOVERY_CODE_INVALID`, `AUTH`,
 `CRYPTO_OPERATION_FAILED`, `RECOVERY_SESSION_INVALID`.
 
-- [ ] RED: beide Zugänge und Unicode liefern exakt den Ursprungstext; V1-Vektoren bleiben unverändert; falsches Passwort/Code liefert AUTH, falsche Code-Prüfsumme RECOVERY_CODE_INVALID; unbekannte Felder/Version/KDF/überlange Felder vor deriveKey abgewiesen.
-- [ ] RED: Manipulation jedes Headers, jeder Hülle einschließlich unbenutzter Hülle und Nutzlast scheitert; umgeordnete JSON-Schlüssel sind semantisch gleich; kanonische Base64-/Code-Paddingbits geprüft; ungepaarte Surrogate scheitern.
-- [ ] GREEN: Funktionen implementieren, unabhängigen festen Entschlüsselungsvektor mit Node-crypto statt Produktionshelfern verifizieren, normale Saves mit Session ohne Code/Passwort und frischen IVs; neue Generation enthält andere Schlüssel.
-- [ ] Lifecycle: fremde/verworfene Tokens und Dispose während Crypto scheitern ohne Secrets nach außen. Verschiedene Sessions isolieren.
-- [ ] Run `node --test tests/recovery-envelope.test.js tests/encryption.test.js`; Ergebnis und RED-Beleg im Taskbericht. Root reviewed und committet nur diese Dateien.
+- [x] RED: beide Zugänge und Unicode liefern exakt den Ursprungstext; V1-Vektoren bleiben unverändert; falsches Passwort/Code liefert AUTH, falsche Code-Prüfsumme RECOVERY_CODE_INVALID; unbekannte Felder/Version/KDF/überlange Felder vor deriveKey abgewiesen.
+- [x] RED: Manipulation jedes Headers, jeder Hülle einschließlich unbenutzter Hülle und Nutzlast scheitert; umgeordnete JSON-Schlüssel sind semantisch gleich; kanonische Base64-/Code-Paddingbits geprüft; ungepaarte Surrogate scheitern.
+- [x] GREEN: Funktionen implementieren, unabhängigen festen Entschlüsselungsvektor mit Node-crypto statt Produktionshelfern verifizieren, normale Saves mit Session ohne Code/Passwort und frischen IVs; neue Generation enthält andere Schlüssel.
+- [x] Lifecycle: fremde/verworfene Tokens und Dispose während Crypto scheitern ohne Secrets nach außen. Verschiedene Sessions isolieren.
+- [x] Run `node --test tests/recovery-envelope.test.js tests/encryption.test.js`; Ergebnis und RED-Beleg im Taskbericht. Root reviewed und committet nur diese Dateien.
 
 ## Task 2: Speicherübergänge, Recovery und Backups
 
@@ -144,12 +144,12 @@ anschließend ensureStateShape und erneut validieren. Recovery aus Datei überni
 den vollständigen Dateiinhalt samt Einstellungen; unbekannter gesperrter Zielstand
 kann nicht still zur Quelle lokaler Halbjahreseinstellungen werden.
 
-- [ ] RED: neues Setup mit verpflichtender Rückprüfung, Migration V1 und Plain-Legacy, Passwort-/Codewechsel, beide Recoveryquellen; kein Write vor Commit; falscher Code/gefälschter oder verbrauchter Token verhindert Commit.
-- [ ] RED: eigener Save/fremder Write/Lock/Ownerverlust während Prepare/Confirm/Commit verwirft Entwurf; angemessene FIFO-/Generationtests, besonders jede letzte await-Grenze.
-- [ ] GREEN: Implementieren; Code/Passwort/rohe Schlüssel tauchen nicht in Snapshots, Journal oder Migrationskopie auf; Codeprüfung schreibfrei, V2-Import erhält lokalen Schutz.
-- [ ] Crash/Quota: jeden Setup-/Migrations-/Rotation-/Recovery-Schreibpräfix neu starten; zweiter Fehler beim Rollback; Quota der Altkopie vor Aktivwechsel; mutate-then-throw und Rücklesefehler erhalten alte oder neue bestätigte Daten.
-- [ ] Fachlich: authentifiziertes `null`, `{}` und defekte Rohfelder ablehnen; alte Backups bleiben nach Rotation mit alten Geheimnissen lesbar, neue nicht; normaler Reset entfernt Migration-Altbestand.
-- [ ] Run `node --test tests/storage-recovery.test.js tests/storage-hardening.test.js tests/storage.test.js tests/storage-cross-window.test.js tests/backup-consistency.test.js`; RED/GREEN und Grenzen berichten. Taskreview vor Abschluss.
+- [x] RED: neues Setup mit verpflichtender Rückprüfung, Migration V1 und Plain-Legacy, Passwort-/Codewechsel, beide Recoveryquellen; kein Write vor Commit; falscher Code/gefälschter oder verbrauchter Token verhindert Commit.
+- [x] RED: eigener Save/fremder Write/Lock/Ownerverlust während Prepare/Confirm/Commit verwirft Entwurf; angemessene FIFO-/Generationtests, besonders jede letzte await-Grenze.
+- [x] GREEN: Implementieren; Code/Passwort/rohe Schlüssel tauchen nicht in Snapshots, Journal oder Migrationskopie auf; Codeprüfung schreibfrei, V2-Import erhält lokalen Schutz.
+- [x] Crash/Quota: jeden Setup-/Migrations-/Rotation-/Recovery-Schreibpräfix neu starten; zweiter Fehler beim Rollback; Quota der Altkopie vor Aktivwechsel; mutate-then-throw und Rücklesefehler erhalten alte oder neue bestätigte Daten.
+- [x] Fachlich: authentifiziertes `null`, `{}` und defekte Rohfelder ablehnen; alte Backups bleiben nach Rotation mit alten Geheimnissen lesbar, neue nicht; normaler Reset entfernt Migration-Altbestand.
+- [x] Run `node --test tests/storage-recovery.test.js tests/storage-hardening.test.js tests/storage.test.js tests/storage-cross-window.test.js tests/backup-consistency.test.js`; RED/GREEN und Grenzen berichten. Taskreview vor Abschluss.
 
 ## Task 3: Bedienung, Auslieferungsartefakt und Anleitung
 
@@ -166,13 +166,18 @@ downloadText})`. Controller bietet `enroll({password,state})`,
 Controller ist vor Appinit verfügbar, keine Abhängigkeit auf Kurs-/Dashboard-State.
 Alle Dialoge verwenden textContent/DOM-APIs, keine untrusted HTML-Interpolation.
 
-- [ ] RED: promptPassword mit optionalem onRecovery zeigt "Zugang wiederherstellen", true beendet String/null-Dialog, false bleibt zur Eingabe zurück; bestehende Passwortdialogtests erhalten.
-- [ ] RED: vollständiger neuer Setup mit Passwortdoppelprüfung, Codeanzeige, Druckansicht ohne Notendaten, vollständiger Rückeingabe, Abbruch/falscher Code schreibfrei. Beide vorhandenen Setuphandler verwenden denselben Controller.
-- [ ] GREEN: eigenständigen Dialogcontroller implementieren; Aktionen sperren Doppelclicks; Code/Textfelder/Druckfenster bei Abschluss, Abbruch, Lock, Pagehide und Ownerverlust entfernen. Dialog kennt keine DEKs oder interne Tokensinhalte; Timer aus Task2 beachten und Fehlermeldungen verständlich halten.
-- [ ] Start-Recovery in _initOwned über Storage.loadState({onRecoveryRequested:...}) und Sperrbildschirm anbieten; zuerst Fensterbesitz erwerben. Lokal oder Datei wählbar; vollständige Authentifizierung vor Summary, savedAt als Sicherungszeit anzeigen, vorhandenes Ziel ausdrücklich ersetzen bestätigen. Neues Passwort doppelt, neuer Code bestätigt, danach normaler UI-Start.
-- [ ] Einstellungen: Status/Datum/Kennung ohne Code; bei V1 Nachrüstung deutlich anbieten ohne Zwangsmodal bei jedem Start, bei V2 "Code prüfen", "Code ersetzen". Vor entsperrten Übergängen persistenceBoundary.capture() und UI-epoch/exclusiveOperation benutzen. Nach erfolgreicher Einrichtung neues Backup anbieten. Erhaltene verschlüsselte Altkopie zum Download anbieten.
-- [ ] Passwortwechsel über Rotationcontroller; Codeverlust+bekanntes Passwort über Codeersatz. Hinweise auf neue Zugangsdaten und unveränderte alte Archive. V2-Migration erklärt vorab, dass ältere HTML diese neuen Daten nicht lesen kann.
-- [ ] Normaler Backupimport erkennt V2 vor V1/Klartext und bietet Passwort oder Code; unbekannte verschlüsselte Formate ablehnen. Bestehende Merge-/Ersetzen-Bestätigungen und lokale Schutzgeneration erhalten. Header-/Archivbackup automatisch V2 über Storage.encryptForBackup.
-- [ ] Anleitung um Einrichtung/Aufbewahrung/Recovery/Prüfen/Wechsel/Altdateien/Verlust beider Geheimnisse ergänzen; keine behauptete Mac-Abnahme, keine Schuldzuweisung im Supportfall.
-- [ ] Root baut `npm run build`, aktualisiert Source-Dateiliste und aktuelle Hashes ohne historische Findingstatus zu ändern. Test im tatsächlich gebauten HTML: Setup→Backup→Lock→Code-Recovery, Datei-Recovery ohne bekanntes lokales Passwort, Codeersatz/Passwortwechsel, V1-Import und unveränderte lokale Credentials beim Import.
-- [ ] Gesamtabnahme durch Root: `npm test`, `npm run check`, `npm run verify:artifact`, `npm run check:findings`, `npm run check:doc-links`, `git diff --check`; unabhängiges Gesamt-Review, Findings korrigieren. Nur lokale Übergabe, native Safari-/Browserprüfung offen kennzeichnen.
+- [x] RED: promptPassword mit optionalem onRecovery zeigt "Zugang wiederherstellen", true beendet String/null-Dialog, false bleibt zur Eingabe zurück; bestehende Passwortdialogtests erhalten.
+- [x] RED: vollständiger neuer Setup mit Passwortdoppelprüfung, Codeanzeige, Druckansicht ohne Notendaten, vollständiger Rückeingabe, Abbruch/falscher Code schreibfrei. Beide vorhandenen Setuphandler verwenden denselben Controller.
+- [x] GREEN: eigenständigen Dialogcontroller implementieren; Aktionen sperren Doppelclicks; Code/Textfelder/Druckfenster bei Abschluss, Abbruch, Lock, Pagehide und Ownerverlust entfernen. Dialog kennt keine DEKs oder interne Tokensinhalte; Timer aus Task2 beachten und Fehlermeldungen verständlich halten.
+- [x] Start-Recovery in _initOwned über Storage.loadState({onRecoveryRequested:...}) und Sperrbildschirm anbieten; zuerst Fensterbesitz erwerben. Lokal oder Datei wählbar; vollständige Authentifizierung vor Summary, savedAt als Sicherungszeit anzeigen, vorhandenes Ziel ausdrücklich ersetzen bestätigen. Neues Passwort doppelt, neuer Code bestätigt, danach normaler UI-Start.
+- [x] Einstellungen: Status/Datum/Kennung ohne Code; bei V1 Nachrüstung deutlich anbieten ohne Zwangsmodal bei jedem Start, bei V2 "Code prüfen", "Code ersetzen". Vor entsperrten Übergängen persistenceBoundary.capture() und UI-epoch/exclusiveOperation benutzen. Nach erfolgreicher Einrichtung neues Backup anbieten. Erhaltene verschlüsselte Altkopie zum Download anbieten.
+- [x] Passwortwechsel über Rotationcontroller; Codeverlust+bekanntes Passwort über Codeersatz. Hinweise auf neue Zugangsdaten und unveränderte alte Archive. V2-Migration erklärt vorab, dass ältere HTML diese neuen Daten nicht lesen kann.
+- [x] Normaler Backupimport erkennt V2 vor V1/Klartext und bietet Passwort oder Code; unbekannte verschlüsselte Formate ablehnen. Bestehende Merge-/Ersetzen-Bestätigungen und lokale Schutzgeneration erhalten. Header-/Archivbackup automatisch V2 über Storage.encryptForBackup.
+- [x] Anleitung um Einrichtung/Aufbewahrung/Recovery/Prüfen/Wechsel/Altdateien/Verlust beider Geheimnisse ergänzen; keine behauptete Mac-Abnahme, keine Schuldzuweisung im Supportfall.
+- [x] Root baut `npm run build`, aktualisiert Source-Dateiliste und aktuelle Hashes ohne historische Findingstatus zu ändern. Test im tatsächlich gebauten HTML: Setup→Backup→Lock→Code-Recovery, Datei-Recovery ohne bekanntes lokales Passwort, Codeersatz/Passwortwechsel, V1-Import und unveränderte lokale Credentials beim Import.
+- [x] Gesamtabnahme durch Root: `npm test`, `npm run check`, `npm run verify:artifact`, `npm run check:findings`, `npm run check:doc-links`, `git diff --check`; unabhängiges Gesamt-Review, Findings korrigieren. Nur lokale Übergabe, native Safari-/Browserprüfung offen kennzeichnen.
+
+## Abschluss am 16.10.2026
+
+Implementierung und technische Prüfungen abgeschlossen; Ergebnisse und offene
+Praxisgrenzen stehen im [Implementierungsnachweis](../../quality/password-recovery-verification.md).
