@@ -1835,7 +1835,7 @@ test('gesperrte Sitzung zeigt eine beschriftete Sperransicht ohne sensible App-I
   assert.equal(heading.tagName, 'H1');
   assert.equal(lockSurface.getAttribute('aria-labelledby'), heading.id);
   assert.equal(app.document.activeElement, unlock);
-  assert.deepEqual(actions.children.map(button => button.textContent), ['Entsperren', 'Gesperrt bleiben']);
+  assert.deepEqual(actions.children.map(button => button.textContent), ['Entsperren', 'Zugang wiederherstellen', 'Gesperrt bleiben']);
   assert.equal(findByAttribute(app.root, 'data-course-id', 'gesperrt'), null);
   assert.equal(findByText(app.root, 'Physik vertraulich'), null);
   assert.equal(findByText(app.root, 'Privatname'), null);
@@ -1973,7 +1973,9 @@ test('Ersteinrichtung bleibt nach erfolgreichem Passwortsetzen in den Einstellun
   app.sandbox.window.promptPassword = async () => 'Erstes-Passwort-2026';
   await app.UiShell.init('app');
   assert.ok(findByText(app.root, 'Einstellungen'));
-  await findByText(app.root, 'Verschlüsselung jetzt einrichten').dispatch('click');
+  const setupButton = app.root._find(node => node.tagName === 'BUTTON' && node.textContent === 'Verschlüsselung jetzt einrichten');
+  await require('./harness/recovery-flow').completeSetup(app, setupButton, 'Erstes-Passwort-2026');
+  assert.equal(app.Storage.getRecoveryStatus().enabled, true);
   const activeHeading = app.root._find(element => element.tagName === 'H2');
   assert.equal(activeHeading.textContent, 'Einstellungen');
 });

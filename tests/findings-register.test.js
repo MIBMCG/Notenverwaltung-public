@@ -126,6 +126,7 @@ test('source snapshot paths and hashes are complete and strict', () => {
     'src/formatting/text.js',
     'src/infrastructure/downloads.js',
     'src/infrastructure/encryption.js',
+    'src/infrastructure/recovery-envelope.js',
     'src/infrastructure/session-coordinator.js',
     'src/infrastructure/storage.js',
     'src/legacy/application.js',
@@ -144,6 +145,7 @@ test('source snapshot paths and hashes are complete and strict', () => {
     'src/ui/dashboard-data.js',
     'src/ui/dashboard-transition.js',
     'src/ui/persistence-boundary.js',
+    'src/ui/recovery-dialog.js',
     'src/ui/state-commit.js'
   ];
   const register = cloneRegister();

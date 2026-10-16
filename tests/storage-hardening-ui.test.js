@@ -68,7 +68,7 @@ for (const format of ['raw-portable', 'structured']) {
     app.sandbox.window.alert = message => alerts.push(String(message));
     app.sandbox.window.confirm = () => true;
     await app.start();
-    await clickText(app, 'Verschlüsselung jetzt einrichten');
+    await require('./harness/recovery-flow').completeSetup(app, app.root._find(node => node.tagName === 'BUTTON' && node.textContent === 'Verschlüsselung jetzt einrichten'), PASSWORD);
     await clickText(app, 'Import / Export');
     findByAttribute(app.root, 'id', 'json-import-merge-checkbox').checked = false;
     const input = findByAttribute(app.root, 'id', 'json-import-file');
@@ -83,8 +83,8 @@ for (const format of ['raw-portable', 'structured']) {
     await clickText(app, 'Backup');
     assert.equal(app.downloads.length, 1);
     const exported = await app.downloads[0].blob.text();
-    await assert.rejects(app.Storage._decryptPayload(exported, IMPORT_PASSWORD));
-    assert.equal(JSON.parse(await app.Storage._decryptPayload(exported, PASSWORD)).settings.schoolProfile.name, 'Synthetic imported school');
+    await assert.rejects(app.Storage.importStateEncryptedFromText(exported, IMPORT_PASSWORD));
+    assert.equal((await app.Storage.importStateEncryptedFromText(exported, PASSWORD)).settings.schoolProfile.name, 'Synthetic imported school');
     await app.Storage.lockSession();
     app.sandbox.window.confirm = () => false;
     app.sandbox.window.promptPassword = async () => IMPORT_PASSWORD;
@@ -97,3 +97,4 @@ for (const format of ['raw-portable', 'structured']) {
     await source.Storage.lockSession();
   });
 }
+

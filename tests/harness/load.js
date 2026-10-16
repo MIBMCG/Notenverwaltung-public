@@ -69,6 +69,8 @@ function loadModules({
   };
   vm.createContext(sandbox);
   installFormattingGlobals(sandbox);
+  vm.runInContext(bundleEsmGraph('src/ui/recovery-dialog.js', { globalName: '__recovery_ui_exports' }), sandbox);
+  sandbox.createRecoveryUi = sandbox.__recovery_ui_exports.createRecoveryUi;
   vm.runInContext(
     bundleEsmGraph('src/ui/dashboard-transition.js', { globalName: '__dashboard_transition_exports' }),
     sandbox,

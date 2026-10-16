@@ -92,11 +92,12 @@ async function loadGeneratedDashboardUi({ artifact, state, storage: suppliedStor
   const product = scripts[1].replace('var Storage = createStorage({ DomainModel, createInitialState, sessionCoordinator });',
     'var Storage = createStorage({ DomainModel, createInitialState, sessionCoordinator }); globalThis.__generatedSession = { Storage, sessionCoordinator };');
   vm.runInContext(product, modules.sandbox, { filename: 'Notenverwaltung.generated.js' });
+  const productPromptPassword = modules.sandbox.window.promptPassword;
   modules.sandbox.window.promptPassword = promptPassword || (async () => password);
   return {
     ...dom, storage, lockManager, downloads, logs: modules.logs,
     ...modules.sandbox.__generatedSession,
-    sandbox: modules.sandbox,
+    sandbox: modules.sandbox, productPromptPassword, password,
     async start() {
       const listeners = dom.documentListeners.get('DOMContentLoaded') || [];
       if (listeners.length !== 1) throw new Error('Das gebaute Dokument registriert nicht genau einen Start-Handler.');

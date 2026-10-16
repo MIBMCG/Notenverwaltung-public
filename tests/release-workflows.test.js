@@ -83,7 +83,7 @@ test('built HTML first start carries UI-created data through sparse grades, imme
   assert.equal(setup.tagName, 'BUTTON');
   assert.equal(setup._listeners('click').length, 1);
   assert.equal(app.sessionCoordinator.getStatus(), 'held');
-  await setup.dispatch('click');
+  await require('./harness/recovery-flow').completeSetup(app, setup);
   assert.equal(storage.getItem('notenverwaltung_v1_encrypted'), '1', JSON.stringify(setupAlerts));
 
   await findByText(app.root._find(item => item.classList?.contains('nav-main')), 'Kurse').dispatch('click');
@@ -155,7 +155,7 @@ test('built HTML first start carries UI-created data through sparse grades, imme
   await Promise.all([saving, backingUp]);
   assert.equal(app.downloads.length, 1, JSON.stringify(setupAlerts));
   const backupText = await app.downloads[0].blob.text();
-  const backupState = plain(JSON.parse(await app.Storage._decryptPayload(backupText, 'Synthetisches-Testpasswort-2026')));
+  const backupState = plain(await app.Storage.importStateEncryptedFromText(backupText, 'Synthetisches-Testpasswort-2026'));
   const backedAssessment = backupState.assessments.find(item => item.id === assessment.id);
   assert.equal(backedAssessment.scores[startPerson.id].valueRaw, '5');
   assert.equal(backedAssessment.scores[untouchedPerson.id], undefined);

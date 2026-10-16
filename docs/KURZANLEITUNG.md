@@ -54,16 +54,62 @@ nicht.
 
 ## Erster Start und Passwort
 
-Beim ersten Start verlangt die Anwendung die Einrichtung der Verschlüsselung.
-Das Passwort muss mindestens sechs Zeichen lang sein.
+Beim ersten Start richtest du ein Passwort mit mindestens sechs Zeichen und einen
+Wiederherstellungscode ein. Gib das Passwort zweimal ein. Sichere anschließend
+den vollständig angezeigten Code getrennt von deinen Backup-Dateien, zum Beispiel
+auf einem sicher verwahrten Ausdruck. **Code drucken** enthält nur Code, Datum und
+nicht geheime Kennungen, keine Noten oder Schülerdaten. Nach **Code gesichert –
+weiter** verschwindet die Anzeige; gib den Code aus deiner gesicherten Kopie
+vollständig erneut ein. Erst **Code bestätigen und speichern** übernimmt den
+neuen Schutz. Abbruch vor diesem Schritt lässt die Einrichtung unverbindlich.
 
-- Bewahre das Passwort getrennt von Programmdatei und Backup auf.
-- Trage kein echtes Passwort in Dateinamen, Dokumentationen oder Begleitdateien ein.
-- Ohne das richtige Passwort lassen sich der lokale Bestand und verschlüsselte
-  Backups nicht öffnen.
+Der Code ist ein zweiter gleichwertiger geheimer Zugang. Wer Code und passende
+Sicherung besitzt, kann deren Daten lesen. Trage weder Passwort noch Code in
+Dateinamen, Supportnachrichten oder ungeschützte Begleitdateien ein. Nach Abschluss
+zeigt die Anwendung den Code nicht erneut an. Lade das angebotene neue Backup
+herunter und prüfe den Downloadordner.
 
-Unter **Einstellungen** kannst du das Passwort später über **Passwort ändern** wechseln.
-Dafür brauchst du das bisherige Passwort. Bereits erstellte Backups werden dadurch nicht geändert und benötigen weiterhin ihr damaliges Passwort.
+Bei einem bisherigen Bestand ohne Code funktioniert das bisherige Passwort
+weiter. Unter **Einstellungen → Sicherheit** bietet **Wiederherstellungscode jetzt
+einrichten** eine freiwillige Nachrüstung. Dafür bestätigst du dein aktuelles
+Passwort. Die Nachrüstung verwendet ein neues Datenformat: ältere HTML-Versionen
+können neue Bestände und Sicherungen nicht lesen. Eine verschlüsselte Alt-Kopie
+kannst du dort herunterladen; sie benötigt weiterhin ihr bisheriges Passwort.
+
+### Zugang mit Code wiederherstellen
+
+1. Wähle im Start-Passwortdialog oder auf dem Sperrbildschirm **Zugang
+   wiederherstellen**. Die Anwendung muss zuerst den Bestand für dieses Fenster
+   freigeben; sperre gegebenenfalls das andere Fenster.
+2. Wähle den **lokalen Bestand** oder eine **Sicherungsdatei** mit Codezugang und
+   gib den zu genau dieser Generation gehörenden Code vollständig ein.
+3. Nach erfolgreicher Prüfung erscheinen Mengen und authentifizierte
+   **Sicherungszeit**. Bei einer Dateiwiederherstellung musst du das vollständige
+   Ersetzen eines vorhandenen lokalen Bestands ausdrücklich bestätigen.
+4. Lege ein neues Passwort zweimal fest. Sichere und bestätige den neu erzeugten
+   Code wie bei der Ersteinrichtung. Erst danach wird gespeichert.
+5. Erstelle ein neues Backup und kontrolliere den wiederhergestellten Bestand.
+
+Eine Wiederherstellung erzeugt neue Zugangsdaten. Der alte Code öffnet den neuen
+Bestand nicht. Bereits vorhandene Dateien bleiben unverändert und benötigen ihre
+damaligen Zugangsdaten. Nach einer nicht bestätigten Speicherung öffne die
+Anwendung erneut und prüfe den Bestand mit den bisherigen oder den neu bestätigten
+Zugangsdaten; bewahre vorhandene Sicherungen auf.
+
+Unter **Einstellungen → Sicherheit → Code prüfen** kannst du den lokalen Bestand
+oder eine Datei mit Code vollständig prüfen, ohne Daten zu übernehmen. Angezeigt
+werden nur Status, Datum und Kennungen, kein gespeicherter Code.
+**Code ersetzen** hilft bei verlorenem oder offengelegtem Code, solange das
+Passwort bekannt ist. Dabei darf das Passwort gleich bleiben; der neue Code muss
+erneut gesichert und vollständig bestätigt werden. **Passwort ändern** benötigt
+das bisherige Passwort und erzeugt ebenfalls einen neuen Code. Bei bisherigen
+Beständen ohne Code wird dabei der Codezugang eingerichtet. Erstelle danach ein
+neues Backup. Alte Archive und Sicherungen ändern sich durch diese Vorgänge nicht.
+
+Sind sowohl Passwort als auch der passende Code verloren, gibt es keinen Reset,
+kein Masterpasswort und keinen Support-Zugang. Alte Sicherungen ohne Codezugang
+benötigen ihr damaliges Passwort. Die neue Funktion kann einen bereits gesperrten
+Bestand ohne zuvor eingerichteten Code nicht nachträglich öffnen.
 
 ## Sperren und entsperren
 
@@ -99,7 +145,7 @@ Fehlt eine verlässliche Fenstersperre, bleibt die Bearbeitung deaktiviert.
 2. Wähle oben **Backup**. Offene gültige Eingaben werden zuerst abgeschlossen
    und gespeichert. Bei einer ungültigen Eingabe oder einem Speicherfehler
    startet kein Download.
-3. Die Sicherung wird mit dem aktuellen Sitzungspasswort verschlüsselt.
+3. Die Sicherung wird mit dem aktuellen lokalen Schutz verschlüsselt. Bei eingerichtetem Codezugang öffnen das aktuelle Passwort oder der zugehörige Code die Datei.
 4. Prüfe anschließend im Downloadordner, ob eine Datei wie
    `notenverwaltung_backup_<Zeitstempel>.enc.json` tatsächlich vorhanden ist.
 5. Bewahre die Datei sicher auf und halte das zugehörige Passwort getrennt fest.
@@ -118,14 +164,14 @@ Zielbestands. Öffne dann **Import / Export** und dort **Backup wiederherstellen
    - Mit **Merge-Modus** werden Quelle und Ziel zusammengeführt. Bei gemeldeten
      Konflikten bleiben die vorhandenen lokalen Werte erhalten.
 2. Wähle die Backup-Datei aus.
-3. Gib das Passwort ein, mit dem dieses Backup auf dem Quellgerät erstellt wurde.
+3. Gib das damalige Passwort der Datei ein. Bei einer neuen Sicherung mit Codezugang kannst du im Passwortdialog auch **Zugang wiederherstellen** und den zugehörigen Code wählen.
 4. Prüfe die angezeigten Mengen und das genannte Zielverfahren.
 5. Bestätige die Übernahme. Beim vollständigen Ersetzen folgt eine zweite Warnung.
 6. Sperre oder lade die Anwendung danach neu und kontrolliere wichtige Inhalte.
 
 Das Quellpasswort entschlüsselt nur die ausgewählte Sicherungsdatei. Der übernommene
 Bestand wird anschließend mit dem bereits eingerichteten Passwort des Zielbrowsers
-gespeichert. Beide Passwörter dürfen verschieden sein. Bei einem neuen Zielbrowser richtest du daher zuerst ein Zielpasswort ein und gibst beim Import zusätzlich das Passwort des Quellbackups ein.
+gespeichert. Ein eingerichteter lokaler Code und seine Generation bleiben beim normalen Import ebenfalls erhalten. Beide Passwörter dürfen verschieden sein. Bei einem neuen Zielbrowser richtest du daher zuerst ein Zielpasswort ein und gibst beim Import zusätzlich das Passwort des Quellbackups ein.
 
 Auch **vollständig ersetzen** überträgt nicht sämtliche Einstellungen: Halbjahresgrenzen
 und Halbjahresnamen des Zielbrowsers bleiben erhalten. Prüfe diese Angaben nach der Wiederherstellung gesondert.
@@ -134,7 +180,7 @@ und Halbjahresnamen des Zielbrowsers bleiben erhalten. Prüfe diese Angaben nach
 
 | Format | Zweck | Wieder in die Anwendung einlesen? | Schutz |
 | --- | --- | --- | --- |
-| **Verschlüsseltes Backup** (`.enc.json`) | Vollständiger Datenbestand mit Personen, Kursen, Leistungen und Archiven | Ja, über **Backup wiederherstellen** | Verschlüsselt; Passwort erforderlich |
+| **Verschlüsseltes Backup** (`.enc.json`) | Vollständiger Datenbestand mit Personen, Kursen, Leistungen und Archiven | Ja, über **Backup wiederherstellen** | Verschlüsselt; damaliges Passwort oder eingerichteter Code erforderlich |
 | **CSV für Import** (`.csv`) | Kurs-, Personen- und Zuordnungsdaten austauschen oder gesammelt erfassen | Ja, über **CSV-Import** | Nicht verschlüsselt; keine vollständige Notensicherung |
 | **Excel für Kolleg:innen** (`.xlsx`) | Lesbare Notenübersicht weitergeben; ein Arbeitsblatt je Kurs | Nein | Nicht verschlüsselte Excel-Arbeitsmappe |
 

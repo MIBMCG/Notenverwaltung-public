@@ -42,6 +42,7 @@ const REQUIRED_SOURCE_PATHS = [
   'src/formatting/text.js',
   'src/infrastructure/downloads.js',
   'src/infrastructure/encryption.js',
+  'src/infrastructure/recovery-envelope.js',
   'src/infrastructure/session-coordinator.js',
   'src/infrastructure/storage.js',
   'src/legacy/application.js',
@@ -60,6 +61,7 @@ const REQUIRED_SOURCE_PATHS = [
   'src/ui/dashboard-data.js',
   'src/ui/dashboard-transition.js',
   'src/ui/persistence-boundary.js',
+  'src/ui/recovery-dialog.js',
   'src/ui/state-commit.js'
 ];
 

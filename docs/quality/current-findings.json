@@ -4,7 +4,7 @@
     "algorithm": "sha256",
     "normalization": "UTF-8 text with CRLF and CR normalized to LF",
     "files": {
-      "Notenverwaltung.html": "58ee870eb6c0821a15459742165d9c3f24a788813e03d9cfaf40d51265c8d5dd",
+      "Notenverwaltung.html": "9b64ca7d653f9d8af13ae812718ad3986cdb9f104a59d6725f30c123ad7d802d",
       "src/document.html": "0ddc5e4d268e94aced3fc18c9ebb45448a0c225c057e37499bd79f0c43d2225c",
       "src/domain/assessments.js": "544ddb00b4ca92476ef93533e97daf1bdf7834ce06410b19fde4371c5919a32e",
       "src/domain/course-settings.js": "2737d7b849788785a0ac5413476a59305dacf104a1c72f8d05413e0892fcad87",
@@ -25,9 +25,10 @@
       "src/formatting/text.js": "f76e4fd5947a5c4ca41653da6517a36e6194b39bff84963c36468b536802ffd5",
       "src/infrastructure/downloads.js": "c94dd13f38b9559005c544af63b5445472a75f56ae61d7e932e681caeec89648",
       "src/infrastructure/encryption.js": "134aca20000b131b42cb9accee1afc26ea863b6b9e68e01d5d977dc7595f50b4",
+      "src/infrastructure/recovery-envelope.js": "bc2bc43d2beffb02d4b5d0d4872554225733af2304f75e500287a40bba2e2bca",
       "src/infrastructure/session-coordinator.js": "34488a6c3c3e0eb54e282b5edf57c64636ffd741d05d5682acecfbc378c67d2b",
-      "src/infrastructure/storage.js": "0ff2406140a79ff3b329fea38f25a625a37942b8f5eb9efdf494f55650ff9726",
-      "src/legacy/application.js": "264b4185669fe853c43740eeb1745e4cd955f6d83fb7be65d0745147d97b840e",
+      "src/infrastructure/storage.js": "aa0f5f862e55a837a2ec9eb8710950bf18907e8f3132ec11645c9bef73fa9e91",
+      "src/legacy/application.js": "063cc6668fbf66ce306a69261cea00a3afb9b978e5aec36ccad10eb8c2613caa",
       "src/legacy/early-errors.js": "36fc884f619ecf1fb7067866a492050553950a63f88d1fe072ee724fba911a0e",
       "src/styles/legacy.css": "978d2244ec4841672a79ae847d2730f810c61f5bf69a3a5b5618e0357ea391b7",
       "src/transfer/csv-decoding.js": "a4c4ea923c986d21ad0c4caabdb3639a004d379d89569e14f4bc7267e2ddf317",
@@ -37,13 +38,14 @@
       "src/transfer/excel-export.js": "c45356529ed0314c9a4ed7d3d2f27ca622357a2734f5137d0c25b57e25119cad",
       "src/transfer/import-merge.js": "854429406782e79a65edd971ccec0bbd35e216aae585b04c7ac92c209cb822ab",
       "src/transfer/import-validation.js": "e61f8628d83fa8811d2b3f2a161018db60114563d8f8210e8d8d444846ddfdca",
-      "src/ui/state-commit.js": "6ade88a9e040b222f18e92e352fe1615a86e2309b85363e101b29a4da93b6b9c",
       "src/ui/course-cards.css": "1feb615b12e37639e8221be5fc0d193ed3861c175a1219b801a02bc6971333d2",
       "src/ui/course-cards.js": "39cfb208e09080440e63e924b9d7e5376d98559418a284d04386f209fcd95f09",
       "src/ui/course-symbol-picker.js": "ff33a4949cb5928dfa859b138149ce800331eaeb4400b900c558e71456490a0a",
       "src/ui/dashboard-data.js": "15b52f19b8396aa94dae9f31f52661088f5cbfcedd431b78f2792ad0fd199f9e",
       "src/ui/dashboard-transition.js": "f8000897219e0a91c8f70dba943b109dea4ea79f18d483653599456bbc557952",
-      "src/ui/persistence-boundary.js": "6278ec208b07d08b6466c5337a457ed49c148bbb98836029f0a4e30a932a78ca"
+      "src/ui/persistence-boundary.js": "6278ec208b07d08b6466c5337a457ed49c148bbb98836029f0a4e30a932a78ca",
+      "src/ui/recovery-dialog.js": "b367bfaf838e9e886910c69c1394b99ce8eceff283c147f6beb245982220bebe",
+      "src/ui/state-commit.js": "6ade88a9e040b222f18e92e352fe1615a86e2309b85363e101b29a4da93b6b9c"
     }
   },
   "anchorReferences": {
@@ -186,6 +188,14 @@
     "password input": {
       "path": "Notenverwaltung.html",
       "text": "input.type = 'password'"
+    },
+    "Storage.enableEncryption": {
+      "path": "src/infrastructure/storage.js",
+      "text": "async function enableEncryption("
+    },
+    "Storage.changePassword": {
+      "path": "src/infrastructure/storage.js",
+      "text": "async function changePassword("
     }
   },
   "findings": [
