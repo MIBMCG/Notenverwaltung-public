@@ -11,7 +11,8 @@ const MAX_ENVELOPE = 20 * 1024 * 1024;
 const ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
 const sessions = new WeakMap();
 const ownErrors = new WeakSet();
-const encoder = new TextEncoder();
+// Importing the infrastructure graph must not require browser globals.
+function utf8(value) { return new TextEncoder().encode(value); }
 
 function fail(code) {
   const error = new Error(code);
@@ -69,7 +70,7 @@ function hasUnpairedSurrogate(text) {
 }
 function textBytes(value, max = MAX_STATE) {
   if (typeof value !== 'string' || value.length > max || hasUnpairedSurrogate(value)) invalid();
-  const bytes = encoder.encode(value);
+  const bytes = utf8(value);
   if (bytes.length > max) { wipe(bytes); invalid(); }
   return bytes;
 }
@@ -80,7 +81,7 @@ function freezeEnvelope(e) {
 function parseEnvelope(text) {
   if (typeof text !== 'string' || text.length > MAX_ENVELOPE) invalid();
   // Count UTF-8 without retaining an additional envelope-sized byte array.
-  const encoded = encoder.encode(text);
+  const encoded = utf8(text);
   if (encoded.length > MAX_ENVELOPE) invalid();
   let e;
   try { e = JSON.parse(text); } catch { invalid(); }
@@ -105,7 +106,7 @@ function aad(e, purpose) {
   else fields = [e.data.savedAt,
     e.password.kdf, e.password.iterations, e.password.salt, e.password.iv, e.password.wrappedKey,
     e.recovery.encoding, e.recovery.iv, e.recovery.wrappedKey];
-  return encoder.encode(JSON.stringify([...context(e), purpose, ...fields]));
+  return utf8(JSON.stringify([...context(e), purpose, ...fields]));
 }
 function random(length) { return crypto.getRandomValues(new Uint8Array(length)); }
 function randomId() {
@@ -122,7 +123,7 @@ function importAes(bytes) {
 }
 async function passwordKey(password, salt) {
   const bytes = textBytes(password);
-  const prefixedSalt = concat(encoder.encode(PASSWORD_PREFIX), salt);
+  const prefixedSalt = concat(utf8(PASSWORD_PREFIX), salt);
   try {
     const base = await crypto.subtle.importKey('raw', bytes, { name: 'PBKDF2' }, false, ['deriveKey']);
     return await crypto.subtle.deriveKey({ name: 'PBKDF2', hash: 'SHA-256', iterations: ITERATIONS, salt: prefixedSalt },
@@ -160,7 +161,7 @@ function decodeRecoveryKey(text) {
   return bytes;
 }
 async function checksum(bytes) {
-  const input = concat(encoder.encode(RECOVERY_PREFIX), bytes);
+  const input = concat(utf8(RECOVERY_PREFIX), bytes);
   let digest;
   try {
     digest = new Uint8Array(await crypto.subtle.digest('SHA-256', input));

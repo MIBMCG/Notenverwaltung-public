@@ -6182,7 +6182,9 @@
   var ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";
   var sessions = /* @__PURE__ */ new WeakMap();
   var ownErrors = /* @__PURE__ */ new WeakSet();
-  var encoder = new TextEncoder();
+  function utf8(value) {
+    return new TextEncoder().encode(value);
+  }
   function fail(code) {
     const error = new Error(code);
     error.code = code;
@@ -6246,7 +6248,7 @@
   }
   function textBytes(value, max = MAX_STATE) {
     if (typeof value !== "string" || value.length > max || hasUnpairedSurrogate(value)) invalid();
-    const bytes = encoder.encode(value);
+    const bytes = utf8(value);
     if (bytes.length > max) {
       wipe(bytes);
       invalid();
@@ -6261,7 +6263,7 @@
   }
   function parseEnvelope(text) {
     if (typeof text !== "string" || text.length > MAX_ENVELOPE) invalid();
-    const encoded = encoder.encode(text);
+    const encoded = utf8(text);
     if (encoded.length > MAX_ENVELOPE) invalid();
     let e;
     try {
@@ -6307,7 +6309,7 @@
       e.recovery.iv,
       e.recovery.wrappedKey
     ];
-    return encoder.encode(JSON.stringify([...context(e), purpose, ...fields]));
+    return utf8(JSON.stringify([...context(e), purpose, ...fields]));
   }
   function random(length) {
     return crypto.getRandomValues(new Uint8Array(length));
@@ -6327,7 +6329,7 @@
   }
   async function passwordKey(password, salt) {
     const bytes = textBytes(password);
-    const prefixedSalt = concat(encoder.encode(PASSWORD_PREFIX), salt);
+    const prefixedSalt = concat(utf8(PASSWORD_PREFIX), salt);
     try {
       const base = await crypto.subtle.importKey("raw", bytes, { name: "PBKDF2" }, false, ["deriveKey"]);
       return await crypto.subtle.deriveKey(
@@ -6383,7 +6385,7 @@
     return bytes;
   }
   async function checksum(bytes) {
-    const input = concat(encoder.encode(RECOVERY_PREFIX), bytes);
+    const input = concat(utf8(RECOVERY_PREFIX), bytes);
     let digest;
     try {
       digest = new Uint8Array(await crypto.subtle.digest("SHA-256", input));

@@ -4,7 +4,7 @@
     "algorithm": "sha256",
     "normalization": "UTF-8 text with CRLF and CR normalized to LF",
     "files": {
-      "Notenverwaltung.html": "9b64ca7d653f9d8af13ae812718ad3986cdb9f104a59d6725f30c123ad7d802d",
+      "Notenverwaltung.html": "209c8d19695b68fd4ddf855699f4303dc72958937e4b5dd61442c454c99dd66f",
       "src/document.html": "0ddc5e4d268e94aced3fc18c9ebb45448a0c225c057e37499bd79f0c43d2225c",
       "src/domain/assessments.js": "544ddb00b4ca92476ef93533e97daf1bdf7834ce06410b19fde4371c5919a32e",
       "src/domain/course-settings.js": "2737d7b849788785a0ac5413476a59305dacf104a1c72f8d05413e0892fcad87",
@@ -25,7 +25,7 @@
       "src/formatting/text.js": "f76e4fd5947a5c4ca41653da6517a36e6194b39bff84963c36468b536802ffd5",
       "src/infrastructure/downloads.js": "c94dd13f38b9559005c544af63b5445472a75f56ae61d7e932e681caeec89648",
       "src/infrastructure/encryption.js": "134aca20000b131b42cb9accee1afc26ea863b6b9e68e01d5d977dc7595f50b4",
-      "src/infrastructure/recovery-envelope.js": "bc2bc43d2beffb02d4b5d0d4872554225733af2304f75e500287a40bba2e2bca",
+      "src/infrastructure/recovery-envelope.js": "3f790646b175c50c8fd8a65a1f6b2bf7817cd26316598c4344330a7755013e48",
       "src/infrastructure/session-coordinator.js": "34488a6c3c3e0eb54e282b5edf57c64636ffd741d05d5682acecfbc378c67d2b",
       "src/infrastructure/storage.js": "aa0f5f862e55a837a2ec9eb8710950bf18907e8f3132ec11645c9bef73fa9e91",
       "src/legacy/application.js": "063cc6668fbf66ce306a69261cea00a3afb9b978e5aec36ccad10eb8c2613caa",

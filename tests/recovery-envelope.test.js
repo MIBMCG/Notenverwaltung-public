@@ -76,6 +76,12 @@ test('V2 exports exactly the opaque session API', () => {
   assert.deepEqual(Object.keys(load()).sort(), ['createEnvelope', 'disposeEnvelopeSession', 'inspectEnvelope', 'normalizeRecoveryCode', 'reencryptState', 'unlockEnvelope'].sort());
 });
 
+test('V2 imports without touching browser encoding or crypto globals', () => {
+  const { exports } = loadEsmGraph(ENTRY);
+  assert.equal(typeof exports.createEnvelope, 'function');
+  assert.equal(typeof exports.inspectEnvelope, 'function');
+});
+
 test('independent fixed Node crypto vector unlocks through password and recovery', async () => {
   const h = load();
   const v = independentVector();

@@ -295,10 +295,16 @@ test('failed and retried real UiShell init keeps one stable listener and no fail
 
   assert.equal((app.windowListeners.get('sessionCleared') || []).length, 1,
     'wiederholtes init registrierte alte render-Closures weiter');
-  const buttonsBeforeEvent = app.document._created('button');
+  let lockScreenMounts = 0;
+  const appendToRoot = app.root.appendChild.bind(app.root);
+  app.root.appendChild = node => {
+    if (node.classList.contains('lock-screen')) lockScreenMounts += 1;
+    return appendToRoot(node);
+  };
   app.Storage.lockSession();
-  assert.equal(app.document._created('button') - buttonsBeforeEvent, 2,
+  assert.equal(lockScreenMounts, 1,
     'sessionCleared loeste mehr als einen Sperransicht-Render aus');
+  assert.equal(app.root.querySelectorAll('.lock-screen').length, 1);
 });
 
 test('M16: the real reset control requires two confirmations before resetState runs', async () => {
