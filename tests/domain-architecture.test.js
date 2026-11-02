@@ -11,13 +11,14 @@ const allowed = {
   'initial-assessments.js': [],
   'course-settings.js': [],
   'course-symbols.js': [],
+  'course-colors.js': [],
   'assessments.js': ['state.js'],
-  'courses.js': ['state.js', 'assessments.js', 'course-symbols.js'],
+  'courses.js': ['state.js', 'assessments.js', 'course-symbols.js', 'course-colors.js'],
   'terms.js': ['state.js', 'course-settings.js', 'assessments.js', 'courses.js'],
   'grading.js': ['state.js', 'courses.js', 'terms.js', '../formatting/numbers.js'],
   'grading-logic.js': ['course-settings.js', 'terms.js', 'grading.js'],
   'students.js': ['state.js', 'courses.js'],
-  'migrations.js': ['state.js', 'assessments.js', 'courses.js', 'course-symbols.js', 'terms.js'],
+  'migrations.js': ['state.js', 'assessments.js', 'courses.js', 'course-symbols.js', 'course-colors.js', 'terms.js'],
   'domain-model.js': ['state.js', 'assessments.js', 'courses.js', 'students.js', 'migrations.js']
 };
 

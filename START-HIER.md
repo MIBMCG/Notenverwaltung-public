@@ -2,10 +2,10 @@
 
 ## Anwendung nutzen
 
-Version **1.7.0 vom 16.10.2026** bietet einen separaten Offline-Code zur
-Wiederherstellung lokaler Daten und neuer Backups. Das Anwendungspaket findest
-du auf der [Release-Seite für 1.7.0](https://github.com/MIBMCG/Notenverwaltung-public/releases/tag/v1.7.0).
-Die [Release-Hinweise](docs/releases/1.7.0.md) erklären den Umstieg;
+Version **1.7.1 vom 02.11.2026** ergänzt automatische Fachfarben und einen
+Farbtonregler für Kurskacheln. Das Anwendungspaket findest
+du auf der [Release-Seite für 1.7.1](https://github.com/MIBMCG/Notenverwaltung-public/releases/tag/v1.7.1).
+Die [Release-Hinweise](docs/releases/1.7.1.md) erklären den Umstieg;
 der technische Prüfstand und die Grenzen stehen in der [Abnahme](docs/ABNAHME.md).
 
 Das vollständige Anwendungspaket in einen festen Ordner entpacken und

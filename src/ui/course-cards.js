@@ -1,4 +1,5 @@
 import { appendCourseSymbol } from './course-symbol-picker.js';
+import { resolveCourseCardHue } from '../domain/course-colors.js';
 
 const FAMILIES = new Set(['modern', 'classic', 'aurora']);
 const APPEARANCES = new Set(['light', 'dark', 'system']);
@@ -85,6 +86,12 @@ function addInfoLine(document, list, label, value) {
   appendTextElement(document, list, 'dd', value);
 }
 
+function applyCourseColor(card, course) {
+  const hue = resolveCourseCardHue(course);
+  card.setAttribute('data-course-hue', String(hue));
+  card.setAttribute('style', `--nv-course-hue: ${hue}`);
+}
+
 export function mountCourseCards(options) {
   const { host, idPrefix, courses, onOpenCourse, onEditCourse, family, appearance, accent, background, motion, schedule, cancel } = validateOptions(options);
   const document = host.ownerDocument;
@@ -125,6 +132,7 @@ export function mountCourseCards(options) {
     card.setAttribute('class', 'nv-course-cards__card');
     card.setAttribute('data-role', 'card');
     card.setAttribute('data-course-id', course.id);
+    applyCourseColor(card, course);
 
     const stage = document.createElement('div');
     stage.setAttribute('class', 'nv-course-cards__stage');
@@ -231,7 +239,7 @@ export function mountCourseCards(options) {
       }, currentMotion === 'vivid' ? 2200 : 1200);
       return true;
     };
-    states.push({ state, render, previewMotion });
+    states.push({ state, render, previewMotion, card, courseId: course.id });
 
     listen(card, 'pointerenter', event => {
       if (state.disposed || componentDisposed || event.pointerType !== 'mouse' || currentFamily === 'classic' || currentMotion === 'off') return;
@@ -279,6 +287,11 @@ export function mountCourseCards(options) {
   host.appendChild(root);
 
   return {
+    updateCourseColor(course) {
+      if (componentDisposed || !course) return;
+      const entry = states.find(item => item.courseId === course.id);
+      if (entry) applyCourseColor(entry.card, course);
+    },
     previewMotion() {
       if (componentDisposed) return false;
       return states.map(({ previewMotion }) => previewMotion()).some(Boolean);

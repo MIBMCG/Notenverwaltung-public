@@ -5,13 +5,13 @@ import { parseMarkdown } from './doc-markdown-ast.mjs';
 
 const defaultRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 export const DEFAULT_DOCS = Object.freeze([
-  'README.md', 'START-HIER.md', 'DOKUMENTATION.md', 'CHANGELOG.md',
+  'README.md', 'START-HIER.md', 'DOKUMENTATION.md', 'CHANGELOG.md', 'ARBEITSSTAND.md',
   'ASSET_NOTICES.md', 'SECURITY.md', 'docs/KURZANLEITUNG.md', 'docs/ABNAHME.md',
   'docs/BEFUNDE.md', 'docs/CONTRIBUTING.md', 'docs/PRUEFBEISPIELE.md',
   'docs/quality/PUBLICATION.md', 'docs/quality/release-checklist.md',
   'docs/releases/1.3.0.md', 'docs/releases/1.4.0.md',
   'docs/releases/1.5.0.md', 'docs/releases/1.5.1.md', 'docs/releases/1.6.0.md',
-  'docs/releases/1.7.0.md', 'docs/quality/password-recovery-verification.md',
+  'docs/releases/1.7.0.md', 'docs/releases/1.7.1.md', 'docs/quality/password-recovery-verification.md',
   'docs/ui/concepts/README.md'
 ]);
 

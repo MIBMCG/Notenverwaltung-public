@@ -1,10 +1,10 @@
-# Notenverwaltung 1.7.0 – Kurzanleitung
+# Notenverwaltung 1.7.1 – Kurzanleitung
 
 Diese Anleitung beschreibt den vorgesehenen Alltag mit der lokalen
 `Notenverwaltung.html`. Die Anwendung benötigt keine Installation und keinen
 Internetanschluss.
 
-Version 1.7.0 vom 16.10.2026 richtet sich vor allem an Desktop-PCs und Laptops.
+Version 1.7.1 vom 02.11.2026 richtet sich vor allem an Desktop-PCs und Laptops.
 Die Nachrüstung eines Codes und eine Wiederherstellung wurden vom Nutzer
 erfolgreich ausprobiert; Browser, Betriebssystem und Wiederherstellungsvariante
 sind dabei nicht benannt. Eine vollständige Browser- oder Geräteabnahme liegt
@@ -12,6 +12,25 @@ damit nicht vor; insbesondere sind Safari/macOS nicht bestätigt. Den Prüfstand
 und seine Grenzen beschreibt [ABNAHME.md](ABNAHME.md).
 
 ## Anwendung starten
+
+### Kursfarben
+
+Die Kurskacheln in **Übersicht** und **Kurse** erhalten automatisch eine Farbe
+passend zum eingetragenen Fach, beispielsweise Grün für Biologie und Blau für
+Mathematik. Gleiche Fächer verwenden dieselbe Grundfarbe.
+
+Unter **Kurse → Kurs bearbeiten → Allgemeines → Kachelfarbe** kannst du den
+Farbton mit dem Schieberegler ändern. Die Vorschau reagiert beim Ziehen;
+beim Loslassen beziehungsweise Bestätigen der Änderung wird die Auswahl
+gespeichert. Mit den Pfeiltasten lässt sich der Regler ebenfalls bedienen;
+jeder Tastaturschritt wird gespeichert. **Fachfarbe verwenden** schaltet zurück zur
+Automatik. Ein späterer Fachwechsel ändert nur die automatische Farbe.
+Die Auswahl gibt es auch beim Anlegen eines Kurses und sie wird in
+verschlüsselten Backups mitgesichert und in Nachfolgekurse übernommen.
+Bei einem Speicherfehler erscheint wieder die zuletzt bestätigte Farbe;
+wiederhole die Änderung nach Behebung des Fehlers bewusst.
+
+### Programmdatei öffnen
 
 1. Lege die endgültige Datei `Notenverwaltung.html` an einem festen Ort ab.
 2. Öffne sie per Doppelklick im vorgesehenen Browser.

@@ -4,7 +4,7 @@
 
 **Noten, Kurse und Schuljahre verwalten – lokal in deinem Browser.**
 
-[Version 1.7.0 vom 16.10.2026](docs/releases/1.7.0.md) · [Kurzanleitung](docs/KURZANLEITUNG.md) · [Prüfstand](docs/ABNAHME.md)
+[Version 1.7.1 vom 02.11.2026](docs/releases/1.7.1.md) · [Kurzanleitung](docs/KURZANLEITUNG.md) · [Prüfstand](docs/ABNAHME.md)
 
 </div>
 
@@ -17,7 +17,7 @@ einen Server. Die Anwendung lässt sich nach dem Herunterladen offline nutzen.
 
 | Bereich | Funktionen |
 | --- | --- |
-| **Kurse und Personen** | Kurse organisieren, Schüler:innen zuordnen und Kurssymbole auswählen |
+| **Kurse und Personen** | Kurse organisieren, Schüler:innen zuordnen sowie Kurssymbole und Kachelfarben auswählen |
 | **Noteneingabe** | Leistungen und Gewichtungen verwalten, Noten beziehungsweise Punkte erfassen |
 | **Auswertung** | Halbjahres- und Jahresansichten, Kursstatistik und Berichte |
 | **Schuljahreswechsel** | Kurse archivieren und Nachfolgekurse anlegen |
@@ -34,7 +34,7 @@ Die [Abnahmeübersicht](docs/ABNAHME.md) nennt die Prüfgrenzen.
 
 ## In wenigen Schritten starten
 
-Lade das Anwendungspaket von der [Release-Seite für 1.7.0](https://github.com/MIBMCG/Notenverwaltung-public/releases/tag/v1.7.0)
+Lade das Anwendungspaket von der [Release-Seite für 1.7.1](https://github.com/MIBMCG/Notenverwaltung-public/releases/tag/v1.7.1)
 herunter und entpacke es vollständig in einen festen Ordner. Öffne
 `Notenverwaltung.html` im Browser. Beim ersten Start richtest du ein Passwort
 ein, sicherst den separaten Wiederherstellungscode und gibst ihn zur Bestätigung

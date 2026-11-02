@@ -43,6 +43,7 @@ import { createPersistenceBoundary } from '../ui/persistence-boundary.js';
 import { buildDashboardCards } from '../ui/dashboard-data.js';
 import { mountCourseCards } from '../ui/course-cards.js';
 import { createCourseSymbolPicker } from '../ui/course-symbol-picker.js';
+import { createCourseColorPicker } from '../ui/course-color-picker.js';
 import { createStateCommitter } from '../ui/state-commit.js';
 import { createRecoveryUi } from '../ui/recovery-dialog.js';
 
@@ -59,9 +60,9 @@ const DISPLAY_TIME_ZONE = Intl.DateTimeFormat().resolvedOptions().timeZone;
 
     // Sichtbare Programmversion. Unabhängig von state.version, das nur das Datenformat bezeichnet.
     const APP_RELEASE = Object.freeze({
-  version: "1.7.0",
-  dateIso: "2026-10-16",
-  dateLabel: "16.10.2026"
+  version: "1.7.1",
+  dateIso: "2026-11-02",
+  dateLabel: "02.11.2026"
     });
 
     // ------------------------------------------------------
@@ -3449,6 +3450,11 @@ const DISPLAY_TIME_ZONE = Intl.DateTimeFormat().resolvedOptions().timeZone;
             });
             subjInput.addEventListener('input', () => newSymbolPicker.updatePreview(subjInput.value));
             form.appendChild(newSymbolPicker.root);
+            const newColorPicker = createCourseColorPicker({
+              document, id: 'new-course-color', course: { subject: '' }
+            });
+            subjInput.addEventListener('input', () => newColorPicker.updateSubject(subjInput.value));
+            form.appendChild(newColorPicker.root);
 
             // Klasse
             const classInput = document.createElement('input');
@@ -3704,6 +3710,7 @@ const DISPLAY_TIME_ZONE = Intl.DateTimeFormat().resolvedOptions().timeZone;
               const input = {
                 name: nameVal,
                 subject: subjectVal,
+                cardHue: newColorPicker.getValue(),
                 symbolId: newSymbolPicker.select.value,
                 classLabel: classVal,
                 schemaMode: schemaVal,
@@ -3944,7 +3951,7 @@ const DISPLAY_TIME_ZONE = Intl.DateTimeFormat().resolvedOptions().timeZone;
             generalPanel.appendChild(generalHeading);
             const generalSaveHint = document.createElement('p');
             generalSaveHint.className = 'courses-editor-save-hint';
-            generalSaveHint.textContent = 'Kursname, Fach, Klasse und Kurssymbol werden nach einer Änderung sofort gespeichert. Mit „Stichtage speichern“ sicherst du die Angaben unten im Bereich.';
+            generalSaveHint.textContent = 'Kursname, Fach, Klasse, Kurssymbol und Kachelfarbe werden nach einer Änderung sofort gespeichert. Mit „Stichtage speichern“ sicherst du die Angaben unten im Bereich.';
             generalPanel.appendChild(generalSaveHint);
             const studentsHeading = document.createElement('h3');
             studentsHeading.textContent = 'Schülerzuordnung';
@@ -4006,6 +4013,7 @@ const DISPLAY_TIME_ZONE = Intl.DateTimeFormat().resolvedOptions().timeZone;
             subjInput.style.boxSizing = "border-box";
             subjInput.addEventListener("change", async function () {
               await saveCourseTextInput(this, 'subject', this.value.trim(), '', 'Das Fach konnte nicht gespeichert werden');
+              colorPicker.updateSubject(this.value);
             });
             subjWrapper.appendChild(subjLabel);
             subjWrapper.appendChild(subjInput);
@@ -4134,6 +4142,34 @@ const DISPLAY_TIME_ZONE = Intl.DateTimeFormat().resolvedOptions().timeZone;
             });
             subjInput.addEventListener('input', () => symbolPicker.updatePreview(subjInput.value));
             form.appendChild(symbolPicker.root);
+            const colorPickerEpoch = uiStateEpoch;
+            const colorPicker = createCourseColorPicker({
+              document, id: 'course-editor-color', course: currentCourse,
+              onChange: async function (cardHue) {
+                const courseId = currentCourse.id;
+                if (!dashboardIsAllowed() || uiStateEpoch !== colorPickerEpoch ||
+                    document.getElementById('course-editor-color') !== colorPicker.input) {
+                  const confirmed = DomainModel.findCourseById(state, courseId);
+                  colorPicker.setValue(confirmed && confirmed.cardHue, confirmed ? confirmed.subject : '');
+                  return;
+                }
+                try {
+                  await commitStateChange(function (candidate) {
+                    const edited = requireActiveCourse(candidate, courseId);
+                    if (cardHue !== null) edited.cardHue = cardHue;
+                    else delete edited.cardHue;
+                  }, { render: false });
+                  const confirmed = DomainModel.findCourseById(state, courseId);
+                  if (confirmed && dashboardMount) dashboardMount.updateCourseColor(confirmed);
+                } catch (error) {
+                  const confirmed = DomainModel.findCourseById(state, courseId);
+                  colorPicker.setValue(confirmed && confirmed.cardHue, confirmed ? confirmed.subject : '');
+                  if (!isStateCommitAborted(error)) window.alert('Die Kachelfarbe konnte nicht gespeichert werden. Die bisherige Auswahl bleibt erhalten.');
+                }
+              }
+            });
+            subjInput.addEventListener('input', () => colorPicker.updateSubject(subjInput.value));
+            form.appendChild(colorPicker.root);
             form.appendChild(classWrapper);
             gradingForm.appendChild(schemaWrapper);
             gradingForm.appendChild(wtWrapper);

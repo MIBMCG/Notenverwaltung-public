@@ -1,7 +1,7 @@
-# Abnahme und Prüfgrenzen – Version 1.7.0
+# Abnahme und Prüfgrenzen – Version 1.7.1
 
-**Stand: 16.10.2026.** Version 1.7.0 ergänzt den Offline-Wiederherstellungscode
-und die Härtung von Speicherübergängen. Der Nutzer hat die Veröffentlichung
+**Stand: 02.11.2026.** Version 1.7.1 ergänzt automatische Fachfarben und einen
+Farbtonregler für Kurskacheln. Der Nutzer hat die Veröffentlichung ausdrücklich
 beauftragt. Die folgenden Nachweise beschreiben ihren tatsächlichen Umfang;
 sie sind keine vollständige Freigabe aller Browser und Geräte.
 
@@ -12,7 +12,20 @@ sie sind keine vollständige Freigabe aller Browser und Geräte.
 `NOT RUN` einen fehlenden Nachweis. Automatisierte Tests und DOM-Harnesses
 ersetzen keine Bedienprüfung im realen Browser.
 
-## Aktueller Stand
+## Aktueller Stand 1.7.1
+
+| Bereich | Status | Reichweite |
+| --- | --- | --- |
+| Gesamtsuite 1.7.1 am 02.11.2026 | PASS (Windows, Node 22.23.4) | 1.505 von 1.505 Tests am versionierten Releasequellstand bestanden, keine übersprungen. Syntax, Build-Identität, 78 Befunde/44 Quellhashes, Dokumentlinks und 21 Pakettests ebenfalls bestanden. |
+| Kursfarben und Speicherverhalten | Technisch geprüft | Automatische Fachzuordnung, gültige Farbtöne 0–359, verschlüsselte Speicherung und Backups, Folgekurse, Tastaturbedienung, Fokus, Speicherfehler und veraltete Ansichten/Sitzungen sind durch Tests abgedeckt. Unabhängiges Nachreview ohne offene Befunde. |
+| Farbkontrast | Automatisierter Test bestanden | Alle 360 Farbtöne für Haupt- und Nebenbeschriftungen einschließlich Aurora-Überlagerungen in heller, dunkler und Systemdarstellung mit mindestens 4,5:1; keine reale Browser-Sichtprüfung. |
+| Browser-Sichtprüfung der Kursfarben | BLOCKED / nicht nachgewiesen | Lokale Vorschau durch Werkzeuggrenzen nicht zugänglich (HTTP-Timeout, gesperrte lokale Dateiadressen). Native Sicht-, Touch- und persönliche Designabnahme bleiben offen. Der Nutzer hat die Veröffentlichung in Kenntnis dieser Grenze beauftragt. |
+| Finales Releasepaket, CI und öffentlicher Download | Commitbezogener Nachweis | [Release 1.7.1](https://github.com/MIBMCG/Notenverwaltung-public/releases/tag/v1.7.1) ordnet Paket, Prüfsummen und Tag zu; [GitHub Actions](https://github.com/MIBMCG/Notenverwaltung-public/actions) dokumentiert die Prüfungen des jeweiligen Quellstands. |
+
+Die Wiederherstellungsfunktion und ihre Mindestversion ändern sich mit 1.7.1
+nicht. Die folgenden älteren Nachweise bleiben an ihren damaligen Stand gebunden.
+
+## Historische Nachweise zu 1.7.0
 
 | Bereich | Status | Reichweite |
 | --- | --- | --- |
@@ -28,12 +41,17 @@ nennt die geprüften Stände und technischen Einzelbefunde. Die
 enthält die Veröffentlichung und ihre Paketprüfsummen. Diese externen Links
 benötigen eine Internetverbindung.
 
+Paket, Prüfsummen und Tag der aktuellen Fassung gehören zur
+[Release-Seite für 1.7.1](https://github.com/MIBMCG/Notenverwaltung-public/releases/tag/v1.7.1);
+die [GitHub-Actions-Läufe](https://github.com/MIBMCG/Notenverwaltung-public/actions)
+ordnen CI-Ergebnisse dem jeweiligen Commit zu.
+
 ## Desktop- und Browsergrenzen
 
 Die Anwendung richtet sich vor allem an Desktop-PCs und Laptops. Das frühere
 M06-Dateistartgate mit Edge, Chrome und Firefox belegt die Architektur der
 Fenstersperre im damaligen Umfang; es ist keine vollständige Browserabnahme
-von 1.7.0. Frühere technische Prüfungen und persönliche Stichproben zu 1.6.0
+von 1.7.1. Frühere technische Prüfungen und persönliche Stichproben zu 1.6.0
 und älteren Versionen bleiben an ihre damaligen Stände gebunden. Der Nutzer
 hatte die vollständige frische Wiederholung der früheren Desktopmatrix am
 05.10.2026 beendet; daraus werden keine neuen PASS-Nachweise abgeleitet.

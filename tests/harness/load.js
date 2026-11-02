@@ -97,6 +97,8 @@ function loadModules({
   sandbox.mountCourseCards = sandbox.__course_cards_exports.mountCourseCards;
   vm.runInContext(bundleEsmGraph('src/ui/course-symbol-picker.js', { globalName: '__course_symbol_exports' }), sandbox);
   sandbox.createCourseSymbolPicker = sandbox.__course_symbol_exports.createCourseSymbolPicker;
+  vm.runInContext(bundleEsmGraph('src/ui/course-color-picker.js', { globalName: '__course_color_exports' }), sandbox);
+  sandbox.createCourseColorPicker = sandbox.__course_color_exports.createCourseColorPicker;
   vm.runInContext(
     bundleEsmGraph('src/transfer/csv-format.js', { globalName: '__csv_format_exports' }),
     sandbox,

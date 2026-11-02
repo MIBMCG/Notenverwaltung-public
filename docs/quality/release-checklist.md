@@ -1,10 +1,10 @@
-# Freigabecheckliste für Notenverwaltung 1.7.0
+# Freigabecheckliste für Notenverwaltung 1.7.1
 
-Stand: 16.10.2026. Veröffentlichung durch den Nutzer beauftragt. Diese Liste
+Stand: 02.11.2026. Veröffentlichung durch den Nutzer beauftragt. Diese Liste
 beschreibt die erforderlichen Nachweise; sie nimmt ihr Ergebnis nicht vorweg.
 Prüfprotokolle, CI-Läufe und GitHub-Release ordnen Ergebnisse dem Commit zu.
 
-- Produktversion 1.7.0, Datum 16.10.2026 und aktuelle Dokumentation abgleichen.
+- Produktversion 1.7.1, Datum 02.11.2026 und aktuelle Dokumentation abgleichen.
 - Vollständige Testsuite, Syntax, Build-Identität, Befundregister und Dokumentlinks
   prüfen. Keine Dateisystem-Schutzprüfung zur Umgehung lokaler Umgebungsfehler ändern.
 - Alle vier GitHub-CI-Kombinationen auf dem endgültigen Quellstand abwarten:
@@ -13,11 +13,13 @@ Prüfprotokolle, CI-Läufe und GitHub-Release ordnen Ergebnisse dem Commit zu.
   neun innere SHA-256-Hashes und die äußere ZIP-Prüfsumme prüfen.
 - Lizenz, Drittanbieterhinweise, neutrale Assets und ausdrückliche öffentliche
   Dateiauswahl kontrollieren. Keine echten Daten, Geheimnisse oder Supportdateien.
-- Erfolgreiche Nutzertests für Code-Nachrüstung und Wiederherstellung festhalten.
-  Nicht genannte Plattformen und Wiederherstellungsvarianten bleiben unbestätigt;
-  weitere Grenzen stehen in [ABNAHME.md](../ABNAHME.md).
+- Kursfarben einschließlich Automatik, Regler, Tastaturbedienung, Speicherfehlern
+  und veralteten Sitzungen anhand der technischen Nachweise prüfen. Die neue
+  Browser-Sichtprüfung bleibt mangels Werkzeugzugriff unbestätigt; der Nutzer
+  hat die Veröffentlichung dennoch beauftragt. Historische Recovery-Nutzertests
+  bleiben an ihren Stand gebunden; Grenzen stehen in [ABNAHME.md](../ABNAHME.md).
 - Änderung über Pull Request in das bestehende öffentliche Repository integrieren;
-  geprüften Branch- und Merge-Stand vergleichen. Tag `v1.7.0` nicht nachträglich verschieben.
+  geprüften Branch- und Merge-Stand vergleichen. Tag `v1.7.1` nicht nachträglich verschieben.
 - Aktives privates Vulnerability Reporting prüfen. ZIP, Prüfsumme und Hinweise als
   reguläres GitHub-Release veröffentlichen; ältere Downloads unverändert lassen.
 - Anonymen Download zurückprüfen, Tag-/Branch-SHAs und öffentlichen Quellstand

@@ -1,5 +1,19 @@
 # Änderungen
 
+## 1.7.1 – 02.11.2026
+
+- Kurskacheln erhalten automatisch eine Hintergrundfarbe passend zum Fach.
+  Unter Kurs bearbeiten → Allgemeines lässt sich der Farbton per Schieberegler
+  mit Vorschau anpassen und mit „Fachfarbe verwenden“ zurücksetzen. Auch beim
+  Anlegen eines Kurses ist die Auswahl verfügbar.
+- Eigene Kursfarben bleiben in verschlüsselten Sicherungen und Folgekursen
+  erhalten. Die Farbflächen passen sich an helle und dunkle Darstellung an.
+- Regleränderungen erhalten Editor und Tastaturfokus. Bei Speicherfehlern wird
+  die bestätigte Farbe wieder angezeigt; abgelöste Regler aus früheren Ansichten
+  oder Sitzungen können keine Änderungen mehr speichern.
+
+[Release-Hinweise und Umstieg](docs/releases/1.7.1.md).
+
 ## 1.7.0 – 16.10.2026
 
 - Separater Offline-Wiederherstellungscode für lokale Daten und neue Backups.

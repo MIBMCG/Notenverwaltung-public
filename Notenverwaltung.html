@@ -3302,6 +3302,44 @@
 .courses-editor .course-symbol-picker select { width:100%;min-height:44px;box-sizing:border-box; }
 .course-symbol-picker__preview { display:flex;align-items:center;gap:.65rem;margin-top:.45rem;min-height:32px;color:var(--text-main); }
 .course-symbol-picker__preview svg { width:28px;height:28px;flex:none; }
+
+.course-color-picker { grid-column:1 / -1; }
+.course-color-picker__help,
+.course-color-picker__status { margin:.4rem 0;color:var(--text-muted);font-size:.82rem; }
+.course-color-picker__status { font-weight:600; }
+.course-color-picker input[type="range"] {
+  appearance:none;width:100%;height:44px;margin:0;padding:0;border:0;
+  background:transparent;cursor:pointer;
+}
+.course-color-picker input[type="range"]::-webkit-slider-runnable-track {
+  height:12px;border:1px solid var(--border-strong);border-radius:999px;
+  background:linear-gradient(to right,#d55,#dd5,#5d5,#5dd,#55d,#d5d,#d55);
+}
+.course-color-picker input[type="range"]::-moz-range-track {
+  height:12px;border:1px solid var(--border-strong);border-radius:999px;
+  background:linear-gradient(to right,#d55,#dd5,#5d5,#5dd,#55d,#d5d,#d55);
+}
+.course-color-picker input[type="range"]::-webkit-slider-thumb {
+  appearance:none;width:24px;height:24px;margin-top:-7px;border:3px solid #fff;
+  border-radius:50%;background:#253247;box-shadow:0 0 0 1px #253247;
+}
+.course-color-picker input[type="range"]::-moz-range-thumb {
+  width:18px;height:18px;border:3px solid #fff;
+  border-radius:50%;background:#253247;box-shadow:0 0 0 1px #253247;
+}
+.course-color-picker input[type="range"]:focus-visible { outline:3px solid var(--gradesheet-focus-ring);outline-offset:2px;border-radius:6px; }
+.course-color-picker__preview {
+  display:flex;flex-direction:column;gap:.4rem;padding:1rem;margin:.65rem 0;
+  border:1px solid hsl(var(--nv-course-hue) 35% 76%);border-radius:10px;
+  background:hsl(var(--nv-course-hue) 65% 91%);color:#23354d;overflow-wrap:anywhere;
+}
+.course-color-picker__preview span { font-size:.85rem; }
+body.theme-dark .course-color-picker__preview {
+  border-color:hsl(var(--nv-course-hue) 25% 38%);
+  background:hsl(var(--nv-course-hue) 35% 19%);color:#e3ebf6;
+}
+.course-color-picker__reset { min-height:44px; }
+.course-color-picker input:disabled { cursor:wait;opacity:.65; }
 .empty-course-roster { margin:1rem 0;padding:1rem;border:1px solid var(--border-soft);border-radius:12px; }
 .empty-course-roster h3 { margin:0 0 .75rem; }
 .empty-course-roster ul { display:flex;flex-wrap:wrap;gap:.5rem;margin:0;padding:0;list-style:none; }
@@ -3673,6 +3711,40 @@
 .nv-course-cards[data-motion="off"] .nv-course-cards__front[aria-hidden="true"],.nv-course-cards[data-motion="off"] .nv-course-cards__back[aria-hidden="true"],.nv-course-cards[data-motion="calm"] .nv-course-cards__front[aria-hidden="true"],.nv-course-cards[data-motion="calm"] .nv-course-cards__back[aria-hidden="true"] { visibility:hidden!important;opacity:0!important; }
 @media(max-width:900px){.nv-course-cards .nv-course-cards__grid{grid-template-columns:1fr}}
 @media(max-width:620px){.nv-course-cards .nv-course-cards__face{padding:18px;min-height:244px}.nv-course-cards .nv-course-cards__title h3{font-size:22px}}
+
+/* Course identity colors are independent of the application's accent/background.
+   Only the hue varies; bounded lightness keeps labels readable for every hue. */
+.nv-course-cards .nv-course-cards__card[data-course-hue] {
+  --nv-course-text: #23354d;
+  --nv-course-muted: #485568;
+  --nv-course-panel: hsl(var(--nv-course-hue) 60% 97%);
+  --nv-course-soft: hsl(var(--nv-course-hue) 65% 91%);
+  --nv-course-line: hsl(var(--nv-course-hue) 35% 76%);
+  --nv-course-glow: hsl(var(--nv-course-hue) 65% 88%);
+  --nv-fx-glow: hsl(var(--nv-course-hue) 65% 88% / .25);
+}
+
+.nv-course-cards[data-appearance="dark"] .nv-course-cards__card[data-course-hue] {
+  --nv-course-text: #e3ebf6;
+  --nv-course-muted: #bcc9dc;
+  --nv-course-panel: hsl(var(--nv-course-hue) 30% 13%);
+  --nv-course-soft: hsl(var(--nv-course-hue) 35% 19%);
+  --nv-course-line: hsl(var(--nv-course-hue) 25% 38%);
+  --nv-course-glow: hsl(var(--nv-course-hue) 35% 22%);
+  --nv-fx-glow: hsl(var(--nv-course-hue) 35% 22% / .2);
+}
+
+@media (prefers-color-scheme: dark) {
+  .nv-course-cards[data-appearance="system"] .nv-course-cards__card[data-course-hue] {
+    --nv-course-text: #e3ebf6;
+    --nv-course-muted: #bcc9dc;
+    --nv-course-panel: hsl(var(--nv-course-hue) 30% 13%);
+    --nv-course-soft: hsl(var(--nv-course-hue) 35% 19%);
+    --nv-course-line: hsl(var(--nv-course-hue) 25% 38%);
+    --nv-course-glow: hsl(var(--nv-course-hue) 35% 22%);
+    --nv-fx-glow: hsl(var(--nv-course-hue) 35% 22% / .2);
+  }
+}
 
   </style>
 
@@ -4166,6 +4238,44 @@
     return COURSE_SYMBOLS.find((symbol) => symbol.id === id2);
   }
 
+  // src/domain/course-colors.js
+  function normalizeCourseCardHue(value) {
+    return typeof value === "number" && Number.isInteger(value) && value >= 0 && value <= 359 ? value : null;
+  }
+  function normalizeSubject(value) {
+    return String(value ?? "").trim().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\s+/g, " ");
+  }
+  var SUBJECT_HUES = new Map([
+    [145, ["biologie", "bio", "nawi", "naturwissenschaften"]],
+    [215, ["mathematik", "mathe"]],
+    [35, ["deutsch"]],
+    [195, ["englisch"]],
+    [275, ["französisch", "franzoesisch"]],
+    [175, ["chemie"]],
+    [240, ["physik"]],
+    [25, ["geschichte"]],
+    [95, ["geografie", "geographie", "erdkunde", "geo"]],
+    [15, ["sport"]],
+    [315, ["musik"]],
+    [285, ["kunst", "bildende kunst"]],
+    [205, ["informatik"]],
+    [55, ["politik", "politische bildung", "sozialkunde", "ethik", "religion", "philosophie", "wirtschaft", "wat"]],
+    [335, ["latein"]],
+    [5, ["spanisch"]],
+    [125, ["italienisch"]],
+    [255, ["russisch"]]
+  ].flatMap(([hue, subjects]) => subjects.map((subject) => [normalizeSubject(subject), hue])));
+  function resolveCourseCardHue(course = {}) {
+    const override = normalizeCourseCardHue(course.cardHue);
+    if (override !== null) return override;
+    const subject = normalizeSubject(course.subject);
+    if (!subject) return 210;
+    if (SUBJECT_HUES.has(subject)) return SUBJECT_HUES.get(subject);
+    let hash = 0;
+    for (const character of subject) hash = Math.imul(hash, 31) + character.codePointAt(0) >>> 0;
+    return hash % 360;
+  }
+
   // src/domain/courses.js
   function normalizeWeightingDeviationReason(value) {
     const text = String(value || "").trim();
@@ -4200,6 +4310,7 @@
     name,
     subject,
     symbolId = null,
+    cardHue = null,
     classLabel,
     schemaMode = SCHEMA_MODES.GRADES,
     weightTemplateId = null,
@@ -4223,6 +4334,7 @@
       name: name ?? "",
       subject: subject ?? "",
       ...normalizeCourseSymbol(symbolId) ? { symbolId: normalizeCourseSymbol(symbolId) } : {},
+      ...normalizeCourseCardHue(cardHue) !== null ? { cardHue: normalizeCourseCardHue(cardHue) } : {},
       classLabel: classLabel ?? "",
       schemaMode,
       weightTemplateId,
@@ -4448,6 +4560,7 @@
       name: oldCourse.name,
       subject: oldCourse.subject,
       symbolId: oldCourse.symbolId,
+      cardHue: oldCourse.cardHue,
       classLabel: oldCourse.classLabel,
       schemaMode: oldCourse.schemaMode,
       weightTemplateId: oldCourse.schemaMode === SCHEMA_MODES.UPPERSEC ? typeof plan.targetWeightTemplateId === "string" ? plan.targetWeightTemplateId : null : oldCourse.weightTemplateId,
@@ -5307,6 +5420,9 @@
         if (!c || typeof c !== "object") return c;
         if (normalizeCourseSymbol(c.symbolId)) c.symbolId = normalizeCourseSymbol(c.symbolId);
         else delete c.symbolId;
+        const cardHue = normalizeCourseCardHue(c.cardHue);
+        if (cardHue !== null) c.cardHue = cardHue;
+        else delete c.cardHue;
         if (c.includePrevTermGrades === void 0) {
           try {
             if (c.schemaMode === SCHEMA_MODES.UPPERSEC) {
@@ -13359,6 +13475,7 @@
         name: normalizeText(course.name),
         subject: normalizeText(course.subject),
         ...course.symbolId ? { symbolId: course.symbolId } : {},
+        ...normalizeCourseCardHue(course.cardHue) !== null ? { cardHue: normalizeCourseCardHue(course.cardHue) } : {},
         classLabel: normalizeText(course.classLabel),
         studentCount,
         termLabel
@@ -13501,6 +13618,11 @@
     appendTextElement(document2, list, "dt", label);
     appendTextElement(document2, list, "dd", value);
   }
+  function applyCourseColor(card, course) {
+    const hue = resolveCourseCardHue(course);
+    card.setAttribute("data-course-hue", String(hue));
+    card.setAttribute("style", `--nv-course-hue: ${hue}`);
+  }
   function mountCourseCards(options) {
     const { host, idPrefix, courses, onOpenCourse, onEditCourse, family, appearance, accent, background, motion, schedule, cancel } = validateOptions(options);
     const document2 = host.ownerDocument;
@@ -13537,6 +13659,7 @@
       card.setAttribute("class", "nv-course-cards__card");
       card.setAttribute("data-role", "card");
       card.setAttribute("data-course-id", course.id);
+      applyCourseColor(card, course);
       const stage = document2.createElement("div");
       stage.setAttribute("class", "nv-course-cards__stage");
       const rotor = document2.createElement("div");
@@ -13637,7 +13760,7 @@
         }, currentMotion === "vivid" ? 2200 : 1200);
         return true;
       };
-      states.push({ state, render, previewMotion });
+      states.push({ state, render, previewMotion, card, courseId: course.id });
       listen(card, "pointerenter", (event) => {
         if (state.disposed || componentDisposed || event.pointerType !== "mouse" || currentFamily === "classic" || currentMotion === "off") return;
         clearTimer(state);
@@ -13682,6 +13805,11 @@
     });
     host.appendChild(root);
     return {
+      updateCourseColor(course) {
+        if (componentDisposed || !course) return;
+        const entry = states.find((item) => item.courseId === course.id);
+        if (entry) applyCourseColor(entry.card, course);
+      },
       previewMotion() {
         if (componentDisposed) return false;
         return states.map(({ previewMotion }) => previewMotion()).some(Boolean);
@@ -13735,6 +13863,117 @@
         });
         cleanups.splice(0).forEach((cleanup) => cleanup());
         if (root.parentNode === host) host.removeChild(root);
+      }
+    };
+  }
+
+  // src/ui/course-color-picker.js
+  function describeHue(hue) {
+    if (hue < 15 || hue >= 345) return "Rot";
+    if (hue < 45) return "Orange";
+    if (hue < 75) return "Gelb";
+    if (hue < 165) return "Grün";
+    if (hue < 195) return "Türkis";
+    if (hue < 255) return "Blau";
+    if (hue < 285) return "Violett";
+    return "Pink";
+  }
+  function createCourseColorPicker({ document: document2, id: id2, course = {}, onChange }) {
+    const root = document2.createElement("div");
+    root.className = "courses-editor-field course-color-picker";
+    const label = document2.createElement("label");
+    label.className = "courses-editor-label";
+    label.textContent = "Kachelfarbe";
+    label.setAttribute("for", id2);
+    const input = document2.createElement("input");
+    input.id = id2;
+    input.type = "range";
+    input.min = "0";
+    input.max = "359";
+    input.step = "1";
+    input.className = "course-color-picker__range";
+    const help = document2.createElement("p");
+    help.id = `${id2}-help`;
+    help.className = "course-color-picker__help";
+    help.textContent = "Die Kachelfarbe folgt automatisch dem Fach. Mit dem Regler wählen Sie einen eigenen Farbton.";
+    const status = document2.createElement("p");
+    status.id = `${id2}-status`;
+    status.className = "course-color-picker__status";
+    status.setAttribute("aria-live", "polite");
+    input.setAttribute("aria-describedby", `${help.id} ${status.id}`);
+    const preview = document2.createElement("div");
+    preview.className = "course-color-picker__preview";
+    const title = document2.createElement("strong");
+    title.textContent = course.name || "Kursvorschau";
+    const sample = document2.createElement("span");
+    sample.textContent = "Beispieltext auf Ihrer Kurskachel";
+    preview.appendChild(title);
+    preview.appendChild(sample);
+    const resetButton = document2.createElement("button");
+    resetButton.type = "button";
+    resetButton.className = "course-color-picker__reset";
+    resetButton.textContent = "Fachfarbe verwenden";
+    let subject = course.subject;
+    let cardHue = normalizeCourseCardHue(course.cardHue);
+    let pending = false;
+    function refresh() {
+      const hue = resolveCourseCardHue({ subject, cardHue });
+      input.value = String(hue);
+      input.setAttribute("aria-valuetext", `${describeHue(hue)}, ${hue} Grad`);
+      preview.setAttribute("data-course-hue", String(hue));
+      preview.setAttribute("style", `--nv-course-hue: ${hue}`);
+      status.textContent = cardHue === null ? "Automatisch nach Fach" : "Eigener Farbton";
+      input.disabled = pending;
+      resetButton.disabled = pending || cardHue === null;
+    }
+    function readRange() {
+      cardHue = input.value.trim() === "" ? null : normalizeCourseCardHue(Number(input.value));
+      refresh();
+    }
+    async function save() {
+      const focusedControl = document2.activeElement === input || document2.activeElement === resetButton ? document2.activeElement : null;
+      pending = true;
+      refresh();
+      try {
+        if (onChange) await onChange(cardHue);
+      } finally {
+        pending = false;
+        refresh();
+        if (focusedControl && document2.getElementById(id2) === input && (document2.activeElement === document2.body || document2.activeElement === focusedControl)) {
+          (focusedControl.disabled ? input : focusedControl).focus();
+        }
+      }
+    }
+    input.addEventListener("input", () => {
+      if (!pending) readRange();
+    });
+    input.addEventListener("change", async () => {
+      if (pending) return;
+      readRange();
+      await save();
+    });
+    resetButton.addEventListener("click", async () => {
+      if (pending || cardHue === null) return;
+      cardHue = null;
+      await save();
+    });
+    for (const element of [label, input, help, status, preview, resetButton]) root.appendChild(element);
+    refresh();
+    return {
+      root,
+      input,
+      resetButton,
+      updateSubject(nextSubject) {
+        subject = nextSubject;
+        refresh();
+      },
+      setValue(value, nextSubject = subject) {
+        cardHue = normalizeCourseCardHue(value);
+        subject = nextSubject;
+        refresh();
+      },
+      getValue() {
+        return cardHue;
       }
     };
   }
@@ -14147,9 +14386,9 @@
   var DISPLAY_LOCALE = "de-DE";
   var DISPLAY_TIME_ZONE = Intl.DateTimeFormat().resolvedOptions().timeZone;
   var APP_RELEASE = Object.freeze({
-    version: "1.7.0",
-    dateIso: "2026-10-16",
-    dateLabel: "16.10.2026"
+    version: "1.7.1",
+    dateIso: "2026-11-02",
+    dateLabel: "02.11.2026"
   });
   window.promptText = function(opts) {
     opts = opts || {};
@@ -17337,6 +17576,13 @@
           });
           subjInput.addEventListener("input", () => newSymbolPicker.updatePreview(subjInput.value));
           form.appendChild(newSymbolPicker.root);
+          const newColorPicker = createCourseColorPicker({
+            document,
+            id: "new-course-color",
+            course: { subject: "" }
+          });
+          subjInput.addEventListener("input", () => newColorPicker.updateSubject(subjInput.value));
+          form.appendChild(newColorPicker.root);
           const classInput = document.createElement("input");
           classInput.type = "text";
           classInput.placeholder = "z. B. 10c";
@@ -17600,6 +17846,7 @@
             const input = {
               name: nameVal,
               subject: subjectVal,
+              cardHue: newColorPicker.getValue(),
               symbolId: newSymbolPicker.select.value,
               classLabel: classVal,
               schemaMode: schemaVal,
@@ -17842,7 +18089,7 @@
           generalPanel.appendChild(generalHeading);
           const generalSaveHint = document.createElement("p");
           generalSaveHint.className = "courses-editor-save-hint";
-          generalSaveHint.textContent = "Kursname, Fach, Klasse und Kurssymbol werden nach einer Änderung sofort gespeichert. Mit „Stichtage speichern“ sicherst du die Angaben unten im Bereich.";
+          generalSaveHint.textContent = "Kursname, Fach, Klasse, Kurssymbol und Kachelfarbe werden nach einer Änderung sofort gespeichert. Mit „Stichtage speichern“ sicherst du die Angaben unten im Bereich.";
           generalPanel.appendChild(generalSaveHint);
           const studentsHeading = document.createElement("h3");
           studentsHeading.textContent = "Schülerzuordnung";
@@ -17899,6 +18146,7 @@
           subjInput.style.boxSizing = "border-box";
           subjInput.addEventListener("change", async function() {
             await saveCourseTextInput(this, "subject", this.value.trim(), "", "Das Fach konnte nicht gespeichert werden");
+            colorPicker.updateSubject(this.value);
           });
           subjWrapper.appendChild(subjLabel);
           subjWrapper.appendChild(subjInput);
@@ -18010,6 +18258,35 @@
           });
           subjInput.addEventListener("input", () => symbolPicker.updatePreview(subjInput.value));
           form.appendChild(symbolPicker.root);
+          const colorPickerEpoch = uiStateEpoch;
+          const colorPicker = createCourseColorPicker({
+            document,
+            id: "course-editor-color",
+            course: currentCourse,
+            onChange: async function(cardHue) {
+              const courseId = currentCourse.id;
+              if (!dashboardIsAllowed() || uiStateEpoch !== colorPickerEpoch || document.getElementById("course-editor-color") !== colorPicker.input) {
+                const confirmed = DomainModel.findCourseById(state, courseId);
+                colorPicker.setValue(confirmed && confirmed.cardHue, confirmed ? confirmed.subject : "");
+                return;
+              }
+              try {
+                await commitStateChange(function(candidate) {
+                  const edited = requireActiveCourse(candidate, courseId);
+                  if (cardHue !== null) edited.cardHue = cardHue;
+                  else delete edited.cardHue;
+                }, { render: false });
+                const confirmed = DomainModel.findCourseById(state, courseId);
+                if (confirmed && dashboardMount) dashboardMount.updateCourseColor(confirmed);
+              } catch (error) {
+                const confirmed = DomainModel.findCourseById(state, courseId);
+                colorPicker.setValue(confirmed && confirmed.cardHue, confirmed ? confirmed.subject : "");
+                if (!isStateCommitAborted(error)) window.alert("Die Kachelfarbe konnte nicht gespeichert werden. Die bisherige Auswahl bleibt erhalten.");
+              }
+            }
+          });
+          subjInput.addEventListener("input", () => colorPicker.updateSubject(subjInput.value));
+          form.appendChild(colorPicker.root);
           form.appendChild(classWrapper);
           gradingForm.appendChild(schemaWrapper);
           gradingForm.appendChild(wtWrapper);
