@@ -151,6 +151,7 @@ function loadCoursesRenderer(modules, state, document, options = {}) {
     currentCourseId: options.currentCourseId || null,
     courseEditorOpenForId: null,
     currentSection: 'courses',
+    uiStateEpoch: 0,
     focusTargetHeading: false,
     dashboardMount: null,
     currentAppearance: { family: 'modern', accent: 'standard', background: 'standard' },

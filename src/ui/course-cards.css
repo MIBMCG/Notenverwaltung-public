@@ -353,3 +353,37 @@
 .nv-course-cards[data-motion="off"] .nv-course-cards__front[aria-hidden="true"],.nv-course-cards[data-motion="off"] .nv-course-cards__back[aria-hidden="true"],.nv-course-cards[data-motion="calm"] .nv-course-cards__front[aria-hidden="true"],.nv-course-cards[data-motion="calm"] .nv-course-cards__back[aria-hidden="true"] { visibility:hidden!important;opacity:0!important; }
 @media(max-width:900px){.nv-course-cards .nv-course-cards__grid{grid-template-columns:1fr}}
 @media(max-width:620px){.nv-course-cards .nv-course-cards__face{padding:18px;min-height:244px}.nv-course-cards .nv-course-cards__title h3{font-size:22px}}
+
+/* Course identity colors are independent of the application's accent/background.
+   Only the hue varies; bounded lightness keeps labels readable for every hue. */
+.nv-course-cards .nv-course-cards__card[data-course-hue] {
+  --nv-course-text: #23354d;
+  --nv-course-muted: #485568;
+  --nv-course-panel: hsl(var(--nv-course-hue) 60% 97%);
+  --nv-course-soft: hsl(var(--nv-course-hue) 65% 91%);
+  --nv-course-line: hsl(var(--nv-course-hue) 35% 76%);
+  --nv-course-glow: hsl(var(--nv-course-hue) 65% 88%);
+  --nv-fx-glow: hsl(var(--nv-course-hue) 65% 88% / .25);
+}
+
+.nv-course-cards[data-appearance="dark"] .nv-course-cards__card[data-course-hue] {
+  --nv-course-text: #e3ebf6;
+  --nv-course-muted: #bcc9dc;
+  --nv-course-panel: hsl(var(--nv-course-hue) 30% 13%);
+  --nv-course-soft: hsl(var(--nv-course-hue) 35% 19%);
+  --nv-course-line: hsl(var(--nv-course-hue) 25% 38%);
+  --nv-course-glow: hsl(var(--nv-course-hue) 35% 22%);
+  --nv-fx-glow: hsl(var(--nv-course-hue) 35% 22% / .2);
+}
+
+@media (prefers-color-scheme: dark) {
+  .nv-course-cards[data-appearance="system"] .nv-course-cards__card[data-course-hue] {
+    --nv-course-text: #e3ebf6;
+    --nv-course-muted: #bcc9dc;
+    --nv-course-panel: hsl(var(--nv-course-hue) 30% 13%);
+    --nv-course-soft: hsl(var(--nv-course-hue) 35% 19%);
+    --nv-course-line: hsl(var(--nv-course-hue) 25% 38%);
+    --nv-course-glow: hsl(var(--nv-course-hue) 35% 22%);
+    --nv-fx-glow: hsl(var(--nv-course-hue) 35% 22% / .2);
+  }
+}

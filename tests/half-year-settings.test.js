@@ -78,6 +78,7 @@ function renderOpenCourseEditor(state, modules, course = null, options = {}) {
     courseEditorActiveTab: 'general',
     courseEditorTabCourseId: course ? course.id : null,
     currentSection: 'courses',
+    uiStateEpoch: 0,
     focusTargetHeading: false,
     dashboardMount: null,
     currentAppearance: { family: 'modern', accent: 'standard', background: 'standard' },

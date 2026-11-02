@@ -5,6 +5,7 @@ import {
 } from './state.js';
 import { isCanonicalTerm, normalizeAssessmentTerm } from './assessments.js';
 import { normalizeCourseSymbol } from './course-symbols.js';
+import { normalizeCourseCardHue } from './course-colors.js';
 import { parseAssessmentDateValue } from './terms.js';
 import {
   normalizeArchiveHistory, normalizeArchiveRetentionUntil, normalizeArchiveNote,
@@ -646,6 +647,9 @@ export function ensureStateShape(raw, now, termServices) {
       if (!c || typeof c !== 'object') return c;
       if (normalizeCourseSymbol(c.symbolId)) c.symbolId = normalizeCourseSymbol(c.symbolId);
       else delete c.symbolId;
+      const cardHue = normalizeCourseCardHue(c.cardHue);
+      if (cardHue !== null) c.cardHue = cardHue;
+      else delete c.cardHue;
       // Standardwert für includePrevTermGrades: bei Oberstufe (UPPERSEC) false, ansonsten (GRADES / Sek I) true
       if (c.includePrevTermGrades === undefined) {
         try {

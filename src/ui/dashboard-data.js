@@ -1,3 +1,5 @@
+import { normalizeCourseCardHue } from '../domain/course-colors.js';
+
 function normalizeText(value) {
   return value === undefined || value === null ? '' : String(value);
 }
@@ -26,6 +28,7 @@ export function buildDashboardCards({ state, domain, grading, now = new Date() }
       name: normalizeText(course.name),
       subject: normalizeText(course.subject),
       ...(course.symbolId ? { symbolId: course.symbolId } : {}),
+      ...(normalizeCourseCardHue(course.cardHue) !== null ? { cardHue: normalizeCourseCardHue(course.cardHue) } : {}),
       classLabel: normalizeText(course.classLabel),
       studentCount,
       termLabel

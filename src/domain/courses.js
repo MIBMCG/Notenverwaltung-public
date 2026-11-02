@@ -8,6 +8,7 @@ import {
 } from './state.js';
 import { isCanonicalTerm, listAssessmentsForCourse } from './assessments.js';
 import { normalizeCourseSymbol } from './course-symbols.js';
+import { normalizeCourseCardHue } from './course-colors.js';
 
 function normalizeWeightingDeviationReason(value) {
   const text = String(value || '').trim();
@@ -45,6 +46,7 @@ export function createCourse({
   name,
   subject,
   symbolId = null,
+  cardHue = null,
   classLabel,
   schemaMode = SCHEMA_MODES.GRADES,
   weightTemplateId = null,
@@ -68,6 +70,7 @@ export function createCourse({
     name: name ?? '',
     subject: subject ?? '',
     ...(normalizeCourseSymbol(symbolId) ? { symbolId: normalizeCourseSymbol(symbolId) } : {}),
+    ...(normalizeCourseCardHue(cardHue) !== null ? { cardHue: normalizeCourseCardHue(cardHue) } : {}),
     classLabel: classLabel ?? '',
     schemaMode,
     weightTemplateId,
@@ -319,6 +322,7 @@ export function createSuccessorCourseCandidate(oldCourse, targetYear, successorP
     name: oldCourse.name,
     subject: oldCourse.subject,
     symbolId: oldCourse.symbolId,
+    cardHue: oldCourse.cardHue,
     classLabel: oldCourse.classLabel,
     schemaMode: oldCourse.schemaMode,
     weightTemplateId: oldCourse.schemaMode === SCHEMA_MODES.UPPERSEC
