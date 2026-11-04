@@ -1,10 +1,10 @@
-# Notenverwaltung 1.7.1 – Kurzanleitung
+# Notenverwaltung 1.7.2 – Kurzanleitung
 
 Diese Anleitung beschreibt den vorgesehenen Alltag mit der lokalen
 `Notenverwaltung.html`. Die Anwendung benötigt keine Installation und keinen
 Internetanschluss.
 
-Version 1.7.1 vom 02.11.2026 richtet sich vor allem an Desktop-PCs und Laptops.
+Version 1.7.2 vom 04.11.2026 richtet sich vor allem an Desktop-PCs und Laptops.
 Die Nachrüstung eines Codes und eine Wiederherstellung wurden vom Nutzer
 erfolgreich ausprobiert; Browser, Betriebssystem und Wiederherstellungsvariante
 sind dabei nicht benannt. Eine vollständige Browser- oder Geräteabnahme liegt
@@ -194,8 +194,12 @@ Das Quellpasswort entschlüsselt nur die ausgewählte Sicherungsdatei. Der über
 Bestand wird anschließend mit dem bereits eingerichteten Passwort des Zielbrowsers
 gespeichert. Ein eingerichteter lokaler Code und seine Generation bleiben beim normalen Import ebenfalls erhalten. Beide Passwörter dürfen verschieden sein. Bei einem neuen Zielbrowser richtest du daher zuerst ein Zielpasswort ein und gibst beim Import zusätzlich das Passwort des Quellbackups ein.
 
-Auch **vollständig ersetzen** überträgt nicht sämtliche Einstellungen: Halbjahresgrenzen
-und Halbjahresnamen des Zielbrowsers bleiben erhalten. Prüfe diese Angaben nach der Wiederherstellung gesondert.
+**Vollständig ersetzen** übernimmt auch die gesicherten globalen Halbjahres-/Semestergrenzen
+und Bezeichnungen für Sek I und Sek II. Fehlen die Zeiträume oder Bezeichnungen
+einer Stufe in einer älteren Sicherung vollständig, werden die entsprechenden
+lokalen Einstellungen dieser Stufe soweit vorhanden ergänzt.
+**Zusammenführen** behält die lokal eingestellten globalen Zeiträume und Bezeichnungen bei. Prüfe die
+Zeiträume und Bezeichnungen nach der Wiederherstellung.
 
 ## Welches Austauschformat ist richtig?
 
@@ -224,7 +228,7 @@ im Klartext enthalten und müssen entsprechend geschützt werden.
    **vollständig ersetzen** in der Regel die passende Wahl.
 5. Lade neu, entsperre mit dem Zielpasswort und vergleiche Kurse, Personen,
    Leistungen, Noten und Archive stichprobenartig mit der Quelle. Prüfe außerdem
-   die am Ziel erhaltenen Halbjahresgrenzen und Halbjahresnamen.
+   die übernommenen Halbjahres-/Semestergrenzen und Bezeichnungen für Sek I und Sek II.
 
 Das Kopieren der HTML-Datei, Git oder eine Ordnersynchronisierung übertragen die
 Browserdaten nicht. Für den Datenumzug ist die verschlüsselte Backup-Datei nötig.

@@ -60,9 +60,9 @@ const DISPLAY_TIME_ZONE = Intl.DateTimeFormat().resolvedOptions().timeZone;
 
     // Sichtbare Programmversion. Unabhängig von state.version, das nur das Datenformat bezeichnet.
     const APP_RELEASE = Object.freeze({
-  version: "1.7.1",
-  dateIso: "2026-11-02",
-  dateLabel: "02.11.2026"
+  version: "1.7.2",
+  dateIso: "2026-11-04",
+  dateLabel: "04.11.2026"
     });
 
     // ------------------------------------------------------
@@ -14472,8 +14472,8 @@ ${buildPrintHeaderCss()}
           const jsonText = document.createElement("div");
           jsonText.className = "transfer-card-intro";
           jsonText.textContent =
-            "Eine Backup-Datei kann den gesamten Datenbestand mit Schüler:innen, Kursen, Leistungen und Archiven enthalten. " +
-            "Standardmäßig ersetzt der geprüfte Import den aktuellen Bestand. Aktiviere den Merge-Modus, um ihn stattdessen zusammenzuführen. Eine neue Sicherung erstellst du über „Backup“ in der Kopfleiste.";
+            "Eine Backup-Datei kann den gesamten Datenbestand mit Schüler:innen, Kursen, Leistungen, Archiven und Einstellungen enthalten. " +
+            "Standardmäßig ersetzt der geprüfte Import den aktuellen Bestand und übernimmt auch die gesicherten Zeiträume und Bezeichnungen für Sek I und Sek II. Im Merge-Modus bleiben die lokalen Zeiträume und Bezeichnungen erhalten. Eine neue Sicherung erstellst du über „Backup“ in der Kopfleiste.";
           jsonBox.appendChild(jsonText);
 
           const jsonRow = document.createElement("div");
@@ -14515,7 +14515,26 @@ ${buildPrintHeaderCss()}
             validateRawTermResults(parsedState);
             validateRawUpperSecContexts(parsedState);
             validateImportedState(parsedState);
-            let incoming = DomainModel.ensureStateShape(JSON.parse(JSON.stringify(parsedState)));
+            function prepareIncomingState(currentState) {
+              const raw = JSON.parse(JSON.stringify(parsedState));
+              if (!mergeMode) {
+                // Alte Backups ohne Stufen-Einstellungen behalten die lokalen Vorgaben.
+                // Vor der Migration ergänzen, damit auch fehlende Leistungsterme
+                // anhand der tatsächlich wiederhergestellten Zeiträume entstehen.
+                for (const key of ['halfYearSettings', 'halfYearNames']) {
+                  if (raw.settings[key] == null) raw.settings[key] = {};
+                  if (typeof raw.settings[key] !== 'object' || Array.isArray(raw.settings[key])) continue;
+                  for (const level of ['seckI', 'seckII']) {
+                    const local = currentState.settings?.[key]?.[level];
+                    if (raw.settings[key][level] == null && local) {
+                      raw.settings[key][level] = JSON.parse(JSON.stringify(local));
+                    }
+                  }
+                }
+              }
+              return DomainModel.ensureStateShape(raw);
+            }
+            const incoming = prepareIncomingState(state);
             validateImportedState(incoming);
             let candidate;
             let mergeSummary = null;
@@ -14524,9 +14543,6 @@ ${buildPrintHeaderCss()}
               candidate = merged.state; mergeSummary = merged.summary;
             } else {
               candidate = incoming;
-              // Halbjahresgrenzen und -namen sind lokale App-Einstellungen und werden nicht aus Backups übernommen.
-              if (state.settings?.halfYearSettings) candidate.settings.halfYearSettings = JSON.parse(JSON.stringify(state.settings.halfYearSettings));
-              if (state.settings?.halfYearNames) candidate.settings.halfYearNames = JSON.parse(JSON.stringify(state.settings.halfYearNames));
             }
             validateImportedState(candidate);
             const modeText = mergeMode ? 'zusammenführen' : 'vollständig ersetzen';
@@ -14543,14 +14559,11 @@ ${buildPrintHeaderCss()}
               }, { render: false });
               mergeSummary = actualSummary;
             } else {
-              const incomingReplacement = JSON.parse(JSON.stringify(incoming));
               await runExclusiveStateOperation(async function (importEpoch) {
                 try {
                   const persistedBefore = await Storage.loadCurrentSessionState();
                   if (uiStateEpoch !== importEpoch) throw createStateCommitAbortedError();
-                  const replacement = DomainModel.ensureStateShape(JSON.parse(JSON.stringify(incomingReplacement)));
-                  if (persistedBefore.settings?.halfYearSettings) replacement.settings.halfYearSettings = JSON.parse(JSON.stringify(persistedBefore.settings.halfYearSettings));
-                  if (persistedBefore.settings?.halfYearNames) replacement.settings.halfYearNames = JSON.parse(JSON.stringify(persistedBefore.settings.halfYearNames));
+                  const replacement = prepareIncomingState(persistedBefore);
                   validateImportedState(replacement);
                   await Storage.replaceState(replacement);
                   if (uiStateEpoch !== importEpoch) throw createStateCommitAbortedError();

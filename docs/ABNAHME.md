@@ -1,7 +1,8 @@
-# Abnahme und Prüfgrenzen – Version 1.7.1
+# Abnahme und Prüfgrenzen – Version 1.7.2
 
-**Stand: 02.11.2026.** Version 1.7.1 ergänzt automatische Fachfarben und einen
-Farbtonregler für Kurskacheln. Der Nutzer hat die Veröffentlichung ausdrücklich
+**Stand: 04.11.2026.** Version 1.7.2 korrigiert die Übernahme gesicherter
+Halbjahres-/Semestergrenzen und Bezeichnungen beim vollständigen Ersetzen
+eines Bestands. Der Nutzer hat die Veröffentlichung ausdrücklich
 beauftragt. Die folgenden Nachweise beschreiben ihren tatsächlichen Umfang;
 sie sind keine vollständige Freigabe aller Browser und Geräte.
 
@@ -12,7 +13,24 @@ sie sind keine vollständige Freigabe aller Browser und Geräte.
 `NOT RUN` einen fehlenden Nachweis. Automatisierte Tests und DOM-Harnesses
 ersetzen keine Bedienprüfung im realen Browser.
 
-## Aktueller Stand 1.7.1
+## Aktueller Stand 1.7.2
+
+| Bereich | Status | Reichweite |
+| --- | --- | --- |
+| Gesamtsuite am versionierten Releasequellstand 1.7.2 vom 04.11.2026 | PASS (Windows, Node 22.23.4) | 1.513 von 1.513 Tests bestanden, keine Fehler oder übersprungenen Fälle; Laufzeit 75,5 Sekunden. Syntax, bytegenaue HTML-Buildidentität, Befundregister (78/44), Dokumentlinks und alle 21 Paket-/Dokumenttests bestanden ebenfalls. |
+| Wiederherstellung der Zeiträume und Bezeichnungen | Technisch geprüft | Vollständiges Ersetzen übernimmt die gesicherten globalen Angaben für Sek I und Sek II; Zusammenführen erhält lokale globale Angaben. In älteren Sicherungen fehlende Einstellungsgruppen oder Stufeneinträge werden soweit vorhanden lokal ergänzt, bevor die bestehende Migration läuft. V1-Import mit Passwort sowie V2-Import mit Passwort oder passendem Code sind abgedeckt. |
+| Unabhängiges Review und Nachreview | Abgeschlossen | Keine offenen konkreten Befunde am geprüften Implementierungsstand. |
+| Finales Releasepaket, CI und öffentlicher Download | Commitbezogener Nachweis | [Release 1.7.2](https://github.com/MIBMCG/Notenverwaltung-public/releases/tag/v1.7.2) ordnet Paket, Prüfsummen und Tag zu; [GitHub Actions](https://github.com/MIBMCG/Notenverwaltung-public/actions) dokumentiert die Prüfungen des jeweiligen Quellstands. |
+| Native Browser- und Geräteabnahme | Nicht neu durchgeführt | Für 1.7.2 wird keine neue native Sicht-, Touch-, Druck- oder Geräteabnahme behauptet. Die nachfolgenden Praxisgrenzen bleiben bestehen. |
+
+Die Zeiträume und Bezeichnungen waren bereits in vollständigen Backups
+enthalten. Der Fehler lag im Import, der sie durch lokale Werte ersetzte.
+Eine vorhandene Quellsicherung kann mit der korrigierten Fassung erneut
+importiert werden; vollständiges Ersetzen überschreibt den aktuellen Bestand.
+Vorher diesen Bestand sichern. Verschlüsselungsformat, lokale Zugangsdaten
+und die Mindestversion für Codezugang ändern sich nicht.
+
+## Historische Nachweise zu 1.7.1
 
 | Bereich | Status | Reichweite |
 | --- | --- | --- |
@@ -41,8 +59,9 @@ nennt die geprüften Stände und technischen Einzelbefunde. Die
 enthält die Veröffentlichung und ihre Paketprüfsummen. Diese externen Links
 benötigen eine Internetverbindung.
 
-Paket, Prüfsummen und Tag der aktuellen Fassung gehören zur
-[Release-Seite für 1.7.1](https://github.com/MIBMCG/Notenverwaltung-public/releases/tag/v1.7.1);
+Paket, Prüfsummen und Tag der aktuellen Fassung werden der
+[Release-Seite für 1.7.2](https://github.com/MIBMCG/Notenverwaltung-public/releases/tag/v1.7.2)
+zugeordnet;
 die [GitHub-Actions-Läufe](https://github.com/MIBMCG/Notenverwaltung-public/actions)
 ordnen CI-Ergebnisse dem jeweiligen Commit zu.
 
@@ -51,7 +70,7 @@ ordnen CI-Ergebnisse dem jeweiligen Commit zu.
 Die Anwendung richtet sich vor allem an Desktop-PCs und Laptops. Das frühere
 M06-Dateistartgate mit Edge, Chrome und Firefox belegt die Architektur der
 Fenstersperre im damaligen Umfang; es ist keine vollständige Browserabnahme
-von 1.7.1. Frühere technische Prüfungen und persönliche Stichproben zu 1.6.0
+von 1.7.2. Frühere technische Prüfungen und persönliche Stichproben zu 1.6.0
 und älteren Versionen bleiben an ihre damaligen Stände gebunden. Der Nutzer
 hatte die vollständige frische Wiederholung der früheren Desktopmatrix am
 05.10.2026 beendet; daraus werden keine neuen PASS-Nachweise abgeleitet.

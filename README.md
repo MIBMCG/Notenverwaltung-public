@@ -4,7 +4,7 @@
 
 **Noten, Kurse und Schuljahre verwalten – lokal in deinem Browser.**
 
-[Version 1.7.1 vom 02.11.2026](docs/releases/1.7.1.md) · [Kurzanleitung](docs/KURZANLEITUNG.md) · [Prüfstand](docs/ABNAHME.md)
+[Version 1.7.2 vom 04.11.2026](docs/releases/1.7.2.md) · [Kurzanleitung](docs/KURZANLEITUNG.md) · [Prüfstand](docs/ABNAHME.md)
 
 </div>
 
@@ -34,7 +34,7 @@ Die [Abnahmeübersicht](docs/ABNAHME.md) nennt die Prüfgrenzen.
 
 ## In wenigen Schritten starten
 
-Lade das Anwendungspaket von der [Release-Seite für 1.7.1](https://github.com/MIBMCG/Notenverwaltung-public/releases/tag/v1.7.1)
+Lade das Anwendungspaket von der [Release-Seite für 1.7.2](https://github.com/MIBMCG/Notenverwaltung-public/releases/tag/v1.7.2)
 herunter und entpacke es vollständig in einen festen Ordner. Öffne
 `Notenverwaltung.html` im Browser. Beim ersten Start richtest du ein Passwort
 ein, sicherst den separaten Wiederherstellungscode und gibst ihn zur Bestätigung

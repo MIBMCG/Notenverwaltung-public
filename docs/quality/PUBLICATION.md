@@ -1,9 +1,10 @@
-# Veröffentlichung und prüfbarer Quellstand 1.7.1
+# Veröffentlichung und prüfbarer Quellstand 1.7.2
 
 Ziel ist das bestehende öffentliche Repository
 [MIBMCG/Notenverwaltung-public](https://github.com/MIBMCG/Notenverwaltung-public).
-Version 1.7.1 vom 02.11.2026 ergänzt automatische Fachfarben und einstellbare
-Kachelfarben. Die Veröffentlichung wurde am 02.11.2026 ausdrücklich beauftragt.
+Version 1.7.2 vom 04.11.2026 übernimmt beim vollständigen Ersetzen auch die
+gesicherten Halbjahres-/Semestergrenzen und Bezeichnungen für Sek I und Sek II.
+Die Veröffentlichung wurde am 04.11.2026 ausdrücklich beauftragt.
 Private
 Entwicklungshistorie, Supportdateien und echte Notenbestände gehören nicht zum
 öffentlichen Quellstand.
@@ -30,6 +31,13 @@ passende Rechte für symbolische Links. OneDrive-Reparsepunkte werden vom
 Snapshot-Werkzeug absichtlich abgewiesen; die Schutztests dürfen dafür nicht
 abgeschwächt werden.
 
+Am versionierten Releasequellstand 1.7.2 bestanden am 04.11.2026 unter
+Windows/Node 22.23.4 alle 1.513 Tests in 75,5 Sekunden. Unabhängiges Review
+und Nachreview sind ohne Restbefund abgeschlossen. Alle 21 Paket-/Dokumenttests
+sowie Syntax, Build-Identität, Befundregister und Dokumentlinks bestanden.
+CI und tatsächlicher öffentlicher Download werden separat dem Releasecommit
+zugeordnet; der lokale Lauf ersetzt diese Veröffentlichungskontrolle nicht.
+
 Das [Befundregister](current-findings.json) hält 78 historische Kennungen sowie
 44 aktuelle Quellhashes, Testdateien und Codeanker fest. Der
 [Implementierungsnachweis](password-recovery-verification.md) dokumentiert
@@ -39,8 +47,8 @@ die Entwicklungstests und ihre Grenzen. Technische Tests und
 ## Anwendungspaket
 
 ```sh
-npm run build:release -- --version 1.7.1 --out <absoluter-Ordner>
-npm run verify:release -- --zip <absoluter-ZIP-Pfad> --version 1.7.1
+npm run build:release -- --version 1.7.2 --out <absoluter-Ordner>
+npm run verify:release -- --zip <absoluter-ZIP-Pfad> --version 1.7.2
 ```
 
 Das Paket enthält genau zehn Dateien im ZIP-Wurzelverzeichnis. Seine
@@ -55,7 +63,7 @@ prüft das ZIP. Vor Veröffentlichung werden ein bytegleicher Doppelbuild, die
 2. Branch ohne Force-Push veröffentlichen, Pull Request auf `main` anlegen und
    alle vier CI-Jobs abwarten. Nur den unverändert geprüften Stand integrieren.
 3. Den integrierten Quellstand mit dem geprüften Branch vergleichen, erneut
-   erforderliche Prüfungen abwarten und `v1.7.1` auf diesen Commit setzen.
+   erforderliche Prüfungen abwarten und `v1.7.2` auf diesen Commit setzen.
    Bestehende Tags und alte Downloads bleiben unverändert.
 4. Release mit ZIP, äußerer Prüfsumme und Releasehinweisen veröffentlichen.
    GitHubs privates Vulnerability Reporting muss weiterhin aktiviert sein.
