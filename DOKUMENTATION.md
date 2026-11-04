@@ -44,9 +44,9 @@ Entwicklungswerkzeugen; die ausgelieferte Datei benötigt weiterhin keine
 Paketverwaltung und keine Serverkomponente. `Notenverwaltung.html` kann direkt
 im Browser geöffnet werden. Alle Nutzdaten werden lokal im Browser gespeichert.
 
-Programmfassung: **1.7.1 vom 02.11.2026**. Öffentliche Downloads gehören zum
+Programmfassung: **1.7.2 vom 04.11.2026**. Öffentliche Downloads gehören zum
 Repository MIBMCG/Notenverwaltung-public; die frühere private Ablage ist davon
-getrennt. Maßgeblich sind die [Release-Hinweise für 1.7.1](docs/releases/1.7.1.md).
+getrennt. Maßgeblich sind die [Release-Hinweise für 1.7.2](docs/releases/1.7.2.md).
 Die sichtbare Versionsnummer ist unabhängig von `state.version`, das nur das
 gespeicherte Datenformat bezeichnet. Ältere Prüfnachweise und Versionsangaben
 in den folgenden Abschnitten sind historische Zwischenstände.
@@ -110,7 +110,7 @@ Die Anwendung benoetigt einen Browser mit Unterstuetzung fuer:
 - moderne DOM-APIs
 
 Das frühe M06-Architekturgate für `file:` wurde mit Edge, Chrome und Firefox
-abgeschlossen. Daraus folgt keine vollständige Browserabnahme für Version 1.7.1.
+abgeschlossen. Daraus folgt keine vollständige Browserabnahme für Version 1.7.2.
 Die erfolgreiche Nutzerrückmeldung zu Nachrüstung und Wiederherstellung nennt
 keinen Browser und kein Betriebssystem. Safari/macOS sind damit nicht bestätigt.
 Fehlt die verlässliche Sperre, bleibt die Bearbeitung deaktiviert. Andere
@@ -478,7 +478,7 @@ Die Import-/Export-Ansicht unterstuetzt:
 
 Beim Import wird der Zustand ueber `DomainModel.ensureStateShape(...)` normalisiert.
 
-JSON- und Backupimporte werden vor der Uebernahme strukturell und referenziell validiert. Dabei werden auch doppelte Einschreibungen derselben Schueler-ID innerhalb eines Kurses sowie doppelte Unterkategorie-IDs innerhalb eines Archiv-Snapshots abgelehnt. Die Anwendung baut zuerst einen getrennten Kandidaten-State auf und speichert ihn verschluesselt, bevor er zum aktiven Zustand wird. Der Ersetzen-Modus verlangt zwei Bestaetigungen und behaelt die lokalen Halbjahresgrenzen und Halbjahresnamen bei. Das Passwort oder der Code einer Backup-Datei dient nur zu deren Entschluesselung.
+JSON- und Backupimporte werden vor der Uebernahme strukturell und referenziell validiert. Dabei werden auch doppelte Einschreibungen derselben Schueler-ID innerhalb eines Kurses sowie doppelte Unterkategorie-IDs innerhalb eines Archiv-Snapshots abgelehnt. Die Anwendung baut zuerst einen getrennten Kandidaten-State auf und speichert ihn verschluesselt, bevor er zum aktiven Zustand wird. Der Ersetzen-Modus verlangt zwei Bestaetigungen und uebernimmt auch die gesicherten globalen Halbjahres-/Semestergrenzen und Bezeichnungen fuer Sek I und Sek II. Fehlt in einer aelteren Sicherung eine ganze Einstellungsgruppe oder darin der Eintrag einer Stufe, werden die entsprechenden lokalen Stufeneintraege soweit vorhanden ergaenzt. Beim Zusammenfuehren bleiben die lokal eingestellten globalen Zeitraeume und Bezeichnungen erhalten. Das Passwort oder der Code einer Backup-Datei dient nur zu deren Entschluesselung.
 Ein normaler Import behält Passwort, Code und Generation des lokalen Bestands.
 Die getrennte Funktion **Zugang wiederherstellen** richtet dagegen ein neues
 Passwort und einen neuen bestätigten Code ein; eine Dateiwiederherstellung
@@ -802,8 +802,12 @@ Snapshot mit aktualisierter Sicherungszeit.
 
 Normaler Import validiert die Quelle, baut einen Kandidaten und speichert ihn
 mit dem bestehenden lokalen Passwort und gegebenenfalls Code. Die Quellzugänge
-ersetzen den lokalen Schutz nicht. Lokale Halbjahresgrenzen und -namen bleiben
-beim normalen Import erhalten. **Zugang wiederherstellen** ist ein eigener
+ersetzen den lokalen Schutz nicht. **Vollständig ersetzen** übernimmt auch die
+gesicherten globalen Halbjahres-/Semestergrenzen und Bezeichnungen für Sek I
+und Sek II. Fehlt in einer älteren Sicherung eine ganze Einstellungsgruppe
+oder darin der Eintrag einer Stufe, werden die entsprechenden lokalen
+Stufeneinträge soweit vorhanden ergänzt. **Zusammenführen** behält die lokal
+eingestellten globalen Zeiträume und Bezeichnungen bei. **Zugang wiederherstellen** ist ein eigener
 Ablauf mit neuem Passwort und Code und übernimmt bei einer Dateiquelle den
 vollständigen Dateiinhalt einschließlich seiner Einstellungen.
 
@@ -905,7 +909,7 @@ Der JSON-Import kann:
 - Raw-verschluesselte Backups laden.
 - importierte Daten optional mit dem aktuellen Datenbestand zusammenfuehren.
 
-Aktuelle Halbjahreseinstellungen werden beim Import bewusst beibehalten, damit ein Backup diese App-Einstellung nicht ungewuenscht ueberschreibt.
+Vollstaendiges Ersetzen uebernimmt die gesicherten globalen Halbjahres-/Semestergrenzen und Bezeichnungen fuer Sek I und Sek II. Fehlt eine ganze Einstellungsgruppe (`halfYearSettings` oder `halfYearNames`) oder darin ein Stufeneintrag (`seckI` oder `seckII`), werden die entsprechenden lokalen Stufeneintraege soweit vorhanden ergaenzt. Einzelne fehlende Felder innerhalb eines vorhandenen Stufeneintrags ergaenzt weiterhin die bestehende Migration nach ihren Standardregeln. Beim Zusammenfuehren bleiben die lokal eingestellten globalen Zeitraeume und Bezeichnungen erhalten.
 
 ## 8. Debug- und Test-Hooks
 
@@ -1179,7 +1183,7 @@ Erwartung: Die Gesamtberechnung aendert sich entsprechend.
 2. Anwendung zuruecksetzen.
 3. Backup importieren.
 
-Erwartung: Nach Dateipruefung werden Modus und Umfang angezeigt. Ersetzen verlangt eine zweite Bestaetigung. Daten werden verschluesselt wiederhergestellt; Anwendungspasswort sowie lokale Halbjahresgrenzen und -namen bleiben unveraendert.
+Erwartung: Nach Dateipruefung werden Modus und Umfang angezeigt. Ersetzen verlangt eine zweite Bestaetigung. Daten werden verschluesselt wiederhergestellt; das Anwendungspasswort bleibt unveraendert. Ersetzen uebernimmt die gesicherten globalen Halbjahres-/Semestergrenzen und Bezeichnungen fuer Sek I und Sek II. Fehlt in einer aelteren Sicherung eine ganze Einstellungsgruppe oder darin der Eintrag einer Stufe, werden die entsprechenden lokalen Stufeneintraege soweit vorhanden ergaenzt. Zusammenfuehren behaelt die lokal eingestellten globalen Zeitraeume und Bezeichnungen bei.
 
 ### CSV-Import
 

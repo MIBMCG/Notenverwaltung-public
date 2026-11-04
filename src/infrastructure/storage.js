@@ -1180,7 +1180,13 @@ export function createStorage({ DomainModel, createInitialState, sessionCoordina
       async function _importV2(text,access) {
         const context = _capturePreparation();
         const opened = await _openChecked(text,access,context);
-        try { _assertPreparation(context); return _parseRecoveryState(opened.stateJson); }
+        try {
+          _assertPreparation(context);
+          // _openChecked has validated both the raw and migrated state. As for
+          // V1, keep absent source fields visible until the import commit can
+          // apply local fallbacks before migrating dated assessments.
+          return JSON.parse(opened.stateJson);
+        }
         finally { disposeEnvelopeSession(opened.session); }
       }
       function importStateEncryptedWithRecovery(text,code) { return _importV2(text,{kind:'recovery',value:code}); }

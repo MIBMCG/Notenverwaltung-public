@@ -259,7 +259,7 @@ test('built HTML keeps a sparse confirmed edit across immediate backup, manual l
   assert.equal(storage.getItem('notenverwaltung_v1_state'), null);
 });
 
-test('rendered Replace and repeatable Merge preserve archive, Q4, fixed zero, profile and local half-year settings with separate passwords', async () => {
+test('rendered Replace restores backup periods and repeatable Merge preserves them alongside archive, Q4, fixed zero and profile', async () => {
   const { DomainModel } = loadModules();
   const { normal } = createReleaseFixtures(DomainModel);
   const source = plain(normal.state);
@@ -291,8 +291,8 @@ test('rendered Replace and repeatable Merge preserve archive, Q4, fixed zero, pr
   assert.equal(restored.courses.find(course => course.id === 'release-normal-q4').enrollments.find(item =>
     item.studentId === 'release-normal-person-26').writtenExamSubjectQ4, true);
   assert.deepEqual(restored.settings.schoolProfile, source.settings.schoolProfile);
-  assert.equal(restored.settings.halfYearSettings.seckI.h1EndMonth, 4);
-  assert.equal(restored.settings.halfYearNames.seckI.h1, 'Lokal H1');
+  assert.deepEqual(restored.settings.halfYearSettings, source.settings.halfYearSettings);
+  assert.deepEqual(restored.settings.halfYearNames, source.settings.halfYearNames);
   assert.equal(restored.courses.some(course => course.id === 'local-only-course'), false);
   assert.equal(alerts.at(-1), 'Import erfolgreich und verschlüsselt gespeichert.');
 
@@ -301,6 +301,8 @@ test('rendered Replace and repeatable Merge preserve archive, Q4, fixed zero, pr
   });
   const mergedSource = plain(source);
   mergedSource.courses.push(extra);
+  mergedSource.settings.halfYearSettings.seckI.h1EndMonth = 5;
+  mergedSource.settings.halfYearNames.seckI.h1 = 'Abweichendes Merge-Halbjahr';
   const mergeText = await app.Storage.exportStateEncrypted(sourcePassword, mergedSource);
   await submit(mergeText, true);
   const once = plain(await app.Storage.loadCurrentSessionState());
@@ -308,7 +310,8 @@ test('rendered Replace and repeatable Merge preserve archive, Q4, fixed zero, pr
   const twice = plain(await app.Storage.loadCurrentSessionState());
   assert.deepEqual(twice, once, 'repeat Merge must not duplicate students, courses, archives or grades');
   assert.equal(twice.courses.filter(course => course.id === extra.id).length, 1);
-  assert.equal(twice.settings.halfYearNames.seckI.h1, 'Lokal H1');
+  assert.deepEqual(twice.settings.halfYearSettings, source.settings.halfYearSettings);
+  assert.deepEqual(twice.settings.halfYearNames, source.settings.halfYearNames);
 });
 
 test('both Replace confirmations and the Merge preview cancel without changing encrypted target bytes', async () => {

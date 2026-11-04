@@ -1,5 +1,18 @@
 # Änderungen
 
+## 1.7.2 – 04.11.2026
+
+- Beim vollständigen Wiederherstellen eines Backups werden jetzt auch die
+  gesicherten Halbjahres-/Semestergrenzen und Bezeichnungen für Sek I und Sek II
+  übernommen. Bisher waren sie in der Sicherung enthalten, wurden beim Import
+  aber durch die lokalen Einstellungen ersetzt.
+- Fehlen einer älteren Sicherung diese Einstellungsgruppen oder die Angaben
+  einer ganzen Stufe, bleiben die entsprechenden lokalen Vorgaben erhalten.
+  Das gilt für beide verschlüsselten Formate, auch beim Dateiimport mit Code.
+  Beim Zusammenführen bleiben die lokalen Zeiträume und Bezeichnungen bestehen.
+
+[Release-Hinweise und Umstieg](docs/releases/1.7.2.md).
+
 ## 1.7.1 – 02.11.2026
 
 - Kurskacheln erhalten automatisch eine Hintergrundfarbe passend zum Fach.

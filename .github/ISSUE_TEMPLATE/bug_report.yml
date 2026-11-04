@@ -10,7 +10,7 @@ body:
     id: version
     attributes:
       label: Programmversion
-      placeholder: "1.7.1"
+      placeholder: "1.7.2"
     validations:
       required: true
   - type: input

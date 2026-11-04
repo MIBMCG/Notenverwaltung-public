@@ -1,5 +1,60 @@
 # Aktueller Arbeitsstand
 
+## Version 1.7.2: Zeiträume aus Backups wiederherstellen – 04.11.2026
+
+Arbeitsordner: `Notenverwaltung-public`, Branch `codex/backup-period-settings`,
+Basis `c1049461e66aff9f6dff74f79b3caef3053cfe35` (öffentliches Release 1.7.1).
+Der Nutzer hat die Veröffentlichung als **1.7.2** ausdrücklich beauftragt.
+Produktversion und Datum sind auf 1.7.2 / 04.11.2026 gesetzt. Integration,
+CI-Ergebnisse und öffentliche Downloads werden am endgültigen Commit geprüft;
+die folgenden lokalen Nachweise ersetzen diese Veröffentlichungskontrolle nicht.
+
+Der versionierte Releasequellstand 1.7.2 bestand anschließend erneut
+**1.513/1.513 Tests** (Windows/Node 22.23.4, 75,5 Sekunden), 0 Fehler und
+0 übersprungene Fälle. Alle 21 Paket-/Dokumenttests, Syntax, bytegenaue
+HTML-Buildidentität, Befundregister und Dokumentlinks bestanden.
+Release-Review und Nachreview ohne offene Befunde; 257 öffentliche Dateien
+explizit im Manifest, keine privaten Supportdateien. Eine noch auf 1.7.1
+festgelegte negative Pakettesterwartung wurde an die Releaseversion gebunden.
+Finales lokales Protokoll: `.superpowers/release-1.7.2-full-final.log`.
+
+Die gesicherten Einstellungen waren bereits vollständig im Backup enthalten.
+Der normale Ersetzen-Import überschrieb jedoch `halfYearSettings` und
+`halfYearNames` mit den lokalen Werten. Er übernimmt jetzt die gesicherten
+Grenzen und Bezeichnungen für Sek I und Sek II. Zusammenführen behält die
+lokalen globalen Vorgaben. Fehlen ganze Einstellungsgruppen oder Stufeneinträge
+in alten Dateien, werden lokale Vorgaben vor der Migration ergänzt. Einzelne
+fehlende Felder normalisiert weiterhin die bestehende Migration.
+
+Auch V2-Entschlüsselung liefert nach vollständiger Inhaltsprüfung die rohen
+Importdaten zurück, damit fehlende Angaben bis zum Import erkennbar bleiben.
+Authentifizierung, Sitzungsprüfung und Verschlüsselung sind unverändert.
+
+Regressionen prüfen tatsächliches Speichern der Einstellungen, den Backupknopf
+mit V1/V2, Dateiimport und erneutes Öffnen sowie alte Sicherungen mit fehlenden
+Gruppen/Stufen über V1-Passwort, V2-Passwort und V2-Code. Automatische
+Leistungszuordnung wird anhand der tatsächlich übernommenen Grenzen geprüft.
+Zusätzliche Prüfungen decken das gebaute HTML und unveränderte Merge-Vorgaben ab.
+Vor der Korrektur wurden die Importverluste beobachtbar reproduziert.
+
+Abschließend am 04.11.2026 unter Windows/Node 22.23.4 geprüft:
+**1.513/1.513 Tests bestanden**, 0 Fehler, 0 übersprungen (74,5 Sekunden).
+79 gezielte Import-/Recovery-/Workflowtests bestanden zuvor ebenfalls.
+Syntax, bytegenaue HTML-Buildidentität, Befundregister (78/44), lokale
+Dokumentlinks und `git diff --check` bestanden. Der erste Gesamtlauf enthielt
+vier Sandbox-Rechtefehler beim Anlegen temporärer Hardlinks/Junctions sowie
+einen fehlenden Hinweis auf den standardmäßigen Ersetzen-Modus. Der Hinweis
+ist ergänzt; der abschließende Lauf lief außerhalb der Sandbox mit
+unveränderten Schutztests und festem temporärem Testordner.
+
+Ein unabhängiges Review fand die verfrühte Normalisierung im V2-Import.
+Der Befund ist korrigiert und durch vorher fehlgeschlagene Regressionen
+abgesichert; enger Nachreview ohne weitere Befunde. Prüfungen verwenden
+ausschließlich synthetische Daten und DOM-Harnesses, keine neue native
+Browser-/Geräteabnahme. Lokale, nicht versionierte Protokolle liegen unter
+`.superpowers/backup-periods-*.log`; der finale Lauf ist
+`.superpowers/backup-periods-full-final.log`.
+
 ## Version 1.7.1: einstellbare Kursfarben – 02.11.2026
 
 Aktiver Arbeitsordner: `Notenverwaltung-public`. Implementierungszweig:

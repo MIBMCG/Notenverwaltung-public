@@ -11,7 +11,7 @@ export const DEFAULT_DOCS = Object.freeze([
   'docs/quality/PUBLICATION.md', 'docs/quality/release-checklist.md',
   'docs/releases/1.3.0.md', 'docs/releases/1.4.0.md',
   'docs/releases/1.5.0.md', 'docs/releases/1.5.1.md', 'docs/releases/1.6.0.md',
-  'docs/releases/1.7.0.md', 'docs/releases/1.7.1.md', 'docs/quality/password-recovery-verification.md',
+  'docs/releases/1.7.0.md', 'docs/releases/1.7.1.md', 'docs/releases/1.7.2.md', 'docs/quality/password-recovery-verification.md',
   'docs/ui/concepts/README.md'
 ]);
 

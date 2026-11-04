@@ -123,22 +123,33 @@ test('artifact JSON commit stops at either confirmation without saving or changi
   }
 });
 
-test('artifact JSON commit preserves local half-year settings and saves only after both replace confirmations', async () => {
+test('artifact JSON commit restores backup half-year settings and saves only after both replace confirmations', async () => {
   const modules = loadModules();
   const local = modules.DomainModel.createEmptyState();
   local.settings.halfYearNames = { seckI: { h1: 'Lokal H1', h2: 'Lokal H2' }, seckII: { h1: 'Lokal Q1', h2: 'Lokal Q2' } };
   local.settings.halfYearSettings = { seckI: { schoolYearStartYear: 2031 }, seckII: { schoolYearStartYear: 2032 } };
   const incoming = modules.DomainModel.createEmptyState();
   incoming.settings.halfYearNames = { seckI: { h1: 'Fremd H1', h2: 'Fremd H2' }, seckII: { h1: 'Fremd Q1', h2: 'Fremd Q2' } };
-  incoming.settings.halfYearSettings = { seckI: { schoolYearStartYear: 2041 }, seckII: { schoolYearStartYear: 2042 } };
+  incoming.settings.halfYearSettings = {
+    seckI: {
+      schoolYearStartYear: 2041, schoolYearStartMonth: 8, schoolYearStartDay: 26,
+      h1EndYear: 2042, h1EndMonth: 1, h1EndDay: 23,
+      h2StartYear: 2042, h2StartMonth: 2, h2StartDay: 2
+    },
+    seckII: {
+      schoolYearStartYear: 2042, schoolYearStartMonth: 9, schoolYearStartDay: 2,
+      h1EndYear: 2043, h1EndMonth: 2, h1EndDay: 13,
+      h2StartYear: 2043, h2StartMonth: 2, h2StartDay: 17
+    }
+  };
   const importer = loadArtifactCommit({ initialState: local, confirmed: [true, true] });
 
   assert.equal(await importer.commit(incoming, 'JSON-Datei'), true);
   assert.equal(importer.saves.length, 1);
-  assert.deepEqual(importer.saves[0].settings.halfYearNames, local.settings.halfYearNames);
-  assert.deepEqual(importer.saves[0].settings.halfYearSettings, local.settings.halfYearSettings);
-  assert.deepEqual(JSON.parse(JSON.stringify(importer.state())).settings.halfYearNames, local.settings.halfYearNames);
-  assert.deepEqual(JSON.parse(JSON.stringify(importer.state())).settings.halfYearSettings, local.settings.halfYearSettings);
+  assert.deepEqual(importer.saves[0].settings.halfYearNames, incoming.settings.halfYearNames);
+  assert.deepEqual(importer.saves[0].settings.halfYearSettings, incoming.settings.halfYearSettings);
+  assert.deepEqual(JSON.parse(JSON.stringify(importer.state())).settings.halfYearNames, incoming.settings.halfYearNames);
+  assert.deepEqual(JSON.parse(JSON.stringify(importer.state())).settings.halfYearSettings, incoming.settings.halfYearSettings);
   assert.equal(importer.alerts[0], 'Import erfolgreich und verschlüsselt gespeichert.');
 });
 

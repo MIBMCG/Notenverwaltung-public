@@ -94,6 +94,145 @@ test('structured backup file replaces the persisted state only after both confir
   assert.equal(harness.input.value, '');
 });
 
+const savedPeriods = {
+  seckI: {
+    schoolYearStartYear: 2030, schoolYearStartMonth: 8, schoolYearStartDay: 26,
+    h1EndYear: 2031, h1EndMonth: 1, h1EndDay: 23,
+    h2StartYear: 2031, h2StartMonth: 2, h2StartDay: 2
+  },
+  seckII: {
+    schoolYearStartYear: 2030, schoolYearStartMonth: 9, schoolYearStartDay: 2,
+    h1EndYear: 2031, h1EndMonth: 2, h1EndDay: 13,
+    h2StartYear: 2031, h2StartMonth: 2, h2StartDay: 17
+  }
+};
+const savedPeriodNames = {
+  seckI: { h1: 'Erstes Halbjahr', h2: 'Zweites Halbjahr' },
+  seckII: { h1: 'Semester A', h2: 'Semester B' }
+};
+const plain = value => JSON.parse(JSON.stringify(value));
+
+// Catches replacement silently overwriting dates/names that the real backup
+// button exported correctly. Uses separate source/target browser storage.
+for (const protection of ['V1', 'V2']) {
+  test(`${protection} header backup restores saved Sek-I and Sek-II periods after reopening`, async () => {
+    const source = await loadDashboardUi();
+    if (protection === 'V2') {
+      const prepared = await source.Storage.prepareRecoveryEnrollment({ password: source.password });
+      await source.Storage.confirmPreparedProtection(prepared.token, prepared.recoveryCode);
+      await source.Storage.commitPreparedProtection(prepared.token);
+    }
+    const downloads = [];
+    source.sandbox.downloadBlobFile = content => downloads.push(content);
+    await source.UiShell.init('app');
+    await findByText(source.root, 'Einstellungen').dispatch('click');
+    const fields = {
+      seckI: ['2030-08-26', '2031-01-23', '2031-02-02', 'Erstes Halbjahr', 'Zweites Halbjahr'],
+      seckII: ['2030-09-02', '2031-02-13', '2031-02-17', 'Semester A', 'Semester B']
+    };
+    for (const [level, values] of Object.entries(fields)) {
+      await findByAttribute(source.root, 'data-settings-stage', level).dispatch('click');
+      for (const [index, field] of ['school-year-start', 'h1-end', 'h2-start', 'h1-name', 'h2-name'].entries()) {
+        const input = findByAttribute(source.root, 'id', `settings-${level}-${field}`);
+        input.value = values[index];
+        await input.dispatch('input');
+      }
+    }
+    await findByText(source.root, 'Zeiträume für Sek I und Sek II speichern').dispatch('click');
+    const backupButton = source.root._find(element => element.className === 'header-action header-action-primary');
+    await backupButton.dispatch('click');
+    assert.equal(downloads.length, 1);
+    const text = downloads[0];
+    const exported = protection === 'V2'
+      ? await source.Storage.importStateEncryptedFromText(text, source.password)
+      : JSON.parse(await source.Storage._decryptPayload(text, source.password));
+    assert.deepEqual(plain(exported.settings.halfYearSettings), savedPeriods);
+    assert.deepEqual(plain(exported.settings.halfYearNames), savedPeriodNames);
+
+    const target = await createImportHarness();
+    target.setDialogs({ passwords: [source.password], confirms: [true, true] });
+    await target.importFile({ name: 'synthetic-periods.enc.json', text });
+    const restored = await target.loadedState();
+    assert.deepEqual(plain(restored.settings.halfYearSettings), savedPeriods);
+    assert.deepEqual(plain(restored.settings.halfYearNames), savedPeriodNames);
+    assert.equal(target.confirmations.length, 2);
+
+    await target.app.Storage.lockSession();
+    const reopened = await loadDashboardUi({
+      storage: target.app.storage, lockManager: target.app.lockManager, useExistingStorage: true
+    });
+    await reopened.UiShell.init('app');
+    await findByText(reopened.root, 'Einstellungen').dispatch('click');
+    for (const [level, values] of Object.entries(fields)) {
+      for (const [index, field] of ['school-year-start', 'h1-end', 'h2-start', 'h1-name', 'h2-name'].entries()) {
+        assert.equal(findByAttribute(reopened.root, 'id', `settings-${level}-${field}`).value, values[index]);
+      }
+    }
+  });
+}
+
+for (const access of ['V1 password', 'V2 password', 'V2 recovery code']) {
+ for (const missing of ['all periods', 'Sek II only']) {
+  test(`${access} legacy backup missing ${missing} retains local settings before assigning assessment terms`, async () => {
+    const harness = await createImportHarness(state => {
+      state.settings.halfYearSettings = plain(savedPeriods);
+      state.settings.halfYearNames = plain(savedPeriodNames);
+    });
+    const incoming = createState(harness.app.DomainModel, 'Altbackup');
+    incoming.courses[0].schemaMode = 'uppersec';
+    incoming.courses[0].schoolYearStartYear = 2030;
+    const assessment = harness.app.DomainModel.createAssessment({
+      id: 'legacy-without-term', courseId: incoming.courses[0].id,
+      categoryId: incoming.settings.categories[0].id, title: 'Synthetische Leistung', date: '2031-02-10'
+    });
+    delete assessment.term;
+    delete assessment.termAssignment;
+    incoming.assessments.push(assessment);
+    incoming.settings.halfYearSettings.seckI = {
+      schoolYearStartYear: 2028, schoolYearStartMonth: 8, schoolYearStartDay: 21,
+      h1EndYear: 2029, h1EndMonth: 1, h1EndDay: 25,
+      h2StartYear: 2029, h2StartMonth: 2, h2StartDay: 5
+    };
+    incoming.settings.halfYearNames.seckI = { h1: 'Quelle H1', h2: 'Quelle H2' };
+    const expectedDates = { ...plain(savedPeriods), seckI: plain(incoming.settings.halfYearSettings.seckI) };
+    const expectedNames = { ...plain(savedPeriodNames), seckI: plain(incoming.settings.halfYearNames.seckI) };
+    if (missing === 'all periods') {
+      delete incoming.settings.halfYearSettings;
+      delete incoming.settings.halfYearNames;
+    } else {
+      delete incoming.settings.halfYearSettings.seckII;
+      delete incoming.settings.halfYearNames.seckII;
+    }
+    let text;
+    let recoveryCode;
+    if (access.startsWith('V2')) {
+      const source = await loadDashboardUi();
+      const prepared = await source.Storage.prepareRecoveryEnrollment({ password: source.password });
+      await source.Storage.confirmPreparedProtection(prepared.token, prepared.recoveryCode);
+      await source.Storage.commitPreparedProtection(prepared.token);
+      text = await source.Storage.encryptForBackup(JSON.stringify(incoming));
+      recoveryCode = prepared.recoveryCode;
+    } else {
+      text = await harness.app.Storage.exportStateEncrypted(harness.app.password, incoming);
+    }
+    harness.setDialogs({ passwords: [harness.app.password], confirms: [true, true] });
+    if (access === 'V2 recovery code') {
+      harness.app.sandbox.window.promptPassword = async options => {
+        if (options.secretKind === 'recovery-code') return recoveryCode;
+        assert.equal(await options.onRecovery(), true);
+        return null;
+      };
+    }
+    await harness.importFile({ name: 'synthetic-legacy-periods.enc.json', text });
+    const restored = await harness.loadedState();
+    assert.equal(restored.courses[0].id, 'Altbackup-course');
+    assert.deepEqual(plain(restored.settings.halfYearSettings), missing === 'all periods' ? savedPeriods : expectedDates);
+    assert.deepEqual(plain(restored.settings.halfYearNames), missing === 'all periods' ? savedPeriodNames : expectedNames);
+    assert.equal(restored.assessments[0].term, '2030-H1', 'February 10 precedes the restored Sek-II H2 start on February 17');
+  });
+ }
+}
+
 test('encrypted backup replacement restores the chosen course symbol from a different source password', async () => {
   const harness = await createImportHarness();
   const incoming = createState(harness.app.DomainModel, 'Symbol');
@@ -112,6 +251,8 @@ test('encrypted backup replacement restores the chosen course symbol from a diff
 test('raw portable backup file merges through the rendered change handler', async () => {
   const harness = await createImportHarness();
   const incoming = createState(harness.app.DomainModel, 'Import');
+  incoming.settings.halfYearSettings = plain(savedPeriods);
+  incoming.settings.halfYearNames = plain(savedPeriodNames);
   const text = await harness.app.Storage._encryptJsonWithSalt(JSON.stringify(incoming), harness.app.password);
   harness.merge.checked = true;
   harness.setDialogs({ passwords: [harness.app.password], confirms: [true] });
@@ -125,6 +266,9 @@ test('raw portable backup file merges through the rendered change handler', asyn
   assert.equal(harness.confirmations.length, 1);
   assert.deepEqual(Array.from(loaded.students, student => student.id).sort(), ['Import-student', 'Lokal-student']);
   assert.deepEqual(Array.from(loaded.courses, course => course.id).sort(), ['Import-course', 'Lokal-course']);
+  const original = JSON.parse(harness.initialSnapshot);
+  assert.deepEqual(plain(loaded.settings.halfYearSettings), original.settings.halfYearSettings);
+  assert.deepEqual(plain(loaded.settings.halfYearNames), original.settings.halfYearNames);
 });
 
 test('merge preview ignores identical active and archived entries while preserving source and target courses', async () => {

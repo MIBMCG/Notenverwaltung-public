@@ -1,6 +1,6 @@
 # Mitwirken und Fehler melden
 
-Für Beiträge und Fehlerberichte zur Version 1.7.1 vom 02.11.2026 bitte die betroffene Programmversion, Browser samt Version,
+Für Beiträge und Fehlerberichte zur Version 1.7.2 vom 04.11.2026 bitte die betroffene Programmversion, Browser samt Version,
 Betriebssystem, Startart (`file:` oder andere Adresse), Schritte zum
 Nachstellen sowie erwartetes und beobachtetes Ergebnis nennen. Bei Problemen
 mit Wiederherstellung oder Import auch angeben, ob der lokale Bestand oder eine
