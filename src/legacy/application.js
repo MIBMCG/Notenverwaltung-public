@@ -11247,17 +11247,28 @@ ${buildPrintHeaderCss()}
 
                 // Merke zuletzt bekannten Status, damit wir bei ungültigen Änderungen zurücksetzen können
                 let lastStatus = status;
-                const beginScoreInteraction = createLatestInteractionGuard();
                 let suppressedChangeSignature = null;
                 let lastSavedSignature = null;
                 let pendingSavePromise = null;
                 let failedSaveBlocksNextFinish = false;
+                let draftRevision = 0;
+                let cancelledSignature = null;
+
+                function beginScoreEdit() {
+                  draftRevision++;
+                  cancelledSignature = null;
+                  suppressedChangeSignature = null;
+                }
 
                 function scoreChangeSignature(raw, scoreStatus) {
                   return JSON.stringify([String(raw || '').trim(), scoreStatus]);
                 }
 
-                lastSavedSignature = scoreChangeSignature(input.value, statusSelect.value);
+                function editorSignature() {
+                  return scoreChangeSignature(input.value, statusSelect.value);
+                }
+
+                lastSavedSignature = editorSignature();
 
                 function updateCurrentRowAverages() {
                   const currentRow = input.closest('tr');
@@ -11316,19 +11327,21 @@ ${buildPrintHeaderCss()}
                   );
                 }
 
-                function restoreCellAfterSaveFailure(message) {
+                function restoreConfirmedScore(message = '') {
                   const assessment = DomainModel.findAssessmentById(state, asm.id);
                   const restored = assessment && assessment.scores ? assessment.scores[stu.id] : null;
                   input.value = restored && restored.valueRaw != null ? String(restored.valueRaw) : '';
-                  statusSelect.value = restored ? restored.status : status;
+                  statusSelect.value = restored ? restored.status : DomainModel.SCORE_STATUS.VALID;
                   lastStatus = statusSelect.value;
                   updateStatusIconFor(lastStatus, input.value);
                   updateCurrentCellPresentation();
                   updateCurrentRowAverages();
+                  input.classList.remove('gradesheet-input-invalid');
+                  input.title = '';
                   input.setAttribute('aria-invalid', 'false');
                   errorEl.textContent = message;
-                  errorEl.style.display = 'block';
-                  lastSavedSignature = scoreChangeSignature(input.value, statusSelect.value);
+                  errorEl.style.display = message ? 'block' : 'none';
+                  lastSavedSignature = editorSignature();
                 }
 
                 function validateCurrentGradesheetScore(newRaw, newStatus, statusError) {
@@ -11342,11 +11355,13 @@ ${buildPrintHeaderCss()}
                 }
 
                 function saveCurrentGradesheetEditor() {
+                  const revision = draftRevision;
                   if (pendingSavePromise) {
-                    const requestedSignature = scoreChangeSignature(input.value, statusSelect.value);
+                    const requestedSignature = editorSignature();
                     return pendingSavePromise.then(function (saved) {
-                      const requestIsStillCurrent = scoreChangeSignature(input.value, statusSelect.value) === requestedSignature;
-                      return saved || requestIsStillCurrent ? saveCurrentGradesheetEditor() : false;
+                      if (!saved && failedSaveBlocksNextFinish) return false;
+                      if (revision !== draftRevision || editorSignature() !== requestedSignature) return saved;
+                      return saveCurrentGradesheetEditor();
                     });
                   }
                   const newRaw = String(input.value || "").trim();
@@ -11361,32 +11376,35 @@ ${buildPrintHeaderCss()}
                     errorEl.style.display = 'none';
                     return true;
                   }
-                  const isLatestInteraction = beginScoreInteraction();
                   const operation = (async function () {
                     try {
                       await persistCurrentGradesheetScore(newRaw, currentStatus);
                       lastSavedSignature = signature;
-                      if (!isLatestInteraction() ||
-                          scoreChangeSignature(input.value, statusSelect.value) !== signature) return true;
+                      lastStatus = currentStatus;
+                      if (cancelledSignature === editorSignature()) {
+                        restoreConfirmedScore();
+                        return true;
+                      }
+                      updateStatusIconFor(currentStatus, newRaw);
+                      updateCurrentCellPresentation();
+                      updateCurrentRowAverages();
+                      if (revision !== draftRevision || editorSignature() !== signature) return true;
                       input.classList.remove("gradesheet-input-invalid");
                       input.title = '';
                       input.setAttribute('aria-invalid', 'false');
                       errorEl.textContent = '';
                       errorEl.style.display = 'none';
-                      lastStatus = currentStatus;
-                      updateStatusIconFor(currentStatus, input.value);
-                      updateCurrentCellPresentation();
-                      updateCurrentRowAverages();
                       return true;
                     } catch (error) {
-                      if (!isLatestInteraction() ||
-                          scoreChangeSignature(input.value, statusSelect.value) !== signature) return false;
-                      restoreCellAfterSaveFailure('Speichern fehlgeschlagen. Die vorherige Eingabe bleibt erhalten.');
+                      const visible = editorSignature();
+                      if (visible !== cancelledSignature && (revision !== draftRevision || visible !== signature)) return false;
+                      restoreConfirmedScore('Speichern fehlgeschlagen. Die vorherige Eingabe bleibt erhalten.');
                       failedSaveBlocksNextFinish = true;
                       return false;
                     } finally {
                       if (pendingSavePromise === operation) {
                         pendingSavePromise = null;
+                        cancelledSignature = null;
                       }
                     }
                   })();
@@ -11435,6 +11453,8 @@ ${buildPrintHeaderCss()}
                 // ------------------------------------------------------
                 input.addEventListener("keydown", async function (e) {
                   if (e.key === "Enter" || e.key === "Tab" || e.key === "ArrowDown" || e.key === "ArrowUp") {
+                    const navigationRevision = draftRevision;
+                    const focusAtKeydown = document.activeElement;
                     e.preventDefault();
                     e.stopPropagation();
                     e.stopImmediatePropagation();
@@ -11451,15 +11471,18 @@ ${buildPrintHeaderCss()}
 
                     // Wenn wir speichern sollen (Enter/Tab), validiere und speichere
                     if (shouldSave) {
+                      const submittedSignature = editorSignature();
                       const saved = await saveCurrentGradesheetEditor();
-                      if (!saved) return false;
-                      suppressedChangeSignature = scoreChangeSignature(input.value, statusSelect.value);
+                      if (!saved || draftRevision !== navigationRevision ||
+                          editorSignature() !== submittedSignature) return false;
+                      suppressedChangeSignature = submittedSignature;
                     }
 
                     // Springe zum Zielfeld (wenn es existiert) - mit setTimeout um sicherzustellen dass der Event vollständig verarbeitet ist
                     if (targetInput) {
                       // Kleines Timeout um sicherzustellen dass kein anderer Event-Handler dazwischen funkt
                       setTimeout(function() {
+                        if (draftRevision !== navigationRevision || document.activeElement !== focusAtKeydown) return;
                         targetInput.focus();
                         targetInput.select();
                       }, 0);
@@ -11468,14 +11491,17 @@ ${buildPrintHeaderCss()}
                     return false;
                   } else if (e.key === "Escape") {
                     e.preventDefault();
-                    // Verlasse Eingabe ohne Speichern - setze auf ursprünglichen Wert zurück
-                    const entry = asm.scores ? asm.scores[stu.id] : undefined;
-                    const originalValue = entry && entry.valueRaw != null ? String(entry.valueRaw) : "";
-                    input.value = originalValue;
+                    beginScoreEdit();
+                    failedSaveBlocksNextFinish = false;
+                    restoreConfirmedScore();
+                    // Ein bereits gestarteter Schreibvorgang kann einen neueren Stand bestätigen.
+                    if (pendingSavePromise) cancelledSignature = lastSavedSignature;
+                    suppressedChangeSignature = lastSavedSignature;
                     input.blur();
                   }
                 }, true); // Capture-Phase: Handler wird VOR anderen Event-Listenern ausgeführt
 
+                input.addEventListener('input', beginScoreEdit);
                 input.addEventListener("change", async function () {
                   const newRaw = String(this.value || "").trim();
                   const currentStatus = statusSelect.value;
@@ -11489,6 +11515,7 @@ ${buildPrintHeaderCss()}
                 });
 
                 statusSelect.addEventListener("change", async function () {
+                  beginScoreEdit();
                   const newVal = this.value;
                   // Beim Umschalten auf 'gültig' prüfen wir die Eingabe
                   if (newVal === DomainModel.SCORE_STATUS.VALID) {

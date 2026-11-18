@@ -24616,8 +24616,14 @@ ${buildPrintHeaderCss()}
                 iconSpan.innerHTML = svg;
                 entryState.textContent = statusVal === DomainModel.SCORE_STATUS.MISSING ? "fehlt" : statusVal === DomainModel.SCORE_STATUS.EXCUSED ? "entschuldigt" : "";
                 entryState.hidden = entryState.textContent === "";
+              }, beginScoreEdit = function() {
+                draftRevision++;
+                cancelledSignature = null;
+                suppressedChangeSignature = null;
               }, scoreChangeSignature = function(raw, scoreStatus) {
                 return JSON.stringify([String(raw || "").trim(), scoreStatus]);
+              }, editorSignature = function() {
+                return scoreChangeSignature(input.value, statusSelect.value);
               }, updateCurrentRowAverages = function() {
                 const currentRow = input.closest("tr");
                 if (currentRow) {
@@ -24652,19 +24658,21 @@ ${buildPrintHeaderCss()}
                   next.valueNumeric = null;
                 }
                 return next;
-              }, restoreCellAfterSaveFailure = function(message) {
+              }, restoreConfirmedScore = function(message = "") {
                 const assessment = DomainModel.findAssessmentById(state, asm.id);
                 const restored = assessment && assessment.scores ? assessment.scores[stu.id] : null;
                 input.value = restored && restored.valueRaw != null ? String(restored.valueRaw) : "";
-                statusSelect.value = restored ? restored.status : status;
+                statusSelect.value = restored ? restored.status : DomainModel.SCORE_STATUS.VALID;
                 lastStatus = statusSelect.value;
                 updateStatusIconFor(lastStatus, input.value);
                 updateCurrentCellPresentation();
                 updateCurrentRowAverages();
+                input.classList.remove("gradesheet-input-invalid");
+                input.title = "";
                 input.setAttribute("aria-invalid", "false");
                 errorEl.textContent = message;
-                errorEl.style.display = "block";
-                lastSavedSignature = scoreChangeSignature(input.value, statusSelect.value);
+                errorEl.style.display = message ? "block" : "none";
+                lastSavedSignature = editorSignature();
               }, validateCurrentGradesheetScore = function(newRaw, newStatus, statusError) {
                 if (isAcceptableScoreEditorDraft(newRaw, newStatus)) return true;
                 input.classList.add("gradesheet-input-invalid");
@@ -24674,11 +24682,13 @@ ${buildPrintHeaderCss()}
                 errorEl.style.display = "block";
                 return false;
               }, saveCurrentGradesheetEditor = function() {
+                const revision = draftRevision;
                 if (pendingSavePromise) {
-                  const requestedSignature = scoreChangeSignature(input.value, statusSelect.value);
+                  const requestedSignature = editorSignature();
                   return pendingSavePromise.then(function(saved) {
-                    const requestIsStillCurrent = scoreChangeSignature(input.value, statusSelect.value) === requestedSignature;
-                    return saved || requestIsStillCurrent ? saveCurrentGradesheetEditor() : false;
+                    if (!saved && failedSaveBlocksNextFinish) return false;
+                    if (revision !== draftRevision || editorSignature() !== requestedSignature) return saved;
+                    return saveCurrentGradesheetEditor();
                   });
                 }
                 const newRaw = String(input.value || "").trim();
@@ -24693,30 +24703,35 @@ ${buildPrintHeaderCss()}
                   errorEl.style.display = "none";
                   return true;
                 }
-                const isLatestInteraction = beginScoreInteraction();
                 const operation = (async function() {
                   try {
                     await persistCurrentGradesheetScore(newRaw, currentStatus);
                     lastSavedSignature = signature;
-                    if (!isLatestInteraction() || scoreChangeSignature(input.value, statusSelect.value) !== signature) return true;
+                    lastStatus = currentStatus;
+                    if (cancelledSignature === editorSignature()) {
+                      restoreConfirmedScore();
+                      return true;
+                    }
+                    updateStatusIconFor(currentStatus, newRaw);
+                    updateCurrentCellPresentation();
+                    updateCurrentRowAverages();
+                    if (revision !== draftRevision || editorSignature() !== signature) return true;
                     input.classList.remove("gradesheet-input-invalid");
                     input.title = "";
                     input.setAttribute("aria-invalid", "false");
                     errorEl.textContent = "";
                     errorEl.style.display = "none";
-                    lastStatus = currentStatus;
-                    updateStatusIconFor(currentStatus, input.value);
-                    updateCurrentCellPresentation();
-                    updateCurrentRowAverages();
                     return true;
                   } catch (error) {
-                    if (!isLatestInteraction() || scoreChangeSignature(input.value, statusSelect.value) !== signature) return false;
-                    restoreCellAfterSaveFailure("Speichern fehlgeschlagen. Die vorherige Eingabe bleibt erhalten.");
+                    const visible = editorSignature();
+                    if (visible !== cancelledSignature && (revision !== draftRevision || visible !== signature)) return false;
+                    restoreConfirmedScore("Speichern fehlgeschlagen. Die vorherige Eingabe bleibt erhalten.");
                     failedSaveBlocksNextFinish = true;
                     return false;
                   } finally {
                     if (pendingSavePromise === operation) {
                       pendingSavePromise = null;
+                      cancelledSignature = null;
                     }
                   }
                 })();
@@ -24840,12 +24855,13 @@ ${buildPrintHeaderCss()}
                 }
               }
               let lastStatus = status;
-              const beginScoreInteraction = createLatestInteractionGuard();
               let suppressedChangeSignature = null;
               let lastSavedSignature = null;
               let pendingSavePromise = null;
               let failedSaveBlocksNextFinish = false;
-              lastSavedSignature = scoreChangeSignature(input.value, statusSelect.value);
+              let draftRevision = 0;
+              let cancelledSignature = null;
+              lastSavedSignature = editorSignature();
               async function persistCurrentGradesheetScore(newRaw, newStatus) {
                 return persistScoreEntryWithRollback(
                   asm.id,
@@ -24865,6 +24881,8 @@ ${buildPrintHeaderCss()}
               });
               input.addEventListener("keydown", async function(e) {
                 if (e.key === "Enter" || e.key === "Tab" || e.key === "ArrowDown" || e.key === "ArrowUp") {
+                  const navigationRevision = draftRevision;
+                  const focusAtKeydown = document.activeElement;
                   e.preventDefault();
                   e.stopPropagation();
                   e.stopImmediatePropagation();
@@ -24877,12 +24895,14 @@ ${buildPrintHeaderCss()}
                     shouldSave = true;
                   }
                   if (shouldSave) {
+                    const submittedSignature = editorSignature();
                     const saved = await saveCurrentGradesheetEditor();
-                    if (!saved) return false;
-                    suppressedChangeSignature = scoreChangeSignature(input.value, statusSelect.value);
+                    if (!saved || draftRevision !== navigationRevision || editorSignature() !== submittedSignature) return false;
+                    suppressedChangeSignature = submittedSignature;
                   }
                   if (targetInput) {
                     setTimeout(function() {
+                      if (draftRevision !== navigationRevision || document.activeElement !== focusAtKeydown) return;
                       targetInput.focus();
                       targetInput.select();
                     }, 0);
@@ -24890,12 +24910,15 @@ ${buildPrintHeaderCss()}
                   return false;
                 } else if (e.key === "Escape") {
                   e.preventDefault();
-                  const entry2 = asm.scores ? asm.scores[stu.id] : void 0;
-                  const originalValue = entry2 && entry2.valueRaw != null ? String(entry2.valueRaw) : "";
-                  input.value = originalValue;
+                  beginScoreEdit();
+                  failedSaveBlocksNextFinish = false;
+                  restoreConfirmedScore();
+                  if (pendingSavePromise) cancelledSignature = lastSavedSignature;
+                  suppressedChangeSignature = lastSavedSignature;
                   input.blur();
                 }
               }, true);
+              input.addEventListener("input", beginScoreEdit);
               input.addEventListener("change", async function() {
                 const newRaw = String(this.value || "").trim();
                 const currentStatus = statusSelect.value;
@@ -24908,6 +24931,7 @@ ${buildPrintHeaderCss()}
                 await saveCurrentGradesheetEditor();
               });
               statusSelect.addEventListener("change", async function() {
+                beginScoreEdit();
                 const newVal = this.value;
                 if (newVal === DomainModel.SCORE_STATUS.VALID) {
                   if (!validateCurrentGradesheetScore(String(input.value || "").trim(), newVal, true)) {

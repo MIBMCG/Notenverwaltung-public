@@ -3,12 +3,13 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
+const path = require('node:path');
 const vm = require('node:vm');
 const { readSourceLines, extractFunction } = require('./harness/extract.js');
 const { loadModules, localStorageStub } = require('./harness/load.js');
 const { buildCourseState, addAssessment, setScore } = require('./harness/fixtures.js');
 const { loadEsmGraph } = require('./harness/load-esm-graph.js');
-const { loadDashboardUi, findByAttribute } = require('./harness/dashboard-app.js');
+const { loadDashboardUi, loadGeneratedDashboardUi, findByAttribute } = require('./harness/dashboard-app.js');
 
 function installCommitHarness(modules) {
   const lines = readSourceLines();
@@ -2565,9 +2566,9 @@ function createDashboardTransitionRecorder() {
   };
 }
 
-function renderMainScoreEditorWithTransition() {
+function renderMainScoreEditorWithTransition({ studentCount = 1 } = {}) {
   const { modules, document, render } = loadGradesheetRenderer();
-  const ctx = buildCourseState(modules, { studentCount: 1 });
+  const ctx = buildCourseState(modules, { studentCount });
   const assessment = addAssessment(modules, ctx, {
     categoryId: ctx.categoryIds.written,
     title: 'Abschlusseditor',
@@ -2579,14 +2580,267 @@ function renderMainScoreEditorWithTransition() {
   const container = document.createElement('main');
   document.body.appendChild(container);
   render(container, transition);
-  const input = collectElements(container, element =>
+  const [input, nextInput] = collectElements(container, element =>
     element.className === 'gradesheet-input' && element.dataset.gradesheetTerm === 'all'
-  )[0];
+  );
+  input.blur = () => {};
   const statusSelect = collectElements(input.closest('td'), element =>
     element.className === 'gradesheet-status'
   )[0];
-  return { modules, ctx, assessment, input, statusSelect, transition };
+  return { modules, ctx, assessment, input, nextInput, statusSelect, transition };
 }
+
+test('A1: Escape behält die gespeicherte Note beim Ansichtswechsel und nach dem Neustart', async () => {
+  const dateImpl = fixedDateClass('2026-03-15');
+  const modules = loadModules({ dateImpl });
+  const ctx = buildCourseState(modules, { studentCount: 1 });
+  const studentId = ctx.students[0].id;
+  const assessment = addAssessment(modules, ctx, {
+    categoryId: ctx.categoryIds.written,
+    title: 'Synthetische Notenkorrektur',
+    date: '2026-03-10',
+    term: '2025-H2'
+  });
+  setScore(modules, assessment, studentId, '5');
+  const artifact = fs.readFileSync(path.join(__dirname, '..', 'Notenverwaltung.html'), 'utf8');
+
+  async function startApp(options) {
+    const app = await loadGeneratedDashboardUi({ artifact, ...options });
+    app.sandbox.Date = dateImpl;
+    await app.start();
+    return app;
+  }
+
+  async function openGradeEditor(app) {
+    const card = findByAttribute(app.root, 'data-course-id', ctx.course.id);
+    assert.ok(card, 'der synthetische Kurs erscheint in der Übersicht');
+    const open = card.querySelectorAll('button').find(button => button.textContent.trim() === 'Noten öffnen');
+    assert.ok(open);
+    await open.dispatch('click');
+    const row = app.root.querySelectorAll('tr').find(item =>
+      item.dataset.student === studentId && item.dataset.term === 'all');
+    assert.ok(row, 'die kombinierte Sek-I-Zeile ist sichtbar');
+    const input = row.querySelector('.gradesheet-input');
+    assert.ok(input);
+    return input;
+  }
+
+  const app = await startApp({ state: ctx.state });
+  const input = await openGradeEditor(app);
+  assert.equal(input.value, '5');
+  input.value = '1';
+  await input.dispatch('change');
+  const confirmed = await app.Storage.loadCurrentSessionState();
+  assert.equal(confirmed.assessments.find(item => item.id === assessment.id).scores[studentId].valueRaw, '1');
+
+  input.focus();
+  input.blur = () => { app.document.activeElement = null; };
+  input.value = '3';
+  await input.dispatch('input');
+  await input.dispatch('keydown', { key: 'Escape' });
+  const valueAfterEscape = input.value;
+  const overviewButton = () => app.document.getElementById('main-navigation').querySelectorAll('button')
+    .find(button => button.textContent.trim() === 'Übersicht');
+  await overviewButton().dispatch('click');
+  for (let attempt = 0; attempt < 200 && overviewButton().getAttribute('aria-current') !== 'page'; attempt++) {
+    await new Promise(resolve => setTimeout(resolve, 5));
+  }
+  assert.equal(overviewButton().getAttribute('aria-current'), 'page');
+  const reopenedValue = (await openGradeEditor(app)).value;
+
+  await app.Storage.lockSession();
+  const restarted = await startApp({ storage: app.storage, lockManager: app.lockManager, useExistingStorage: true });
+  const restartedValue = (await openGradeEditor(restarted)).value;
+  assert.equal(restartedValue, '1', 'der Ansichtswechsel darf die bestätigte 1 nicht im Speicher überschreiben');
+  assert.equal(reopenedValue, '1');
+  assert.equal(valueAfterEscape, '1');
+});
+
+test('A1: Escape während eines Statuswechsels folgt dem bestätigten Eintrag', async () => {
+  const fixture = renderMainScoreEditorWithTransition();
+  const { input, statusSelect, modules, transition } = fixture;
+  const save = deferred();
+  modules.Storage.saveState = () => save.promise;
+  input.value = '1';
+  statusSelect.value = 'missing';
+  const pendingChange = statusSelect.dispatch('change');
+  await new Promise(resolve => setImmediate(resolve));
+
+  input.value = '3';
+  await input.dispatch('input');
+  await input.dispatch('keydown', { key: 'Escape' });
+  const beforeConfirmation = [input.value, statusSelect.value];
+  save.resolve();
+  await pendingChange;
+
+  assert.deepEqual(beforeConfirmation, ['5', 'valid']);
+  assert.deepEqual([input.value, statusSelect.value], ['1', 'missing']);
+  assert.equal(await transition.editors[0].finish(), true);
+  assert.equal(confirmedScore(fixture).valueRaw, '1');
+  assert.equal(confirmedScore(fixture).status, 'missing');
+});
+
+test('A1: Ein fehlgeschlagener Statuswechsel überschreibt nach Escape keinen neuen Entwurf', async () => {
+  const fixture = renderMainScoreEditorWithTransition();
+  const { input, statusSelect, modules, transition } = fixture;
+  modules.Storage.saveState = async () => {};
+  input.value = '1';
+  await input.dispatch('change');
+
+  const save = deferred();
+  modules.Storage.saveState = () => save.promise;
+  statusSelect.value = 'missing';
+  const pendingChange = statusSelect.dispatch('change');
+  await new Promise(resolve => setImmediate(resolve));
+  input.value = '3';
+  await input.dispatch('input');
+  await input.dispatch('keydown', { key: 'Escape' });
+  const beforeNewDraft = [input.value, statusSelect.value];
+  input.value = '2';
+  await input.dispatch('input');
+  save.reject(new Error('Synthetischer Speicherfehler'));
+  await pendingChange;
+
+  assert.deepEqual(beforeNewDraft, ['1', 'valid']);
+  assert.deepEqual([input.value, statusSelect.value], ['2', 'valid']);
+  assert.equal(confirmedScore(fixture).valueRaw, '1');
+  assert.equal(confirmedScore(fixture).status, 'valid');
+  modules.Storage.saveState = async () => {};
+  assert.equal(await transition.editors[0].finish(), true);
+  assert.equal(confirmedScore(fixture).valueRaw, '2');
+});
+
+test('A1: Eine erneut eingegebene Note erhält die Darstellung des bestätigten Werts', async () => {
+  const fixture = renderMainScoreEditorWithTransition();
+  const { input, modules } = fixture;
+  const averages = input.closest('tr').querySelectorAll('td.gradesheet-avg');
+  assert.ok(averages.some(cell => cell.textContent === '5.00'));
+  assert.equal(input.style.backgroundColor, 'var(--grade-bg-critical)');
+  const save = deferred();
+  modules.Storage.saveState = () => save.promise;
+  input.value = '1';
+  const pendingChange = input.dispatch('change');
+  await new Promise(resolve => setImmediate(resolve));
+
+  input.value = '3';
+  await input.dispatch('input');
+  await input.dispatch('keydown', { key: 'Escape' });
+  input.focus();
+  input.value = '1';
+  await input.dispatch('input');
+  save.resolve();
+  await pendingChange;
+
+  assert.equal(confirmedScore(fixture).valueRaw, '1');
+  assert.equal(input.value, '1');
+  assert.ok(averages.some(cell => cell.textContent === '1.00'), 'der sichtbare Durchschnitt muss die bestätigte Note enthalten');
+  assert.equal(input.style.backgroundColor, 'var(--grade-bg-best)');
+});
+
+test('A1: Ein beim Verlassen nach Escape beobachteter Speicherfehler bleibt sichtbar', async () => {
+  const fixture = renderMainScoreEditorWithTransition();
+  const { input, modules, transition } = fixture;
+  const save = deferred();
+  let saveCalls = 0;
+  modules.Storage.saveState = () => { saveCalls += 1; return save.promise; };
+  input.value = '1';
+  const pendingChange = input.dispatch('change');
+  await new Promise(resolve => setImmediate(resolve));
+  input.value = '3';
+  await input.dispatch('input');
+  await input.dispatch('keydown', { key: 'Escape' });
+  const leaving = transition.editors[0].finish();
+  save.reject(new Error('Synthetischer Speicherfehler'));
+  await pendingChange;
+
+  assert.equal(await leaving, false);
+  assert.equal(saveCalls, 1);
+  assert.equal(confirmedScore(fixture).valueRaw, '5');
+  assert.equal(input.value, '5');
+  const error = input.closest('td').querySelectorAll('.gradesheet-input-error')[0];
+  assert.equal(error.style.display, 'block');
+  assert.match(error.textContent, /Speichern fehlgeschlagen/);
+  assert.equal(await transition.editors[0].finish(), true, 'ein erneuter bewusster Wechsel darf weitergehen');
+});
+
+test('A1: Escape nach einem sichtbaren Speicherfehler erlaubt den Ansichtswechsel', async () => {
+  const fixture = renderMainScoreEditorWithTransition();
+  const { input, modules, transition } = fixture;
+  let saveCalls = 0;
+  modules.Storage.saveState = async () => {
+    saveCalls += 1;
+    throw new Error('Synthetischer Speicherfehler');
+  };
+  input.value = '1';
+  await input.dispatch('change');
+  const error = input.closest('td').querySelectorAll('.gradesheet-input-error')[0];
+  assert.equal(error.style.display, 'block');
+
+  await input.dispatch('keydown', { key: 'Escape' });
+
+  assert.equal(error.style.display, 'none');
+  assert.equal(input.value, '5');
+  assert.equal(await transition.editors[0].finish(), true);
+  assert.equal(confirmedScore(fixture).valueRaw, '5');
+  assert.equal(saveCalls, 1);
+});
+
+test('A1: Speichern mit Enter lässt nach Escape die neue Eingabe und den Fokus bestehen', async () => {
+  const fixture = renderMainScoreEditorWithTransition({ studentCount: 2 });
+  const { input, nextInput, modules } = fixture;
+  const scheduled = [];
+  modules.sandbox.setTimeout = callback => { scheduled.push(callback); };
+  let focusMoves = 0;
+  nextInput.focus = () => { focusMoves += 1; };
+  const save = deferred();
+  modules.Storage.saveState = () => save.promise;
+  input.value = '1';
+  const pendingEnter = input.dispatch('keydown', { key: 'Enter' });
+  await new Promise(resolve => setImmediate(resolve));
+
+  input.value = '3';
+  await input.dispatch('input');
+  await input.dispatch('keydown', { key: 'Escape' });
+  input.focus();
+  input.value = '2';
+  await input.dispatch('input');
+  save.resolve();
+  await pendingEnter;
+  for (const callback of scheduled) callback();
+  const valueAfterEarlierSave = input.value;
+  await input.dispatch('change');
+
+  assert.equal(confirmedScore(fixture).valueRaw, '2', 'der alte Tastendruck darf den späteren change nicht unterdrücken');
+  assert.equal(valueAfterEarlierSave, '2');
+  assert.equal(focusMoves, 0, 'der alte Tastendruck darf den Fokus nicht nachträglich verschieben');
+});
+
+test('A1: Enter verschiebt den Fokus nach einem zwischenzeitlichen Feldwechsel nicht erneut', async () => {
+  const fixture = renderMainScoreEditorWithTransition({ studentCount: 3 });
+  const { input, nextInput, modules } = fixture;
+  const { document } = modules.sandbox;
+  const otherInput = document.querySelectorAll('.gradesheet-input').find(element =>
+    element.dataset.gradesheetTerm === 'all' && element !== input && element !== nextInput);
+  assert.ok(otherInput);
+  nextInput.focus = () => { document.activeElement = nextInput; };
+  otherInput.focus = () => { document.activeElement = otherInput; };
+  document.activeElement = input;
+  const scheduled = [];
+  modules.sandbox.setTimeout = callback => { scheduled.push(callback); };
+  const save = deferred();
+  modules.Storage.saveState = () => save.promise;
+  input.value = '1';
+  const pendingEnter = input.dispatch('keydown', { key: 'Enter' });
+  await new Promise(resolve => setImmediate(resolve));
+  otherInput.focus();
+  save.resolve();
+  await pendingEnter;
+  for (const callback of scheduled) callback();
+
+  assert.equal(confirmedScore(fixture).valueRaw, '1');
+  assert.equal(document.activeElement?.dataset.gradesheetRow, otherInput.dataset.gradesheetRow,
+    'der Fokus bleibt bei dem inzwischen gewählten Feld');
+});
 
 test('combined Sek-I editor explains invalid values without saving them', async () => {
   const fixture = renderMainScoreEditorWithTransition();
