@@ -1382,13 +1382,13 @@ const DISPLAY_TIME_ZONE = Intl.DateTimeFormat().resolvedOptions().timeZone;
         if (!state || !Array.isArray(state.assessments)) return;
 
         for (const asm of state.assessments) {
-          if (!asm || asm.termAssignment !== 'auto') continue;
+          if (!asm || asm.termAssignment !== 'auto' || !asm.date) continue;
           if (courseId && asm.courseId !== courseId) continue;
 
           const course = state.courses.find(c => c.id === asm.courseId);
           if (!course || course.archivedAt) continue;
 
-          const sourceDate = asm.date ? parseHalfYearDateValue(asm.date) : new Date();
+          const sourceDate = parseHalfYearDateValue(asm.date);
           if (!sourceDate) continue;
           const termVal = resolveAssessmentTermFromDateValue(sourceDate, course, state.settings);
           if (termVal && termVal !== asm.term) {
@@ -8726,11 +8726,6 @@ ${buildPrintHeaderCss()}
                 window.alert('Bitte eine gültige Vorauswahl wählen.');
                 return;
               }
-              const assignmentDate = dateInput.value ? parseHalfYearDateValue(dateInput.value) : new Date();
-              const resolvedTerm = automaticAssignment
-                ? deriveTermFromDateValue(assignmentDate, course)
-                : selTerm;
-              if (!resolvedTerm) { window.alert('Das Halbjahr konnte nicht automatisch bestimmt werden.'); return; }
               const newWeight = parseFloat(weightInput.value.replace(",", "."));
               if (!Number.isFinite(newWeight) || newWeight < 0) {
                 window.alert("Das Gewicht muss eine Zahl größer oder gleich 0 sein.");
@@ -8762,10 +8757,12 @@ ${buildPrintHeaderCss()}
                       !candidateCategory.subcategories.some(function (item) { return item.id === input.subcategoryId; })) {
                     throw new Error('Die ausgewählte Unterkategorie ist nicht mehr verfügbar.');
                   }
-                  const candidateDate = input.date ? parseHalfYearDateValue(input.date) : new Date();
-                  const candidateTerm = input.automaticAssignment
-                    ? GradingLogic.resolveAssessmentTermFromDateValue(candidateDate, candidateCourse, candidate.settings)
-                    : input.selectedTerm;
+                  let candidateTerm = input.selectedTerm;
+                  if (input.automaticAssignment) {
+                    candidateTerm = input.date
+                      ? GradingLogic.resolveAssessmentTermFromDateValue(parseHalfYearDateValue(input.date), candidateCourse, candidate.settings)
+                      : candidateAssessment.term;
+                  }
                   if (!candidateTerm) throw new Error('Das Halbjahr konnte nicht bestimmt werden.');
                   candidateAssessment.categoryId = input.categoryId;
                   candidateAssessment.subcategoryId = input.subcategoryId;

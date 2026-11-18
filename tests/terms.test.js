@@ -4,20 +4,23 @@ const assert = require('node:assert/strict');
 const vm = require('node:vm');
 const { readSourceLines, extractFunction } = require('./harness/extract.js');
 const { loadModules } = require('./harness/load.js');
+const { openStorageSession } = require('./harness/storage-session.js');
+const { buildCourseState, addAssessment, setScore } = require('./harness/fixtures.js');
 
 const modules = loadModules();
 const { DomainModel, GradingLogic } = modules;
 
 // Evaluate the standalone helper in its own tiny context.
-function loadRecalc() {
+function loadRecalc(session = modules) {
   const lines = readSourceLines();
   const source = extractFunction(lines, 'parseHalfYearDateValue') + '\n' +
     extractFunction(lines, 'recalcAssessmentTermsForCurrentState')
     + '\nglobalThis.__fn = recalcAssessmentTermsForCurrentState;';
   const context = {
-    resolveAssessmentTermFromDateValue: GradingLogic.resolveAssessmentTermFromDateValue,
-    parseCalendarDate: modules.sandbox.parseCalendarDate,
-    calendarDateToLocalDate: modules.sandbox.calendarDateToLocalDate,
+    Date: session.sandbox.Date,
+    resolveAssessmentTermFromDateValue: session.GradingLogic.resolveAssessmentTermFromDateValue,
+    parseCalendarDate: session.sandbox.parseCalendarDate,
+    calendarDateToLocalDate: session.sandbox.calendarDateToLocalDate,
     console: { log() {}, warn() {}, error() {}, debug() {} }
   };
   vm.createContext(context);
@@ -118,6 +121,41 @@ test('an assessment without a date keeps a manually assigned term', () => {
   DomainModel.addAssessmentToState(state, asm);
   recalc(state);
   assert.equal(asm.term, '2024-H2');
+});
+
+test('A2: reopening a legacy undated score keeps the term recovered from its course', async () => {
+  const reader = await openStorageSession({ dateImpl: fixedDateClass('2026-03-10') });
+  const fixture = buildCourseState(reader, { schemaMode: 'uppersec', studentCount: 1 });
+  addAssessment(reader, fixture, {
+    categoryId: fixture.categoryIds.oral, date: '2025-11-15', term: '2025-H1', termAssignment: 'auto'
+  });
+  const undated = addAssessment(reader, fixture, { categoryId: fixture.categoryIds.oral });
+  delete undated.term;
+  const studentId = fixture.students[0].id;
+  setScore(reader, undated, studentId, '12');
+  reader.storage.setItem('notenverwaltung_v1_state', JSON.stringify(fixture.state));
+
+  function assertRecovered(state) {
+    const assessment = state.assessments.find(item => item.id === undated.id);
+    assert.equal(assessment.term, '2025-H1');
+    assert.equal(assessment.termAssignment, 'auto');
+    assert.equal(assessment.date, null);
+    assert.equal(assessment.scores[studentId].valueNumeric, 12);
+  }
+
+  const migrated = await reader.Storage.loadState();
+  assertRecovered(migrated);
+  loadRecalc(reader)(migrated);
+  assertRecovered(migrated);
+
+  const password = 'Synthetisches-Testpasswort-2026';
+  await reader.Storage.enableEncryption(password, migrated);
+  const next = await openStorageSession({
+    storage: reader.storage, password, dateImpl: fixedDateClass('2026-11-15')
+  });
+  const reopened = await next.Storage.loadState();
+  loadRecalc(next)(reopened);
+  assertRecovered(reopened);
 });
 
 test('R07: recalculation changes only active automatic terms and preserves manual and archived assignments', () => {

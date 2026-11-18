@@ -4,7 +4,7 @@
     "algorithm": "sha256",
     "normalization": "UTF-8 text with CRLF and CR normalized to LF",
     "files": {
-      "Notenverwaltung.html": "d11c90da9dc92489698c8135d494232355d540987f64abf3649bd774bcd38a54",
+      "Notenverwaltung.html": "49eee3686ed02c457c41008fab5cd7112211488faa8120c9c04a1df6af0695f1",
       "src/document.html": "0ddc5e4d268e94aced3fc18c9ebb45448a0c225c057e37499bd79f0c43d2225c",
       "src/domain/assessments.js": "544ddb00b4ca92476ef93533e97daf1bdf7834ce06410b19fde4371c5919a32e",
       "src/domain/course-colors.js": "3f0951a032ab2fd179aad7b70867de5b5d0a7dfee02e9f7507b7a39f3789bf6a",
@@ -29,7 +29,7 @@
       "src/infrastructure/recovery-envelope.js": "3f790646b175c50c8fd8a65a1f6b2bf7817cd26316598c4344330a7755013e48",
       "src/infrastructure/session-coordinator.js": "34488a6c3c3e0eb54e282b5edf57c64636ffd741d05d5682acecfbc378c67d2b",
       "src/infrastructure/storage.js": "e06cbdde9ff97a0ece866eb5432c7fd683987efd386ec0c4d37c3cb6fcb83dcd",
-      "src/legacy/application.js": "5b252b5b32d37b22179824f3f2fbc338d08bbac849b10024a660e39f92855997",
+      "src/legacy/application.js": "b89072f2a4dc20d6fb7ebc955e0eed7b514258a1cfb621b8baf26b608ea3e6b6",
       "src/legacy/early-errors.js": "36fc884f619ecf1fb7067866a492050553950a63f88d1fe072ee724fba911a0e",
       "src/styles/legacy.css": "c584e81391853818e3eb11a73d237ad87ad2b2f52793ee597bb6b80440438e5e",
       "src/transfer/csv-decoding.js": "a4c4ea923c986d21ad0c4caabdb3639a004d379d89569e14f4bc7267e2ddf317",
@@ -652,7 +652,7 @@
         ]
       },
       "targetWave": null,
-      "notes": "Term consistency wave."
+      "notes": "Term consistency wave. Der A2-Regressionstest prüft das migrierte Halbjahr einer undatierten Leistung auch nach verschlüsseltem Speichern und erneutem Öffnen."
     },
     {
       "id": "M6",

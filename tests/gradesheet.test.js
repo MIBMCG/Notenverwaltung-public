@@ -1367,6 +1367,122 @@ test('half-year creation preserves an explicit next-term choice when no date is 
   assert.equal(created.termAssignment, 'manual');
 });
 
+async function openGradesheetCourse(app, courseId) {
+  const card = findByAttribute(app.root, 'data-course-id', courseId);
+  assert.ok(card, 'der synthetische Kurs erscheint in der Übersicht');
+  const open = card.querySelectorAll('button').find(button => button.textContent.trim() === 'Noten öffnen');
+  assert.ok(open);
+  await open.dispatch('click');
+}
+
+async function createUndatedUpperSecAssessment() {
+  const dateImpl = fixedDateClass('2026-11-18');
+  const modules = loadModules({ dateImpl });
+  const ctx = buildCourseState(modules, { schemaMode: 'uppersec', studentCount: 1 });
+  configureQ1Q2Course(modules, ctx.course);
+  const app = await loadDashboardUi({ state: ctx.state, dateImpl });
+  await app.UiShell.init('app');
+  await openGradesheetCourse(app, ctx.course.id);
+
+  const controls = findAssessmentCreationControls(app.root);
+  assert.equal(controls.date.value, '');
+  assert.equal(controls.term.value, 'auto');
+  controls.category.value = ctx.categoryIds.written;
+  controls.title.value = 'Undatierte Leistung';
+  await controls.add.dispatch('click');
+
+  const studentId = ctx.students[0].id;
+  const row = app.root.querySelectorAll('tr').find(item =>
+    item.dataset.student === studentId && item.dataset.term === '2026-H1');
+  assert.ok(row);
+  const input = row.querySelector('.gradesheet-input');
+  assert.ok(input);
+  input.value = '12';
+  await input.dispatch('change');
+  const stored = await app.Storage.loadCurrentSessionState();
+  const assessment = stored.assessments.find(item => item.courseId === ctx.course.id);
+  assert.equal(assessment.date, null);
+  assert.equal(assessment.term, '2026-H1');
+  assert.equal(assessment.termAssignment, 'auto');
+  assert.equal(assessment.scores[studentId].valueRaw, '12');
+  return { app, courseId: ctx.course.id, studentId, assessmentId: assessment.id };
+}
+
+test('A2: undatierte 12 Punkte bleiben beim Öffnen im März im ersten Halbjahr', async () => {
+  const { app, courseId, studentId } = await createUndatedUpperSecAssessment();
+  await app.Storage.lockSession();
+  const reopened = await loadDashboardUi({
+    dateImpl: fixedDateClass('2027-03-01'), storage: app.storage,
+    lockManager: app.lockManager, useExistingStorage: true
+  });
+  await reopened.UiShell.init('app');
+  await openGradesheetCourse(reopened, courseId);
+
+  const gradeIn = term => reopened.root.querySelectorAll('tr').find(row =>
+    row.dataset.student === studentId && row.dataset.term === term)
+    ?.querySelector('.gradesheet-input')?.value ?? '';
+  assert.deepEqual([gradeIn('2026-H1'), gradeIn('2026-H2')], ['12', ''],
+    'die undatierte Bewertung gehört auch im März in Q1');
+});
+
+async function openAssessmentEditDialog(app, title) {
+  const edit = findByAttribute(app.root, 'aria-label', `Leistung „${title}“ bearbeiten`);
+  assert.ok(edit);
+  await edit.dispatch('click', { stopPropagation() {} });
+  const heading = app.document.body.querySelectorAll('h3').find(item => item.textContent === 'Leistung bearbeiten');
+  assert.ok(heading);
+  return heading.parentNode;
+}
+
+async function saveAssessmentEdit(dialog) {
+  // The document stub does not coerce number input values to strings as browsers do.
+  const weight = dialog.querySelectorAll('input').find(item => item.type === 'number');
+  weight.value = String(weight.value);
+  const save = dialog.querySelectorAll('button').find(item => item.textContent === 'Speichern');
+  await save.dispatch('click');
+}
+
+test('A2: reine Titeländerung bewahrt die Zuordnung einer undatierten Leistung zum nächsten Halbjahr', async () => {
+  const { app, assessmentId } = await createUndatedUpperSecAssessment();
+  // The editor permits the current and upcoming terms. Open it with Q1 upcoming.
+  app.sandbox.Date = fixedDateClass('2026-07-15');
+  const dialog = await openAssessmentEditDialog(app, 'Undatierte Leistung');
+  const title = dialog.querySelectorAll('input').find(item => item.type === 'text');
+  title.value = 'Geänderter Titel';
+  await saveAssessmentEdit(dialog);
+
+  const stored = await app.Storage.loadCurrentSessionState();
+  const assessment = stored.assessments.find(item => item.id === assessmentId);
+  assert.equal(assessment.title, 'Geänderter Titel');
+  assert.equal(assessment.term, '2026-H1');
+  assert.equal(assessment.termAssignment, 'auto');
+});
+
+test('A2: ein neues Datum verschiebt die automatische Zuordnung und Löschen des Datums bewahrt sie', async () => {
+  const { app, assessmentId } = await createUndatedUpperSecAssessment();
+  let dialog = await openAssessmentEditDialog(app, 'Undatierte Leistung');
+  let date = dialog.querySelectorAll('input').find(item => item.type === 'date');
+  date.value = '2027-03-01';
+  await date.dispatch('change');
+  await saveAssessmentEdit(dialog);
+
+  let stored = await app.Storage.loadCurrentSessionState();
+  const dated = stored.assessments.find(item => item.id === assessmentId);
+  assert.equal(dated.date, '2027-03-01');
+  assert.equal(dated.term, '2026-H2');
+  dialog = await openAssessmentEditDialog(app, 'Undatierte Leistung');
+  date = dialog.querySelectorAll('input').find(item => item.type === 'date');
+  date.value = '';
+  await date.dispatch('change');
+  await saveAssessmentEdit(dialog);
+
+  stored = await app.Storage.loadCurrentSessionState();
+  const assessment = stored.assessments.find(item => item.id === assessmentId);
+  assert.equal(assessment.date, null);
+  assert.equal(assessment.term, '2026-H2');
+  assert.equal(assessment.termAssignment, 'auto');
+});
+
 test('completed creation resets the form, then a re-entered March date saves a second visible Q2 assessment', async () => {
   const storage = localStorageStub();
   const password = 'Synthetisches-Testpasswort-2026';
