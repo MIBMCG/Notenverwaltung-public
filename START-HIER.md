@@ -1,5 +1,11 @@
 # Einstieg in die Notenverwaltung
 
+## Entwicklung am Desktop fortsetzen
+
+Die [Desktop-Übergabe vom 19. November 2026](docs/DESKTOP-START.md) beschreibt
+den Branch `codex/a2-halbjahreszuordnung` mit den abgeschlossenen Korrekturen
+A1 und A2, den Prüfstand und die Fortsetzung bei A3.
+
 ## Anwendung nutzen
 
 Version **1.7.2 vom 04.11.2026** stellt beim vollständigen Backup-Import auch

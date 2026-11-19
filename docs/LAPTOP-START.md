@@ -1,5 +1,10 @@
 # Auf dem Laptop mit Etappe A beginnen
 
+**Fortsetzung vom 19. November 2026.** A1 und A2 sind abgeschlossen.
+Die [Desktop-Übergabe](DESKTOP-START.md) führt zum aktuellen Arbeitsbranch
+`codex/a2-halbjahreszuordnung` und zur nächsten Aufgabe A3.
+Die folgenden Angaben dokumentieren die ursprüngliche Laptop-Übergabe.
+
 Der Branch `codex/laptop-uebergabe` enthält das [korrigierte Review](quality/2026-11-18-code-review.md) und den [Umsetzungsplan](superpowers/plans/2026-11-18-review-korrekturen.md) für die Notenverwaltung 1.7.2. Die Korrekturen A bis D stehen aus. Basis ist der Release-Commit `c988942cabb4b2ed73c2656eb7ef6a92bb791e9a`.
 
 ## Startprompt für Codex
