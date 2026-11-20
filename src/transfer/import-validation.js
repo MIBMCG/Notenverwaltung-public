@@ -1,5 +1,67 @@
 import { SCHEMA_MODES, UPPERSEC_COURSE_TYPES, QUALIFICATION_YEARS } from '../domain/state.js';
 import { normalizeAssessmentTerm } from '../domain/assessments.js';
+import { courseImportScope, courseYearScope } from '../domain/courses.js';
+
+// On the import copy, complete only period groups absent from legacy backups.
+// Course identity and assessment periods must use these dates before migration.
+export function supplementMissingImportPeriods(raw, currentState) {
+  if (!raw?.settings || typeof raw.settings !== 'object' || Array.isArray(raw.settings)) return;
+  for (const key of ['halfYearSettings', 'halfYearNames']) {
+    if (raw.settings[key] == null) raw.settings[key] = {};
+    if (typeof raw.settings[key] !== 'object' || Array.isArray(raw.settings[key])) continue;
+    for (const level of ['seckI', 'seckII']) {
+      const local = currentState.settings?.[key]?.[level];
+      if (raw.settings[key][level] == null && local) {
+        raw.settings[key][level] = JSON.parse(JSON.stringify(local));
+      }
+    }
+  }
+}
+
+// Legacy single-course exports referenced a predecessor omitted from the
+// file. Keep full-backup validation strict when no archive file was selected.
+export function prepareSingleArchiveImport(state, legacyArchiveFile) {
+  const course = state?.courses?.length === 1 && state.courses[0];
+  if (!course?.archivedAt || !course.archiveSnapshot) return { state };
+  const predecessor = legacyArchiveFile && course.carriedForwardFromCourseId || state.archiveExport?.predecessorId;
+  if (typeof predecessor !== 'string' || !predecessor.trim() || predecessor === course.id ||
+      (course.carriedForwardFromCourseId != null && (!legacyArchiveFile || course.carriedForwardFromCourseId !== predecessor))) return { state };
+  const { archiveExport, ...portable } = state;
+  return { state: { ...portable, courses: [{ ...course, carriedForwardFromCourseId: null }] }, predecessor };
+}
+
+// Only invoked for an explicitly opened V1 backup, on its decrypted copy.
+// Full validation still runs before offering the candidate to the user.
+export function repairLegacyWeightReferences(candidate) {
+  const categories = candidate?.settings?.categories;
+  const templates = candidate?.settings?.weightTemplates;
+  if (![categories, templates, candidate?.courses, candidate?.assessments].every(Array.isArray)) return '';
+  const activeIds = new Set();
+  let templateCount = 0;
+  let subcategoryCount = 0;
+  for (const course of candidate.courses) {
+    if (!course || course.archivedAt) continue;
+    activeIds.add(course.id);
+    if (typeof course.weightTemplateId === 'string' && course.weightTemplateId.trim() &&
+        !templates.some(template => template?.id === course.weightTemplateId)) {
+      course.weightTemplateId = null;
+      templateCount++;
+    }
+  }
+  for (const assessment of candidate.assessments) {
+    if (!assessment || !activeIds.has(assessment.courseId) || typeof assessment.subcategoryId !== 'string' ||
+        !assessment.subcategoryId.trim()) continue;
+    const parent = categories.find(category => category?.id === assessment.categoryId);
+    if (parent && !categories.some(category => category?.subcategories?.some(sub => sub?.id === assessment.subcategoryId))) {
+      assessment.subcategoryId = null;
+      subcategoryCount++;
+    }
+  }
+  const notices = [];
+  if (templateCount) notices.push(templateCount + ' Kurs(e) mit gelöschter Vorlage verwenden Gleichverteilung.');
+  if (subcategoryCount) notices.push(subcategoryCount + ' Leistung(en) mit gelöschter Unterkategorie bleiben in der Hauptkategorie.');
+  return notices.length ? '\n' + notices.join('\n') : '';
+}
 
 export function validateImportedState(candidate) {
   if (!candidate || typeof candidate !== 'object') throw new Error('Die Datei enthält keinen gültigen Datenbestand.');
@@ -31,6 +93,17 @@ export function validateImportedState(candidate) {
     }
   }
   const categoriesById = new Map(candidate.settings.categories.map(category => [category.id, category]));
+  const validateRestoreMappings = (entries, historicalItems) => {
+    if (!Array.isArray(entries)) throw new Error('Die Kategoriezuordnung zur Reaktivierung ist unvollständig.');
+    const seen = new Set();
+    for (const entry of entries) {
+      const source = historicalItems.find(item => item.id === entry?.id);
+      if (!source || seen.has(entry.id) || typeof entry.targetId !== 'string' || !entry.targetId.trim()) {
+        throw new Error('Die Kategoriezuordnung zur Reaktivierung ist ungültig.');
+      }
+      seen.add(entry.id);
+    }
+  };
   const validateWeightItems = (items, label, allowedCategoryIds) => {
     if (!Array.isArray(items)) throw new Error(label + ': Die Gewichtung ist unvollständig.');
     for (const item of items) {
@@ -82,11 +155,6 @@ export function validateImportedState(candidate) {
   for (const template of candidate.settings.weightTemplates) {
     validateWeightItems(template.items, 'Gewichtungsvorlage', categoryIds);
   }
-  const courseScope = course => [
-    course.schemaMode || '',
-    Number.isInteger(Number(course.schoolYearStartYear)) ? String(Number(course.schoolYearStartYear)) : '',
-    !!course.archivedAt
-  ].join('|');
   const importKeysByScope = new Set();
   for (const course of candidate.courses) {
     if (course.carriedForwardFromCourseId !== undefined && course.carriedForwardFromCourseId !== null) {
@@ -104,7 +172,7 @@ export function validateImportedState(candidate) {
       if (typeof course.importKey !== 'string' || !course.importKey.trim() || course.importKey !== course.importKey.trim()) {
         throw new Error('Ein Kurs enthaelt eine ungueltige externe Kurskennung.');
       }
-      const scopedImportKey = course.importKey.toLowerCase() + '|' + courseScope(course);
+      const scopedImportKey = course.importKey.toLowerCase() + '|' + courseImportScope(candidate, course);
       if (importKeysByScope.has(scopedImportKey)) {
         throw new Error('Kurse enthalten eine doppelte externe Kurskennung im selben Gueltigkeitsbereich.');
       }
@@ -123,6 +191,17 @@ export function validateImportedState(candidate) {
         throw new Error('Ein archivierter Kurs besitzt keinen vollständigen Bewertungs-Snapshot.');
       }
       validateArchiveSnapshot(snapshot, 'Archiv-Snapshot', course.weightTemplateId);
+      const references = course.archiveRestoreReferences;
+      if (references != null) {
+        validateRestoreMappings(references.categories, snapshot.categories);
+        for (const category of references.categories) {
+          const source = snapshot.categories.find(item => item.id === category.id);
+          validateRestoreMappings(category.subcategories, source.subcategories || []);
+        }
+        if (references.weightTemplateId != null && (typeof references.weightTemplateId !== 'string' || !references.weightTemplateId.trim())) {
+          throw new Error('Die Gewichtungsvorlage zur Reaktivierung ist ungültig.');
+        }
+      }
     }
     if (course.archiveHistory !== undefined && !Array.isArray(course.archiveHistory)) {
       throw new Error('Archivverlauf: Der Verlauf ist ungueltig.');
@@ -151,7 +230,7 @@ export function validateImportedState(candidate) {
     const parentCourse = candidate.courses.find(c => c.id === assessment.courseId);
     const assessmentCategories = parentCourse && parentCourse.archivedAt ? parentCourse.archiveSnapshot.categories : candidate.settings.categories;
     const assessmentCategory = assessmentCategories.find(category => category.id === assessment.categoryId);
-    if (assessment.categoryId && !assessmentCategory) throw new Error('Eine Leistung verweist auf eine unbekannte Kategorie.');
+    if (!assessmentCategory) throw new Error('Eine Leistung verweist auf eine unbekannte Kategorie.');
     if (assessment.subcategoryId && (!assessmentCategory || !(assessmentCategory.subcategories || []).some(subcategory => subcategory.id === assessment.subcategoryId))) {
       throw new Error('Eine Leistung verweist auf eine unbekannte Unterkategorie.');
     }
@@ -169,19 +248,14 @@ export function validateMergeIdentityPreflight(base, incoming) {
   validateRawUpperSecContexts(incoming);
 
   const norm = value => String(value || '').trim().toLowerCase();
-  const structuralCourseScope = course => [
-    course.schemaMode || '',
-    Number.isInteger(Number(course.schoolYearStartYear)) ? String(Number(course.schoolYearStartYear)) : ''
-  ].join('|');
-  const importCourseScope = course => [structuralCourseScope(course), !!course.archivedAt].join('|');
-  const scopedImportKey = course => course && course.importKey
-    ? norm(course.importKey) + '|' + importCourseScope(course)
+  const scopedImportKey = (state, course) => course && course.importKey
+    ? norm(course.importKey) + '|' + courseImportScope(state, course)
     : '';
 
   const baseCoursesById = new Map(base.courses.map(course => [course.id, course]));
   const baseCoursesByImportKey = new Map();
   for (const course of base.courses) {
-    const key = scopedImportKey(course);
+    const key = scopedImportKey(base, course);
     if (key) baseCoursesByImportKey.set(key, course);
   }
 
@@ -189,10 +263,10 @@ export function validateMergeIdentityPreflight(base, incoming) {
   const claimedBaseTargets = new Map();
   for (const course of incoming.courses) {
     const idTarget = baseCoursesById.get(course.id) || null;
-    if (idTarget && structuralCourseScope(idTarget) !== structuralCourseScope(course)) {
+    if (idTarget && courseYearScope(base, idTarget) !== courseYearScope(incoming, course)) {
       throw new Error('Die Kurs-ID ' + course.id + ' widerspricht dem strukturellen Kurskontext im vorhandenen Bestand.');
     }
-    const key = scopedImportKey(course);
+    const key = scopedImportKey(incoming, course);
     const importKeyTarget = key ? (baseCoursesByImportKey.get(key) || null) : null;
     if (idTarget && importKeyTarget && idTarget !== importKeyTarget) {
       throw new Error('Die Kursidentität ' + course.id + ' ist zwischen ID und externer Kurskennung widersprüchlich.');
@@ -252,6 +326,17 @@ export function validateRawTermResults(candidate) {
 }
 
 export function validateRawUpperSecContexts(candidate) {
+  function validateCategoryRoles(roles, categories, label) {
+    if (roles == null) return;
+    if (typeof roles !== 'object' || Array.isArray(roles)) {
+      throw new Error(label + ': Die Kategorienrollen sind ungueltig.');
+    }
+    const id = roles.upperSecWrittenCategoryId;
+    if (id != null && (typeof id !== 'string' || !Array.isArray(categories) || !categories.some(category => category?.id === id))) {
+      throw new Error(label + ': Die Kategorienrolle verweist auf eine unbekannte Klausurkategorie.');
+    }
+  }
+  validateCategoryRoles(candidate?.settings?.categoryRoles, candidate?.settings?.categories, 'Einstellungen');
   const courseTypes = new Set(Object.values(UPPERSEC_COURSE_TYPES));
   const qualificationYears = new Set(Object.values(QUALIFICATION_YEARS));
   const validateContextAndEnrollments = (source, schemaMode, label, rejectAnyDuplicate) => {
@@ -294,6 +379,7 @@ export function validateRawUpperSecContexts(candidate) {
   };
   for (const course of ((candidate && candidate.courses) || [])) {
     if (!course || typeof course !== 'object') continue;
+    if (!course.archivedAt) validateCategoryRoles(course.categoryRoles, candidate?.settings?.categories, 'Kurs');
     validateContextAndEnrollments(course, course.schemaMode, '', false);
     const snapshots = [];
     if (course.archivedAt && course.archiveSnapshot && typeof course.archiveSnapshot === 'object') {
@@ -314,20 +400,7 @@ export function validateRawUpperSecContexts(candidate) {
       const snapshot = archived.snapshot;
       const label = archived.label;
       validateContextAndEnrollments(snapshot, archived.schemaMode || course.schemaMode, label, true);
-      if (snapshot.categoryRoles !== undefined && snapshot.categoryRoles !== null) {
-      if (typeof snapshot.categoryRoles !== 'object' || Array.isArray(snapshot.categoryRoles)) {
-        throw new Error(label + ': Die Kategorienrollen sind ungueltig.');
-      }
-      const writtenCategoryId = snapshot.categoryRoles.upperSecWrittenCategoryId;
-      if (writtenCategoryId !== undefined && writtenCategoryId !== null) {
-        const categoryIds = new Set((Array.isArray(snapshot.categories) ? snapshot.categories : [])
-          .filter(category => category && category.id)
-          .map(category => category.id));
-        if (typeof writtenCategoryId !== 'string' || !categoryIds.has(writtenCategoryId)) {
-          throw new Error(label + ': Die Kategorienrolle verweist auf eine unbekannte Klausurkategorie.');
-        }
-      }
-    }
+      validateCategoryRoles(snapshot.categoryRoles, snapshot.categories, label);
     }
   }
   return true;

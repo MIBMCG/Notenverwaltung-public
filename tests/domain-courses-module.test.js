@@ -40,8 +40,8 @@ test('Wave 3.1 course context and factory shapes preserve legacy behavior', () =
   const legacy = loadModules({ seed: 19 }).DomainModel;
   const mod = loadCourses(19);
   assert.deepEqual(Object.keys(mod).sort(), [
-    'addCourseToState', 'archiveCourse', 'createArchiveSnapshot', 'createCourse',
-    'createEnrollment', 'createSuccessorCourseCandidate', 'enrollStudentInCourse', 'findCourseById',
+    'addCourseToState', 'archiveCourse', 'courseImportScope', 'courseYearScope', 'createArchiveSnapshot', 'createCourse',
+    'createEnrollment', 'createSuccessorCourseCandidate', 'effectiveCourseYear', 'enrollStudentInCourse', 'findCourseById',
     'findEnrollment', 'listActiveCourses', 'listArchivedCourses', 'listEnrollmentsForCourse',
     'listReferencedStudentIdsForCourse', 'listStudentReportCourses',
     'normalizeArchiveHistory', 'normalizeArchiveNote', 'normalizeArchiveRetentionUntil',
@@ -158,18 +158,18 @@ test('Wave 3.1 archive category resolution and frozen snapshots preserve legacy 
     halfYearSettings: { seckII: { schoolYearStartYear: 2026, h1EndMonth: 1, h1EndDay: 30 } }
   };
 
-  for (const settings of [
-    { ...templateSettings, categoryRoles: { upperSecWrittenCategoryId: 'snapshotted-written' } },
-    templateSettings,
-    {
+  for (const [settings, expectedRole] of [
+    [{ ...templateSettings, categoryRoles: { upperSecWrittenCategoryId: 'snapshotted-written' } }, null],
+    [templateSettings, 'written'],
+    [{
       ...templateSettings,
       weightTemplates: templateSettings.weightTemplates.map(template => ({
         ...template,
         items: template.items.concat({ categoryId: 'second-written', weightPercent: template.id.endsWith('one_exam') ? 33.33 : 50 })
       }))
-    }
+    }, 'written']
   ]) {
-    assert.equal(mod.resolveUpperSecWrittenCategoryId(settings), legacy.resolveUpperSecWrittenCategoryId(settings));
+    assert.equal(mod.resolveUpperSecWrittenCategoryId(settings), expectedRole);
   }
 
   const state = { settings: serializable(templateSettings), assessments: [] };

@@ -226,8 +226,8 @@ export function computeCategoryAverage(assessments, course, studentId, categoryI
   return computeFlatAverage();
 }
 
-function resolveSafeUpperSecTemplate(settings, templateId, expectedWrittenPercent) {
-  const writtenCategoryId = resolveUpperSecWrittenCategoryId(settings);
+function resolveSafeUpperSecTemplate(settings, course, templateId, expectedWrittenPercent) {
+  const writtenCategoryId = resolveUpperSecWrittenCategoryId(settings, course);
   if (!writtenCategoryId) return null;
   const templates = Array.isArray(settings && settings.weightTemplates)
     ? settings.weightTemplates
@@ -341,7 +341,7 @@ export function resolveUpperSecGradingContext(course, studentId, term, settings)
   }
 
   if (expectedExamCount === 0) {
-    const writtenCategoryId = resolveUpperSecWrittenCategoryId(settings);
+    const writtenCategoryId = resolveUpperSecWrittenCategoryId(settings, course);
     if (!writtenCategoryId) {
       return {
         qualificationPhase,
@@ -349,7 +349,7 @@ export function resolveUpperSecGradingContext(course, studentId, term, settings)
         recommendedWrittenPercent: null,
         recommendedWeightTemplateId: null,
         status: 'not-applicable',
-        message: 'Die Klausurkategorie kann nicht sicher erkannt werden; die bestehende Gewichtung bleibt unveraendert.',
+        message: 'Klausurkategorie ungeklärt. Es gilt die bestehende Kursgewichtung.',
         isWeightingDeviation: false
       };
     }
@@ -370,6 +370,7 @@ export function resolveUpperSecGradingContext(course, studentId, term, settings)
     : RECOMMENDED_WEIGHT_TEMPLATE_IDS.SEKII_ONE_EXAM;
   const recommendedTemplate = resolveSafeUpperSecTemplate(
     settings,
+    course,
     candidateTemplateId,
     recommendedWrittenPercent
   );
@@ -400,7 +401,7 @@ export function resolveUpperSecAssessmentWarning(assessments, course, studentId,
       !['Q1', 'Q2', 'Q3'].includes(gradingContext.qualificationPhase)) {
     return null;
   }
-  const writtenCategoryId = resolveUpperSecWrittenCategoryId(settings);
+  const writtenCategoryId = resolveUpperSecWrittenCategoryId(settings, course);
   if (!writtenCategoryId) return null;
   const writtenAssessments = (Array.isArray(assessments) ? assessments : []).filter(assessment =>
     assessment && assessment.categoryId === writtenCategoryId
@@ -458,7 +459,7 @@ export function resolveEffectiveCategoryWeights(course, studentId, term, setting
   }
   const context = resolveUpperSecGradingContext(course, studentId, term, settings);
   if (context.status !== 'general-only') return activeWeights;
-  const writtenCategoryId = resolveUpperSecWrittenCategoryId(settings);
+  const writtenCategoryId = resolveUpperSecWrittenCategoryId(settings, course);
   if (!writtenCategoryId) return activeWeights;
   return activeWeights.filter(weight => weight.categoryId !== writtenCategoryId);
 }

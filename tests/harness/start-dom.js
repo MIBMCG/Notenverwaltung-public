@@ -32,6 +32,7 @@ function createStartElement(tagName, ownerDocument = null, namespaceURI = 'http:
     removeEventListener(type, listener) { listeners.set(type, (listeners.get(type) || []).filter(candidate => candidate !== listener)); },
     dispatch(type, event = {}) { return Promise.all((listeners.get(type) || []).map(listener => listener.call(this, { target: this, currentTarget: this, preventDefault() {}, ...event }))); },
     focus() { if (ownerDocument) ownerDocument.activeElement = this; },
+    showModal() { this.open = true; },
     closest(selector) { for (let candidate = this, tag = String(selector).toUpperCase(); candidate; candidate = candidate.parentNode) if (candidate.tagName === tag) return candidate; return null; },
     _listeners(type) { return listeners.get(type) || []; },
     _find(query) {

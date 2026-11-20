@@ -3,6 +3,7 @@ import {
   UPPERSEC_COURSE_TYPES,
   QUALIFICATION_YEARS,
   RECOMMENDED_WEIGHT_TEMPLATE_IDS,
+  isKnownWrittenCategory,
   generateId,
   findById
 } from './state.js';
@@ -208,12 +209,31 @@ export function listStudentReportCourses(state, studentId, activeCourseFilterId 
   return activeCourses.concat(archivedCourses);
 }
 
-export function resolveUpperSecWrittenCategoryId(settings) {
-  const snapshottedRole = settings && settings.categoryRoles && settings.categoryRoles.upperSecWrittenCategoryId;
-  if (snapshottedRole) return snapshottedRole;
+export function resolveUpperSecWrittenCategoryId(settings, course = null) {
+  const categories = Array.isArray(settings && settings.categories) ? settings.categories : [];
+  const roles = (course && course.archivedAt && course.archiveSnapshot
+    ? course.archiveSnapshot.categoryRoles
+    : course && course.categoryRoles) || (settings && settings.categoryRoles);
+  if (roles && Object.prototype.hasOwnProperty.call(roles, 'upperSecWrittenCategoryId')) {
+    return categories.some(category => category.id === roles.upperSecWrittenCategoryId)
+      ? roles.upperSecWrittenCategoryId : null;
+  }
+  // Bei Altbeständen vor der ersten Speicherung der Rolle nur eindeutige Zuordnungen übernehmen.
+  const named = categories.filter(isKnownWrittenCategory);
   const templates = Array.isArray(settings && settings.weightTemplates)
     ? settings.weightTemplates
     : [];
+  // Die historische 67/33-Vorlage speicherte mündlich und schriftlich in dieser Reihenfolge.
+  const legacyRoles = new Set(named.map(category => category.id));
+  const categoryIds = new Set(categories.map(category => category.id));
+  for (const template of templates) {
+    if (!template || !(template.name === 'Standard Sek I (67/33)' ||
+        String(template.name || '').startsWith('Altbestand Sek I (67/33)'))) continue;
+    const [oral, written] = Array.isArray(template.items) ? template.items : [];
+    if (oral && written && oral.categoryId !== written.categoryId &&
+        categoryIds.has(oral.categoryId) && categoryIds.has(written.categoryId)) legacyRoles.add(written.categoryId);
+  }
+  if (legacyRoles.size) return legacyRoles.size === 1 ? legacyRoles.values().next().value : null;
   const oneExam = templates.find(template =>
     template && template.id === RECOMMENDED_WEIGHT_TEMPLATE_IDS.SEKII_ONE_EXAM
   );
@@ -228,7 +248,8 @@ export function resolveUpperSecWrittenCategoryId(settings) {
       Math.abs(Number(twoExamItem.weightPercent) - 50) < 0.001
     ))
     .map(item => item.categoryId)));
-  return candidates.length === 1 ? candidates[0] : null;
+  return candidates.length === 1 && categories.some(category => category.id === candidates[0])
+    ? candidates[0] : null;
 }
 
 export function createArchiveSnapshot(state, course, now) {
@@ -239,7 +260,7 @@ export function createArchiveSnapshot(state, course, now) {
   const selectedTemplate = course && course.weightTemplateId
     ? templates.find(t => t.id === course.weightTemplateId) || null
     : null;
-  const upperSecWrittenCategoryId = resolveUpperSecWrittenCategoryId(settings);
+  const upperSecWrittenCategoryId = resolveUpperSecWrittenCategoryId(settings, course);
   return JSON.parse(JSON.stringify({
     createdAt: now().toISOString(),
     schemaMode: course && course.schemaMode,
@@ -336,6 +357,7 @@ export function createSuccessorCourseCandidate(oldCourse, targetYear, successorP
     importKey: null,
     upperSecContext: successorContext
   });
+  if (oldCourse.categoryRoles) successor.categoryRoles = { ...oldCourse.categoryRoles };
   successor.enrollments = (oldCourse.enrollments || []).map(enrollment => createEnrollment({
     studentId: enrollment.studentId,
     subgroup: enrollment.subgroup || null,
@@ -377,15 +399,43 @@ export function normalizeArchiveHistory(value, fallbackSchemaMode = null) {
   });
 }
 
+export function effectiveCourseYear(state, course) {
+  const level = course.schemaMode === SCHEMA_MODES.UPPERSEC ? 'seckII' : 'seckI';
+  const frozenYear = course.archivedAt && course.archiveSnapshot?.halfYearSettings?.[level]?.schoolYearStartYear;
+  for (const value of [course.schoolYearStartYear, frozenYear, state.settings?.halfYearSettings?.[level]?.schoolYearStartYear]) {
+    const year = Number(value);
+    if (Number.isInteger(year) && year > 0) return year;
+  }
+  return null;
+}
+
+export function courseYearScope(state, course) {
+  return [course.schemaMode || '', effectiveCourseYear(state, course)].join('|');
+}
+
+export function courseImportScope(state, course) {
+  return courseYearScope(state, course) + '|' + !!course.archivedAt;
+}
+
+function assertCourseIdentityAvailable(state, course, archived) {
+  if (!course.importKey) return;
+  const key = course.importKey.trim().toLowerCase();
+  const year = effectiveCourseYear(state, course);
+  const conflict = state.courses.find(other => other.id !== course.id && !!other.archivedAt === archived &&
+    other.schemaMode === course.schemaMode && effectiveCourseYear(state, other) === year &&
+    other.importKey?.trim().toLowerCase() === key);
+  if (conflict) {
+    throw new Error('Die Kurskennung „' + course.importKey + '“ ist für dieses Schuljahr ' +
+      (archived ? 'im Archiv' : 'im aktiven Bestand') + ' bereits an „' + conflict.name + '“ vergeben.');
+  }
+}
+
 export function archiveCourse(state, courseId, reason = "manual", metadata = {}, now) {
   if (typeof now !== 'function') throw new TypeError('now muss eine Funktion sein.');
   const course = findCourseById(state, courseId);
   if (!course || course.archivedAt) return false;
-  if (!course.schoolYearStartYear) {
-    const level = course.schemaMode === SCHEMA_MODES.UPPERSEC ? 'seckII' : 'seckI';
-    const inferredYear = Number(state.settings?.halfYearSettings?.[level]?.schoolYearStartYear);
-    course.schoolYearStartYear = Number.isInteger(inferredYear) ? inferredYear : null;
-  }
+  assertCourseIdentityAvailable(state, course, true);
+  if (!course.schoolYearStartYear) course.schoolYearStartYear = effectiveCourseYear(state, course);
   course.archiveSnapshot = createArchiveSnapshot(state, course, now);
   course.archivedAt = now().toISOString();
   course.archiveReason = reason || "manual";
@@ -398,6 +448,32 @@ export function archiveCourse(state, courseId, reason = "manual", metadata = {},
 export function restoreCourse(state, courseId) {
   const course = findCourseById(state, courseId);
   if (!course || !course.archivedAt) return false;
+  assertCourseIdentityAvailable(state, course, false);
+  const references = course.archiveRestoreReferences;
+  const categoryReference = id => references?.categories?.find(entry => entry.id === id);
+  const restoredAssessments = [];
+  for (const assessment of listAssessmentsForCourse(state, courseId)) {
+    if (!assessment.categoryId && !assessment.subcategoryId) continue;
+    const reference = categoryReference(assessment.categoryId);
+    const category = state.settings.categories.find(item => item.id === (reference?.targetId || assessment.categoryId));
+    if (!category) {
+      const archivedCategory = course.archiveSnapshot?.categories?.find(item => item.id === assessment.categoryId);
+      throw new Error('Die Hauptkategorie „' + (archivedCategory?.name || assessment.categoryId) +
+        '“ fehlt in den aktuellen Einstellungen. Der Kurs bleibt archiviert.');
+    }
+    const mappedSubId = reference?.subcategories?.find(entry => entry.id === assessment.subcategoryId)?.targetId || assessment.subcategoryId;
+    const subcategoryId = mappedSubId && !category.subcategories?.some(item => item.id === mappedSubId) ? null : mappedSubId;
+    restoredAssessments.push({ assessment, categoryId: category.id, subcategoryId });
+  }
+  if (course.schemaMode === SCHEMA_MODES.UPPERSEC) {
+    const snapshot = course.archiveSnapshot;
+    const frozenRole = resolveUpperSecWrittenCategoryId(snapshot, course);
+    const targetRole = categoryReference(frozenRole)?.targetId || frozenRole;
+    const activeRole = state.settings.categories.some(category => category.id === targetRole) ? targetRole : null;
+    if (course.categoryRoles || activeRole !== resolveUpperSecWrittenCategoryId(state.settings)) {
+      course.categoryRoles = { upperSecWrittenCategoryId: activeRole };
+    }
+  }
   course.archiveHistory = normalizeArchiveHistory(course.archiveHistory, course.schemaMode);
   course.archiveHistory.push({
     archivedAt: course.archivedAt,
@@ -407,11 +483,21 @@ export function restoreCourse(state, courseId) {
     archiveNote: normalizeArchiveNote(course.archiveNote),
     snapshot: JSON.parse(JSON.stringify(course.archiveSnapshot))
   });
+  if (!course.schoolYearStartYear) course.schoolYearStartYear = effectiveCourseYear(state, course);
   course.archivedAt = null;
   course.archiveReason = null;
   course.archiveRetentionUntil = null;
   course.archiveNote = null;
   course.archiveSnapshot = null;
+  for (const { assessment, categoryId, subcategoryId } of restoredAssessments) {
+    assessment.categoryId = categoryId;
+    assessment.subcategoryId = subcategoryId;
+  }
+  if (references?.weightTemplateId) course.weightTemplateId = references.weightTemplateId;
+  delete course.archiveRestoreReferences;
+  if (course.weightTemplateId && !state.settings.weightTemplates.some(template => template.id === course.weightTemplateId)) {
+    course.weightTemplateId = null;
+  }
   return true;
 }
 

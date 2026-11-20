@@ -117,8 +117,8 @@ test('der Sammeldruckumfang folgt kombinierten Filtern und der sichtbaren Zeitra
   assert.match(scope.textContent, /Personen:\s*3 angezeigt/);
   assert.match(scope.textContent, /Alle aktiven und archivierten Berichtskurse der angezeigten Personen/);
   assert.match(scope.textContent, /Zeitraumauswahl:\s*25\/26 H2/);
-  assert.match(scope.textContent, /Nur für PDF-Berichte freigegebene Leistungen werden ausgegeben\./);
-  assert.doesNotMatch(scope.textContent, /Seiten|Leistungen:\s*\d|ausgeblendet/i);
+  assert.match(scope.textContent, /Ausgeblendete Einzelleistungen zählen zum ausgewiesenen Leistungsstand/);
+  assert.doesNotMatch(scope.textContent, /Seiten|Leistungen:\s*\d/i);
   assert.ok(optionTexts(termSelect).some(label => /25\/26 H1/.test(label) && /25\/26 Q3/.test(label)),
     'gemischte Sek-I-/Q-Labels müssen aus den vorhandenen Berichtskursen sichtbar bleiben');
 

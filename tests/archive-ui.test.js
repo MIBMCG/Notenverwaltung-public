@@ -8,6 +8,69 @@ const { readSourceLines, extractFunction } = require('./harness/extract.js');
 const { loadModules } = require('./harness/load.js');
 const { loadEsmGraph } = require('./harness/load-esm-graph.js');
 
+test('A4: missing main category leaves archive and earlier assessment references intact', () => {
+  const { DomainModel: D } = loadModules();
+  const state = D.createEmptyState();
+  const course = D.createCourse({ name: 'Archiv' });
+  state.courses.push(course);
+  for (const category of state.settings.categories.slice(0, 2)) {
+    category.subcategories = [{ id: category.id + '-sub', name: 'Teilbereich' }];
+    state.assessments.push(D.createAssessment({ courseId: course.id, categoryId: category.id, subcategoryId: category.subcategories[0].id }));
+  }
+  D.archiveCourse(state, course.id);
+  state.settings.categories[0].subcategories = [];
+  const [missing] = state.settings.categories.splice(1, 1);
+  const before = JSON.stringify(state);
+  assert.throws(() => D.restoreCourse(state, course.id), error => error.message.includes('Hauptkategorie') && error.message.includes(missing.name));
+  assert.equal(JSON.stringify(state), before);
+});
+
+test('A4: an archived recommendation restored by migration is available on reactivation', () => {
+  const { DomainModel: D } = loadModules();
+  const state = D.createEmptyState();
+  const templateId = D.RECOMMENDED_WEIGHT_TEMPLATE_IDS.SEKII_ONE_EXAM;
+  const course = D.createCourse({ name: 'Empfehlung', schemaMode: 'uppersec', weightTemplateId: templateId });
+  state.courses.push(course);
+  D.archiveCourse(state, course.id);
+  state.settings.weightTemplates = state.settings.weightTemplates.filter(t => t.id !== templateId);
+  const migrated = D.ensureStateShape(state);
+  D.restoreCourse(migrated, course.id);
+  assert.ok(migrated.settings.weightTemplates.some(t => t.id === templateId));
+  assert.equal(migrated.courses[0].weightTemplateId, templateId);
+  assert.equal(migrated.courses[0].archiveHistory[0].snapshot.weightTemplate.id, templateId);
+});
+
+test('B3: equal CSV keys in different school years can be archived and reactivated', () => {
+  const { DomainModel: D } = loadModules();
+  const state = D.createEmptyState();
+  const older = D.createCourse({ name: 'Alt', importKey: 'bio', schoolYearStartYear: 2025 });
+  const newer = D.createCourse({ name: 'Neu', importKey: 'BIO', schoolYearStartYear: 2026 });
+  state.courses.push(older, newer);
+  assert.equal(D.archiveCourse(state, older.id), true);
+  assert.equal(D.archiveCourse(state, newer.id), true);
+  assert.equal(D.restoreCourse(state, newer.id), true);
+  assert.equal(D.restoreCourse(state, older.id), true);
+  assert.deepEqual(Array.from(state.courses, course => course.importKey), ['bio', 'BIO']);
+});
+
+test('B3: legacy archives use their frozen school year through reactivation', () => {
+  const { DomainModel: D } = loadModules();
+  const state = D.createEmptyState();
+  state.settings.halfYearSettings.seckI.schoolYearStartYear = 2024;
+  const older = D.createCourse({ name: '2024', importKey: 'bio' });
+  state.courses.push(older);
+  D.archiveCourse(state, older.id);
+  older.schoolYearStartYear = null;
+  state.settings.halfYearSettings.seckI.schoolYearStartYear = 2026;
+  const newer = D.createCourse({ name: '2026', importKey: 'BIO' });
+  state.courses.push(newer);
+  assert.equal(D.archiveCourse(state, newer.id), true);
+  assert.equal(D.restoreCourse(state, newer.id), true);
+  assert.equal(D.restoreCourse(state, older.id), true);
+  assert.equal(older.schoolYearStartYear, 2024);
+  assert.equal(newer.schoolYearStartYear, 2026);
+});
+
 function createCommitHarness(modules, initialState, persistState = async () => {}) {
   let confirmedState = initialState;
   let queue = Promise.resolve();
@@ -508,6 +571,7 @@ test('Low archive export privacy: the downloaded filename exposes no course meta
     classLabel: '10a'
   });
   state.courses.push(course);
+  course.carriedForwardFromCourseId = 'previous-course';
   DomainModel.archiveCourse(state, course.id, 'manual', {});
 
   let encryptedJson = null;
@@ -547,5 +611,7 @@ test('Low archive export privacy: the downloaded filename exposes no course meta
   assert.equal(createdBlob.type, 'application/json;charset=utf-8');
   assert.equal(await createdBlob.text(), 'encrypted-archive-payload');
   assert.match(encryptedJson, /Biologie 10a - vertraulich/);
+  assert.equal(JSON.parse(encryptedJson).courses[0].carriedForwardFromCourseId, null);
+  assert.equal(course.carriedForwardFromCourseId, 'previous-course');
   assert.deepEqual(revokedUrls, ['blob:archive-download']);
 });

@@ -952,6 +952,7 @@ test('merge summary: identical archived assessment and score match by stable IDs
   const incomingWritten = incoming.settings.categories.find(category => category.id === local.categoryIds.written);
   const incomingWrittenId = incomingWritten.id;
   incomingWritten.id = 'category_current_source';
+  incoming.settings.categoryRoles.upperSecWrittenCategoryId = incomingWritten.id;
   for (const template of incoming.settings.weightTemplates) {
     for (const item of template.items || []) {
       if (item.categoryId === incomingWrittenId) item.categoryId = incomingWritten.id;
@@ -960,6 +961,7 @@ test('merge summary: identical archived assessment and score match by stable IDs
   const localWritten = local.state.settings.categories.find(category => category.id === local.categoryIds.written);
   const localWrittenId = localWritten.id;
   localWritten.id = 'category_current_target';
+  local.state.settings.categoryRoles.upperSecWrittenCategoryId = localWritten.id;
   for (const template of local.state.settings.weightTemplates) {
     for (const item of template.items || []) {
       if (item.categoryId === localWrittenId) item.categoryId = localWritten.id;

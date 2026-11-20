@@ -14,6 +14,7 @@ const CSV_RULE_NAMES = new Set(['parseCsvTransferContextFields', 'validateCsvCou
 
 function installCsvArtifactDependencies(modules, htmlLines) {
   const importValidationSource = [
+    ...['effectiveCourseYear', 'courseYearScope', 'courseImportScope'].map(name => extractFunction(htmlLines, name)),
     extractFunction(htmlLines, 'validateImportedState'),
     'globalThis.__artifact_import_validation_exports = { validateImportedState };'
   ].join('\n\n');
@@ -49,7 +50,7 @@ function installCsvArtifactDependencies(modules, htmlLines) {
     extractFunction(htmlLines, 'resolveSchoolYearBoundaries'),
     extractFunction(htmlLines, 'resolveAssessmentTermFromDateValue'),
     extractFunction(htmlLines, 'createInitialAssessmentsForCourse'),
-    extractFunction(htmlLines, 'updateStudentCreatedInCurrentCsv'),
+    extractFunction(htmlLines, 'completeCreatedStudent'),
     extractFunction(htmlLines, 'createCsvImportOrchestrator'),
     'globalThis.__csv_import_orchestrator_exports = { createCsvImportOrchestrator };'
   ].join('\n\n');

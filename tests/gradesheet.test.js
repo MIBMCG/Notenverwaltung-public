@@ -240,6 +240,7 @@ function createEditorDocumentStub() {
 
     focus() {}
     select() {}
+    showModal() { this.open = true; }
     closest(selector) {
       let current = this;
       const wantedTag = String(selector || '').toLowerCase();
@@ -2667,6 +2668,75 @@ function renderSplitTermKeyboardFixture(column) {
   )[0];
   return { modules, ctx, assessment: assessments[column], input };
 }
+
+test('D1: Tab and Shift+Tab leave focus movement to the browser in the combined table, split table and term result', async () => {
+  const combined = renderMainScoreInputWithSaveSpy('Tab');
+  const split = renderSplitTermKeyboardFixture(0);
+  const result = renderTermResultEditorWithTransition();
+  for (const [fixture, value] of [[combined, '1'], [split, '11'], [result, '11']]) {
+    let saves = 0;
+    fixture.modules.Storage.saveState = async () => { saves += 1; };
+    for (const shiftKey of [true, false]) {
+      let prevented = false;
+      fixture.input.value = shiftKey ? value : '2';
+      await fixture.input.dispatch('keydown', {
+        key: 'Tab', shiftKey, preventDefault() { prevented = true; }
+      });
+      assert.equal(prevented, false, 'Tab muss den sichtbaren Status oder das nächste native Fokusziel erreichen');
+      await fixture.input.dispatch('change');
+    }
+    assert.equal(saves, 2, 'pro Änderung darf nur einmal gespeichert werden');
+  }
+});
+
+test('D1: Halbjahresköpfe sind native Schaltflächen und veröffentlichen ihren Klappzustand', async () => {
+  const fixture = await createCollapsibleHalfYearFixture();
+  const current = findTermSection(fixture.container, 'Halbjahr: 26/27 Q1');
+  const archive = collectElements(fixture.container, element => element.classList?.contains('prev-term'))[0];
+  for (const section of [current, archive]) {
+    const [header, content] = section.children;
+    assert.equal(header.tagName, 'button');
+    assert.equal(header.attributes.get('aria-expanded'), String(!content.classList.contains('hidden')));
+    await header.dispatch('click');
+    assert.equal(header.attributes.get('aria-expanded'), String(!content.classList.contains('hidden')));
+  }
+});
+
+test('D2: Leistungsdialog benennt und fokussiert das Formular und kehrt nach Escape zur Auslösung zurück', async () => {
+  const { document, modules, render } = loadGradesheetRenderer();
+  const ctx = buildCourseState(modules, { studentCount: 1 });
+  const assessment = addAssessment(modules, ctx, {
+    categoryId: ctx.categoryIds.written, term: '2025-H2', title: 'Unverändert lassen'
+  });
+  Object.assign(modules.sandbox, { state: ctx.state, currentCourseId: ctx.course.id });
+  const container = document.createElement('main');
+  document.body.appendChild(container);
+  render(container);
+  const trigger = collectElements(container, element => element.title === 'Leistung bearbeiten')[0];
+  trigger.focus = () => { document.activeElement = trigger; };
+  const createElement = document.createElement;
+  document.createElement = tag => {
+    const element = createElement(tag);
+    element.focus = () => { document.activeElement = element; };
+    return element;
+  };
+
+  await trigger.dispatch('click');
+  const heading = collectElements(document.body, element =>
+    element.tagName === 'h3' && element.textContent === 'Leistung bearbeiten')[0];
+  const dialog = heading.parentNode;
+  assert.equal(dialog.tagName, 'dialog');
+  assert.equal(dialog.open, true);
+  assert.equal(dialog.attributes.get('aria-labelledby'), heading.id);
+  const title = collectElements(dialog, element => element.tagName === 'input' && element.type === 'text')[0];
+  assert.equal(document.activeElement, title);
+  title.value = 'Ungespeicherter Entwurf';
+
+  await dialog.dispatch('cancel');
+  assert.equal(dialog.parentNode, null);
+  assert.equal(document.activeElement, trigger);
+  assert.equal(confirmedAssessment(modules, assessment.id).title, 'Unverändert lassen');
+});
 
 function createDashboardTransitionRecorder() {
   const editors = [];

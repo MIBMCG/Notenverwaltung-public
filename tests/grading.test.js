@@ -542,6 +542,26 @@ test('M31: the Q4 flag has no effect in Q3', () => {
   assert.ok(Math.abs(q3 - 11) < 0.001, `Q3 muss die Klausur fuer alle einbeziehen: ${q3}`);
 });
 
+test('C1: editing a different weighting template keeps the Q4 written role for active and archived courses', () => {
+  const ctx = buildMixedQ4BasicCourse();
+  const [written, oral] = ctx.assessments;
+  ctx.course.weightTemplateId = DomainModel.RECOMMENDED_WEIGHT_TEMPLATE_IDS.SEKII_TWO_EXAMS;
+  const template = ctx.state.settings.weightTemplates.find(item => item.id === DomainModel.RECOMMENDED_WEIGHT_TEMPLATE_IDS.SEKII_ONE_EXAM);
+  template.items.forEach((item, index) => { item.weightPercent = [34, 56, 10][index]; });
+  ctx.state.settings.categories.find(category => category.id === ctx.categoryIds.written).name = 'Individuell umbenannt';
+  for (const student of ctx.students) setScore(modules, oral, student.id, '8');
+  for (const archived of [false, true]) {
+    if (archived) DomainModel.archiveCourse(ctx.state, ctx.course.id, 'manual', {});
+    const settings = GradingLogic.getSettingsForCourse(ctx.course, ctx.state);
+    const calculate = id => GradingLogic.computeWeightedOverallForAssessments([written, oral], ctx.course, id, settings, '2026-H2');
+    assert.equal(calculate(ctx.students[1].id), 8);
+    assert.ok(Math.abs(calculate(ctx.students[0].id) - 1070 / 90) < 0.00001);
+    setScore(modules, oral, ctx.students[1].id, '0');
+    assert.equal(calculate(ctx.students[1].id), 0);
+    setScore(modules, oral, ctx.students[1].id, '8');
+  }
+});
+
 test('M31: a deliberate course-wide weighting deviation remains effective for a marked Q4 student', () => {
   const ctx = buildMixedQ4BasicCourse();
   ctx.course.weightTemplateId = DomainModel.RECOMMENDED_WEIGHT_TEMPLATE_IDS.SEKII_TWO_EXAMS;
@@ -558,6 +578,8 @@ test('M31: a deliberate course-wide weighting deviation remains effective for a 
 
 test('M31: unsafe category roles do not trigger automatic Q4 reweighting', () => {
   const ctx = buildMixedQ4BasicCourse();
+  delete ctx.state.settings.categoryRoles;
+  for (const category of ctx.state.settings.categories) category.name = 'Individuell';
   ctx.state.settings.weightTemplates = ctx.state.settings.weightTemplates.filter(template =>
     template.id !== DomainModel.RECOMMENDED_WEIGHT_TEMPLATE_IDS.SEKII_ONE_EXAM &&
     template.id !== DomainModel.RECOMMENDED_WEIGHT_TEMPLATE_IDS.SEKII_TWO_EXAMS
@@ -593,6 +615,8 @@ test('M31 final review: a stable one-exam template ID with 80/20 is not a safe r
 
 test('M31 final re-review: ambiguous written-role percentages yield no safe recommendation', () => {
   const ctx = buildMixedQ4BasicCourse();
+  delete ctx.state.settings.categoryRoles;
+  for (const category of ctx.state.settings.categories) category.name = 'Individuell';
   const [firstCategory, secondCategory, thirdCategory] = ctx.state.settings.categories;
   ctx.state.settings.weightTemplates = [
     {
@@ -621,6 +645,30 @@ test('M31 final re-review: ambiguous written-role percentages yield no safe reco
 
   assert.notEqual(result.status, 'recommendation');
   assert.equal(result.recommendedWeightTemplateId, null);
+});
+
+test('C1: legacy migration saves a unique written role before subsequent edits', () => {
+  const ctx = buildMixedQ4BasicCourse();
+  delete ctx.state.settings.categoryRoles;
+  const migrated = DomainModel.ensureStateShape(ctx.state);
+  assert.equal(migrated.settings.categoryRoles?.upperSecWrittenCategoryId, ctx.categoryIds.written);
+  migrated.settings.categories.forEach(category => { category.name = 'Umbenannt'; });
+  migrated.settings.weightTemplates = [];
+  assert.equal(DomainModel.resolveUpperSecWrittenCategoryId(migrated.settings), ctx.categoryIds.written);
+});
+
+test('C1: legacy 67/33 category assignments survive migration even after labels were renamed', () => {
+  const ctx = buildMixedQ4BasicCourse();
+  delete ctx.state.settings.categoryRoles;
+  ctx.state.settings.categories.forEach(category => { category.name = 'Umbenannt'; });
+  ctx.state.settings.weightTemplates = [{
+    id: 'legacy', name: 'Standard Sek I (67/33)', items: [
+      { categoryId: ctx.categoryIds.oral, weightPercent: 67 },
+      { categoryId: ctx.categoryIds.written, weightPercent: 33 }
+    ]
+  }];
+  const migrated = DomainModel.ensureStateShape(ctx.state);
+  assert.equal(migrated.settings.categoryRoles.upperSecWrittenCategoryId, ctx.categoryIds.written);
 });
 
 test('M31: archived Sek II keeps H1 and H2 strictly separate despite a legacy include flag', () => {

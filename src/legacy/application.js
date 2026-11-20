@@ -36,7 +36,7 @@ import {
   createUniqueWorksheetNames,
   createExcelWorkbookBlob
 } from '../transfer/excel-export.js';
-import { validateImportedState, validateRawTermResults, validateRawUpperSecContexts } from '../transfer/import-validation.js';
+import { prepareSingleArchiveImport, repairLegacyWeightReferences, supplementMissingImportPeriods, validateImportedState, validateRawTermResults, validateRawUpperSecContexts } from '../transfer/import-validation.js';
 import { createImportMerge } from '../transfer/import-merge.js';
 import { createDashboardTransition } from '../ui/dashboard-transition.js';
 import { createPersistenceBoundary } from '../ui/persistence-boundary.js';
@@ -883,6 +883,16 @@ const DISPLAY_TIME_ZONE = Intl.DateTimeFormat().resolvedOptions().timeZone;
             (!nextContext || !nextContext.courseType || !nextContext.qualificationYear)) {
           throw new Error('Bitte Kursart und Qualifikationsabschnitt vollständig auswählen.');
         }
+        if (currentCourse.schemaMode !== nextSchemaMode) {
+          const hasScores = DomainModel.listAssessmentsForCourse(candidate, courseId).some(assessment =>
+            Object.values(assessment.scores || {}).some(score => score &&
+              (Number.isFinite(score.valueNumeric) || String(score.valueRaw ?? '').trim() !== '')));
+          if (currentCourse.termResults?.length || hasScores) {
+            const error = new Error('Der Kurs enthält Einzelbewertungen oder festgesetzte Halbjahresergebnisse. Das Bewertungsschema muss erhalten bleiben.');
+            error.code = 'COURSE_SCHEMA_HAS_RESULTS';
+            throw error;
+          }
+        }
         currentCourse.schemaMode = nextSchemaMode;
         currentCourse.upperSecContext = nextContext;
         currentCourse.includePrevTermGrades = nextSchemaMode === DomainModel.SCHEMA_MODES.GRADES;
@@ -1080,6 +1090,10 @@ const DISPLAY_TIME_ZONE = Intl.DateTimeFormat().resolvedOptions().timeZone;
             const confirmedState = typeof readState === 'function' ? readState() : null;
             const confirmedCourse = confirmedState && DomainModel.findCourseById(confirmedState, courseId);
             pendingSchemaMode = confirmedCourse ? confirmedCourse.schemaMode : pendingSchemaMode;
+            if (error.code === 'COURSE_SCHEMA_HAS_RESULTS' && confirmedCourse) {
+              schemaSelect.value = confirmedCourse.schemaMode;
+              clearContextEditor();
+            }
             showError(error);
             return null;
           });
@@ -1218,8 +1232,9 @@ const DISPLAY_TIME_ZONE = Intl.DateTimeFormat().resolvedOptions().timeZone;
 
       function findNextGradesheetInput(inputs, currentInput, key) {
         const list = Array.from(inputs || []).filter(function (input) {
+          if (input.disabled) return false;
           for (let node = input; node; node = node.parentNode) {
-            if (node.hidden) return false;
+            if (node.hidden || node.classList?.contains('hidden')) return false;
           }
           return true;
         });
@@ -5091,7 +5106,8 @@ const DISPLAY_TIME_ZONE = Intl.DateTimeFormat().resolvedOptions().timeZone;
                   const archiveState = {
                     version: state.version,
                     students: (state.students || []).filter(s => studentIds.has(s.id)),
-                    courses: [archived],
+                    courses: [{ ...archived, carriedForwardFromCourseId: null }],
+                    ...(archived.carriedForwardFromCourseId ? { archiveExport: { predecessorId: archived.carriedForwardFromCourseId } } : {}),
                     assessments: archivedAssessments,
                     settings: state.settings
                   };
@@ -5445,34 +5461,16 @@ const DISPLAY_TIME_ZONE = Intl.DateTimeFormat().resolvedOptions().timeZone;
         }
 
         function filterPdfAssessments(allAssessments, course, selectedTerm = null, currentTermForCourse = null, deriveTermForDate = null) {
-          const assessments = Array.isArray(allAssessments) ? allAssessments : [];
-          return assessments.filter(assessment => {
-            if (!assessment || assessment.courseId !== course.id) return false;
-            if (assessment.visible === false) return false;
-            if (!selectedTerm) return true;
-            const assessmentTerm = getAssessmentTerm(assessment, course, deriveTermForDate) || currentTermForCourse;
-            return assessmentTerm === selectedTerm;
-          });
+          return filterPdfOverallAssessments(allAssessments, course, null)
+            .filter(assessment => assessment.visible !== false && (!selectedTerm ||
+              (getAssessmentTerm(assessment, course, deriveTermForDate) || currentTermForCourse) === selectedTerm));
         }
 
         function filterPdfOverallAssessments(allAssessments, course, selectedTerm = null, currentTermForCourse = null, deriveTermForDate = null) {
-          const selectedAssessments = filterPdfAssessments(
-            allAssessments,
-            course,
-            selectedTerm,
-            currentTermForCourse,
-            deriveTermForDate
-          );
-          if (!selectedTerm) return selectedAssessments;
-          const resultTerms = GradingLogic.resolveAssessmentTermsForResult(course, selectedTerm);
-          if (resultTerms.length <= 1) return selectedAssessments;
-          return resultTerms.flatMap(term => filterPdfAssessments(
-            allAssessments,
-            course,
-            term,
-            currentTermForCourse,
-            deriveTermForDate
-          ));
+          const resultTerms = selectedTerm && GradingLogic.resolveAssessmentTermsForResult(course, selectedTerm);
+          return (Array.isArray(allAssessments) ? allAssessments : []).filter(assessment =>
+            assessment && assessment.courseId === course.id && (!resultTerms ||
+              resultTerms.includes(getAssessmentTerm(assessment, course, deriveTermForDate) || currentTermForCourse)));
         }
 
         function buildUpperSecResultPresentation(course, studentId, term, calculatedValue) {
@@ -5522,7 +5520,7 @@ const DISPLAY_TIME_ZONE = Intl.DateTimeFormat().resolvedOptions().timeZone;
             courseTypeLabel: courseTypeLabels[(evaluationCourse.upperSecContext || {}).courseType] || 'Kontext unvollständig',
             qualificationPhase: gradingContext.qualificationPhase || '–',
             examRequirementLabel: gradingContext.expectedExamCount === 0
-              ? 'nur allgemeiner Teil'
+              ? (gradingContext.status === 'general-only' ? 'nur allgemeiner Teil' : gradingContext.message)
               : (gradingContext.expectedExamCount === null ? 'Klausurzahl prüfen' : 'Klausur vorgesehen'),
             manualDecisionWarning: assessmentWarning ? assessmentWarning.message : null,
             ...resultPresentation
@@ -5628,24 +5626,10 @@ const DISPLAY_TIME_ZONE = Intl.DateTimeFormat().resolvedOptions().timeZone;
               // Leistungen für diesen Schüler/Kurs sammeln
               // WICHTIG: Leistungen haben ein "scores"-Objekt mit Schüler-IDs als Keys!
               const allAssessments = state.assessments || [];
-              const asms = filterPdfAssessments(
-                allAssessments,
-                course,
-                selectedTerm,
-                currentTermForCourse,
-                deriveTermFromDateValue
-              );
-
               if (!selectedTerm) {
-                // Gruppierung nach Halbjahr, inkl. Durchschnitt je Halbjahr
                 const termAssessmentsMap = new Map();
-                for (const asm of asms) {
-                  let termValue = asm.term || null;
-                  if (!termValue && asm.date) {
-                    const d = new Date(asm.date);
-                    if (!isNaN(d)) termValue = deriveTermFromDateValue(d, course);
-                  }
-                  if (!termValue) termValue = 'no-term';
+                for (const asm of filterPdfOverallAssessments(allAssessments, course)) {
+                  const termValue = getAssessmentTerm(asm, course, deriveTermFromDateValue) || 'no-term';
                   if (!termAssessmentsMap.has(termValue)) termAssessmentsMap.set(termValue, []);
                   termAssessmentsMap.get(termValue).push(asm);
                 }
@@ -5665,7 +5649,7 @@ const DISPLAY_TIME_ZONE = Intl.DateTimeFormat().resolvedOptions().timeZone;
                 const sortedTerms = Array.from(termAssessmentsMap.keys()).sort().reverse();
                 for (const termKey of sortedTerms) {
                   const termsAssms = termAssessmentsMap.get(termKey);
-                  const assessmentsData = termsAssms.map(asm => {
+                  const assessmentsData = termsAssms.filter(asm => asm.visible !== false).map(asm => {
                     let catName = '–';
                     if (asm.categoryId) {
                       const cat = (evaluationSettings.categories || []).find(c => c.id === asm.categoryId);
@@ -5724,21 +5708,9 @@ const DISPLAY_TIME_ZONE = Intl.DateTimeFormat().resolvedOptions().timeZone;
                 });
               } else {
                 // Flache Ansicht für spezifisches Halbjahr
-                let overall = null;
-                let termOverall = null;
-                try {
-                  // Falls Kurs-Setting aktiv ist, Vorhalbjahr in die Gesamtnote einbeziehen
-                  const overallAssessments = filterPdfOverallAssessments(
-                    state.assessments || [],
-                    course,
-                    selectedTerm,
-                    currentTermForCourse,
-                    deriveTermFromDateValue
-                  );
-                  overall = computeReportOverallForAssessments(overallAssessments, course, student.id, evaluationSettings, selectedTerm);
-                  termOverall = computeReportOverallForAssessments(asms, course, student.id, evaluationSettings, selectedTerm);
-                } catch (e) {}
-                const schoolYearResult = GradingLogic.isSchoolYearResultTerm(course, selectedTerm);
+                const asms = filterPdfAssessments(allAssessments, course, selectedTerm, currentTermForCourse, deriveTermFromDateValue);
+                const overallAssessments = filterPdfOverallAssessments(allAssessments, course, selectedTerm, currentTermForCourse, deriveTermFromDateValue);
+                const overall = computeReportOverallForAssessments(overallAssessments, course, student.id, evaluationSettings, selectedTerm);
                 const assessmentsData = asms.map(asm => {
                   let catName = '–';
                   if (asm.categoryId) {
@@ -5767,15 +5739,12 @@ const DISPLAY_TIME_ZONE = Intl.DateTimeFormat().resolvedOptions().timeZone;
                   name: course.name || 'Kurs',
                   classLabel: course.classLabel || '',
                   assessments: assessmentsData,
-                  overall: schoolYearResult ? overall : termOverall,
-                  overallIsPoor: ((schoolYearResult ? overall : termOverall) != null &&
-                    isPoorValue(course, schoolYearResult ? overall : termOverall)),
+                  overall,
+                  overallIsPoor: overall != null && isPoorValue(course, overall),
                   overallLabel: getStudentDetailOverallLabel(course, selectedTerm),
                   presentation: course.schemaMode === DomainModel.SCHEMA_MODES.UPPERSEC
                     ? buildUpperSecContextPresentation(course, student.id, selectedTerm, state)
-                    : null,
-                  combinedOverall: null,
-                  combinedOverallIsPoor: (overall != null && isPoorValue(course, overall))
+                    : null
                 });
               }
             }
@@ -5905,7 +5874,7 @@ ${buildPrintHeaderCss()}
                   for (const termData of courseData.assessmentsByTerm) {
                     sectionHtml += `<h3>${escapeHtml(termData.termLabel)}</h3>\n`;
                     if (termData.assessments.length === 0) {
-                      sectionHtml += '<p style="font-size:10pt; color:#666;">Keine Noten in diesem Halbjahr.</p>\n';
+                      sectionHtml += '<p style="font-size:10pt; color:#666;">Keine Einzelnoten zur Anzeige.</p>\n';
                     } else {
                       sectionHtml += '<table>\n';
                       sectionHtml += '<thead><tr>';
@@ -5942,7 +5911,7 @@ ${buildPrintHeaderCss()}
                 } else {
                   // Flache Ansicht: wie bisher
                   if (courseData.assessments.length === 0) {
-                    sectionHtml += '<p style="font-size:10pt; color:#666;">Noch keine Noten eingetragen.</p>\n';
+                    sectionHtml += '<p style="font-size:10pt; color:#666;">Keine Einzelnoten zur Anzeige.</p>\n';
                   } else {
                     sectionHtml += '<table>\n';
                     sectionHtml += '<thead><tr>';
@@ -5967,7 +5936,7 @@ ${buildPrintHeaderCss()}
                   const overallClass = courseData.overallIsPoor ? ' class="poor-grade"' : '';
                   sectionHtml += `<div class="overall-grade"${overallClass}>`;
                   if (courseData.presentation) {
-                    sectionHtml += `${courseData.presentation.calculatedLabel}: ${courseData.presentation.calculatedText}`;
+                    sectionHtml += `${courseData.presentation.qualificationPhase}, ${courseData.presentation.courseTypeLabel}, ${courseData.presentation.examRequirementLabel}: ${courseData.presentation.calculatedLabel}: ${courseData.presentation.calculatedText}`;
                   } else if (courseData.overall != null && Number.isFinite(courseData.overall)) {
                     sectionHtml += `${escapeHtml(courseData.overallLabel || 'Gesamtnote/-punkte')}: ${formatLegacyFixed(courseData.overall, 2)}`;
                   } else {
@@ -5977,10 +5946,7 @@ ${buildPrintHeaderCss()}
                   if (courseData.presentation && Number.isInteger(courseData.presentation.finalizedPoints)) {
                     sectionHtml += `<div class="overall-grade">${courseData.presentation.finalizedLabel}: ${courseData.presentation.finalizedPoints}</div>\n`;
                   }
-                  if (courseData.presentation && courseData.combinedOverall != null && Number.isFinite(courseData.combinedOverall)) {
-                    const combinedClass = courseData.combinedOverallIsPoor ? ' class="poor-grade overall-grade"' : ' class="overall-grade"';
-                    sectionHtml += `<div${combinedClass}>Rechenwert inkl. Vorhalbjahr: ${formatLegacyFixed(courseData.combinedOverall, 2)}</div>\n`;
-                  }
+
                 }
               }
               return sectionHtml;
@@ -6354,7 +6320,7 @@ ${buildPrintHeaderCss()}
           massPrintScope.appendChild(massPrintTerm);
           const massPrintHint = document.createElement('p');
           massPrintHint.className = 'students-print-scope-hint';
-          massPrintHint.textContent = 'Nur für PDF-Berichte freigegebene Leistungen werden ausgegeben.';
+          massPrintHint.textContent = 'Nur für PDF-Berichte freigegebene Leistungen werden einzeln aufgeführt. Ausgeblendete Einzelleistungen zählen zum ausgewiesenen Leistungsstand.';
           massPrintScope.appendChild(massPrintHint);
           massPrintBody.appendChild(massPrintScope);
 
@@ -6468,32 +6434,15 @@ ${buildPrintHeaderCss()}
                 const currentTermForCourse = deriveTermFromDateValue(new Date(), course) || null;
                 const allAssessments = state.assessments || [];
 
-                // Nur für PDF-Berichte freigegebene Leistungen dieses Kurses filtern.
-                const asms = filterPdfAssessments(
-                  allAssessments,
-                  course,
-                  selectedTerm,
-                  currentTermForCourse,
-                  deriveTermFromDateValue
-                );
-
-                // Gruppiere Leistungen nach Halbjahr (Map mit term als Key)
                 const termAssessmentsMap = new Map();
-                for (const asm of asms) {
-                  let termValue = asm.term || null;
-                  if (!termValue && asm.date) {
-                    const d = new Date(asm.date);
-                    if (!isNaN(d)) {
-                      termValue = deriveTermFromDateValue(d, course);
-                    }
-                  }
-
-                  if (!termValue) termValue = 'no-term';
-
-                  if (!termAssessmentsMap.has(termValue)) {
-                    termAssessmentsMap.set(termValue, []);
-                  }
-                  termAssessmentsMap.get(termValue).push(asm);
+                const resultAssessments = filterPdfOverallAssessments(
+                  allAssessments, course, selectedTerm, currentTermForCourse, deriveTermFromDateValue
+                );
+                for (const asm of resultAssessments) {
+                  const termValue = getAssessmentTerm(asm, course, deriveTermFromDateValue) || (selectedTerm && currentTermForCourse) || 'no-term';
+                  const reportTerm = selectedTerm || termValue;
+                  if (!termAssessmentsMap.has(reportTerm)) termAssessmentsMap.set(reportTerm, []);
+                  if (termValue === reportTerm) termAssessmentsMap.get(reportTerm).push(asm);
                 }
 
                 if (course.schemaMode === DomainModel.SCHEMA_MODES.UPPERSEC) {
@@ -6513,7 +6462,7 @@ ${buildPrintHeaderCss()}
 
                 for (const termKey of sortedTerms) {
                   const termsAssms = termAssessmentsMap.get(termKey);
-                  const assessmentsData = termsAssms.map(asm => {
+                  const assessmentsData = termsAssms.filter(asm => asm.visible !== false).map(asm => {
                     // Kategorie-Name und Unterkategorie-Name finden
                     let catName = '–';
                     if (asm.categoryId) {
@@ -6591,37 +6540,12 @@ ${buildPrintHeaderCss()}
                   });
                 }
 
-                let combinedOverall = null;
-                if (selectedTerm && GradingLogic.isSchoolYearResultTerm(course, selectedTerm)) {
-                  try {
-                    const overallAssessments = filterPdfOverallAssessments(
-                      allAssessments,
-                      course,
-                      selectedTerm,
-                      currentTermForCourse,
-                      deriveTermFromDateValue
-                    );
-                    combinedOverall = computeReportOverallForAssessments(
-                      overallAssessments,
-                      course,
-                      student.id,
-                      evaluationSettings,
-                      selectedTerm
-                    );
-                  } catch (e) {}
-                }
-
-                if (assessmentsByTerm.length > 0 || course.archivedAt) {
-                  coursesData.push({
-                    name: course.name || 'Kurs',
-                    classLabel: course.classLabel || '',
-                    isArchived: !!course.archivedAt,
-                    assessmentsByTerm: assessmentsByTerm,
-                    combinedOverall: combinedOverall,
-                    combinedOverallIsPoor: (combinedOverall != null && isPoorValue(course, combinedOverall)),
-                    upperSec: course.schemaMode === DomainModel.SCHEMA_MODES.UPPERSEC
-                  });
-                }
+                coursesData.push({
+                  name: course.name || 'Kurs',
+                  classLabel: course.classLabel || '',
+                  isArchived: !!course.archivedAt,
+                  assessmentsByTerm
+                });
               }
 
               allStudentsData.push({
@@ -6746,7 +6670,7 @@ ${buildPrintHeaderCss()}
                   html += `</h2>\n`;
 
                   if (courseData.assessmentsByTerm.length === 0) {
-                    html += '<p style="font-size:10pt; color:#666;">Keine gespeicherten Leistungen; Archivzuordnung ist vorhanden.</p>\n';
+                    html += '<p style="font-size:10pt; color:#666;">Keine Einzelnoten zur Anzeige.</p>\n';
                   }
 
                   // Halbjahre durchlaufen
@@ -6755,7 +6679,7 @@ ${buildPrintHeaderCss()}
                     html += `<h3>${escapeHtml(termData.termLabel)}</h3>\n`;
 
                     if (termData.assessments.length === 0) {
-                      html += '<p style="font-size:10pt; color:#666;">Keine Noten für dieses Halbjahr.</p>\n';
+                      html += '<p style="font-size:10pt; color:#666;">Keine Einzelnoten zur Anzeige.</p>\n';
                     } else {
                       html += '<table>\n';
                       html += '<thead><tr>';
@@ -6794,15 +6718,7 @@ ${buildPrintHeaderCss()}
                     }
                   }
 
-                  if (courseData.combinedOverall != null && Number.isFinite(courseData.combinedOverall)) {
-                    const combinedAvgClass = courseData.combinedOverallIsPoor
-                      ? ' class="poor-grade term-average"'
-                      : ' class="term-average"';
-                    const combinedLabel = courseData.upperSec
-                      ? 'Rechenwert inkl. Vorhalbjahr'
-                      : 'Jahresgesamtnote (H1 + H2)';
-                    html += `<div${combinedAvgClass}>${combinedLabel}: ${formatLegacyFixed(courseData.combinedOverall, 2)}</div>\n`;
-                  }
+
                 }
               }
 
@@ -7359,7 +7275,7 @@ ${buildPrintHeaderCss()}
             detailPrintScope.appendChild(detailPrintFilterHint);
             const detailPrintVisibilityHint = document.createElement('p');
             detailPrintVisibilityHint.className = 'students-print-scope-hint';
-            detailPrintVisibilityHint.textContent = 'Nur für PDF-Berichte freigegebene Leistungen werden ausgegeben.';
+            detailPrintVisibilityHint.textContent = 'Nur für PDF-Berichte freigegebene Leistungen werden einzeln aufgeführt. Ausgeblendete Einzelleistungen zählen zum ausgewiesenen Leistungsstand.';
             detailPrintScope.appendChild(detailPrintVisibilityHint);
 
             function updateDetailPrintScope() {
@@ -7583,17 +7499,22 @@ ${buildPrintHeaderCss()}
                   saveBtn.textContent = 'Speichern';
                   saveBtn.addEventListener('click', async function () {
                     if (saveBtn.disabled) return;
+                    const values = {
+                      lastName: (lastInput.value || '').trim(),
+                      firstName: (firstInput.value || '').trim(),
+                      birthDate: (birthInput.value || '').trim() || null,
+                      homeClass: (classInputInline.value || '').trim()
+                    };
+                    if (!values.lastName && !values.firstName) {
+                      window.alert('Bitte mindestens Nachname oder Vorname angeben.');
+                      lastInput.focus();
+                      return;
+                    }
                     saveBtn.disabled = true;
                     cancelBtn.disabled = true;
                     existingDelete.disabled = true;
                     try {
                       const studentId = stu.id;
-                      const values = {
-                        lastName: (lastInput.value || '').trim(),
-                        firstName: (firstInput.value || '').trim(),
-                        birthDate: (birthInput.value || '').trim() || null,
-                        homeClass: (classInputInline.value || '').trim()
-                      };
                       await commitStateChange(function (candidate) {
                         const candidateStudent = requireStudent(candidate, studentId);
                         Object.assign(candidateStudent, values);
@@ -8002,10 +7923,15 @@ ${buildPrintHeaderCss()}
             });
 
             input.addEventListener('keydown', async function (event) {
-              if (event.key !== 'Enter' && event.key !== 'Tab') return;
+              if (event.key === 'Tab') {
+                await saveTermResultInput();
+                return;
+              }
+              if (event.key !== 'Enter') return;
               event.preventDefault();
+              const focusAtKeydown = document.activeElement;
               const saved = await saveTermResultInput();
-              if (!saved) return;
+              if (!saved || document.activeElement !== focusAtKeydown) return;
               const inputs = Array.from(document.querySelectorAll(
                 '.gradesheet-input, .gradesheet-term-result-input:not([disabled])'
               ));
@@ -8450,31 +8376,16 @@ ${buildPrintHeaderCss()}
           // Zwischenspeicher für erlaubte Halbjahre in Add/Edit-Dialogen (wird nach Term-Ermittlung befüllt)
           let allowedTerms = [];
 
-          function editAssessment(assessment) {
+          function editAssessment(assessment, triggerButton) {
             assessment = DomainModel.findAssessmentById(state, assessment.id);
             if (!isAssessmentInManagementScope(assessment)) return;
-            // Modal zum Bearbeiten der Leistung
-            const overlay = document.createElement("div");
-            overlay.style.position = "fixed";
-            overlay.style.top = "0";
-            overlay.style.left = "0";
-            overlay.style.width = "100%";
-            overlay.style.height = "100%";
-            overlay.style.background = "rgba(0,0,0,0.5)";
-            overlay.style.display = "flex";
-            overlay.style.alignItems = "center";
-            overlay.style.justifyContent = "center";
-            overlay.style.zIndex = "10000";
-
-            const dialog = document.createElement("div");
-            dialog.style.background = "var(--bg-card, #fff)";
-            dialog.style.padding = "1.5rem";
-            dialog.style.borderRadius = "8px";
-            dialog.style.minWidth = "400px";
-            dialog.style.maxWidth = "90%";
-            dialog.style.boxShadow = "0 4px 20px rgba(0,0,0,0.3)";
+            const dialog = document.createElement('dialog');
+            dialog.className = 'gradesheet-assessment-dialog';
+            dialog.setAttribute('data-session-sensitive-overlay', 'true');
+            dialog.setAttribute('aria-labelledby', 'gradesheet-assessment-dialog-title');
 
             const title = document.createElement("h3");
+            title.id = 'gradesheet-assessment-dialog-title';
             title.textContent = "Leistung bearbeiten";
             title.style.marginTop = "0";
             dialog.appendChild(title);
@@ -8488,6 +8399,8 @@ ${buildPrintHeaderCss()}
             dialog.appendChild(catLabel);
 
             const catSelect = document.createElement("select");
+            catSelect.id = 'gradesheet-edit-category';
+            catLabel.htmlFor = catSelect.id;
             catSelect.style.width = "100%";
             catSelect.style.boxSizing = "border-box";
             catSelect.style.marginTop = "0.3rem";
@@ -8512,6 +8425,8 @@ ${buildPrintHeaderCss()}
             dialog.appendChild(subcatLabel);
 
             const subcatSelect = document.createElement("select");
+            subcatSelect.id = 'gradesheet-edit-subcategory';
+            subcatLabel.htmlFor = subcatSelect.id;
             subcatSelect.style.width = "100%";
             subcatSelect.style.boxSizing = "border-box";
             subcatSelect.style.marginTop = "0.3rem";
@@ -8559,6 +8474,9 @@ ${buildPrintHeaderCss()}
             dialog.appendChild(titleLabel);
 
             const titleInput = document.createElement("input");
+            titleInput.id = 'gradesheet-edit-title';
+            titleLabel.htmlFor = titleInput.id;
+            titleInput.autofocus = true;
             titleInput.type = "text";
             titleInput.value = assessment.title || "";
             titleInput.style.width = "100%";
@@ -8575,6 +8493,8 @@ ${buildPrintHeaderCss()}
             dialog.appendChild(dateLabel);
 
             const dateInput = document.createElement("input");
+            dateInput.id = 'gradesheet-edit-date';
+            dateLabel.htmlFor = dateInput.id;
             dateInput.type = "date";
             dateInput.value = assessment.date || "";
             dateInput.style.marginTop = "0.3rem";
@@ -8588,6 +8508,8 @@ ${buildPrintHeaderCss()}
             dialog.appendChild(termLabel);
 
             const termSelect = document.createElement('select');
+            termSelect.id = 'gradesheet-edit-term';
+            termLabel.htmlFor = termSelect.id;
             termSelect.style.width = '100%';
             termSelect.style.boxSizing = 'border-box';
             termSelect.style.marginTop = '0.3rem';
@@ -8649,6 +8571,8 @@ ${buildPrintHeaderCss()}
             dialog.appendChild(weightLabel);
 
             const weightInput = document.createElement("input");
+            weightInput.id = 'gradesheet-edit-weight';
+            weightLabel.htmlFor = weightInput.id;
             weightInput.type = "number";
             weightInput.step = "0.1";
             weightInput.min = "0";
@@ -8672,6 +8596,7 @@ ${buildPrintHeaderCss()}
 
             const visibleText = document.createElement("span");
             visibleText.textContent = "In PDF-Berichten anzeigen";
+            visibleLabel.title = "Ausgeblendete Einzelleistungen zählen zum ausgewiesenen Leistungsstand.";
             visibleText.style.fontWeight = "600";
 
             visibleLabel.appendChild(visibleCheckbox);
@@ -8679,7 +8604,7 @@ ${buildPrintHeaderCss()}
             dialog.appendChild(visibleLabel);
 
             const visibleHint = document.createElement("div");
-            visibleHint.textContent = "Deaktivierte Leistungen bleiben in Notentabelle, Statistik und Berechnung enthalten, werden aber in Einzel- und Sammel-PDFs ausgeblendet.";
+            visibleHint.textContent = "Ausgeblendete Einzelleistungen zählen zum ausgewiesenen Leistungsstand. Ihre Einzelzeilen entfallen in Einzel- und Sammelberichten.";
             visibleHint.style.fontSize = "0.8rem";
             visibleHint.style.marginTop = "0.3rem";
             visibleHint.style.color = "var(--text-muted, #777)";
@@ -8687,10 +8612,7 @@ ${buildPrintHeaderCss()}
 
             // Buttons
             const btnRow = document.createElement("div");
-            btnRow.style.display = "flex";
-            btnRow.style.gap = "0.5rem";
-            btnRow.style.marginTop = "1.5rem";
-            btnRow.style.justifyContent = "flex-end";
+            btnRow.className = 'gradesheet-assessment-dialog-actions';
 
             const saveBtn = document.createElement("button");
             saveBtn.textContent = "Speichern";
@@ -8744,6 +8666,7 @@ ${buildPrintHeaderCss()}
                 visible: visibleCheckbox.checked
               };
               saveBtn.disabled = true;
+              cancelBtn.disabled = true;
               saveStatus.textContent = '';
               try {
                 await commitStateChange(function (candidate) {
@@ -8773,20 +8696,33 @@ ${buildPrintHeaderCss()}
                   candidateAssessment.weight = input.weight;
                   candidateAssessment.visible = input.visible;
                 }, { render: false });
-                try { document.body.removeChild(overlay); } catch (e) {}
                 render();
+                const replacement = Array.from(document.querySelectorAll('.gradesheet-assessment-action'))
+                  .find(button => button.dataset.editAssessmentId === assessmentId);
+                const management = replacement?.closest('details') ||
+                  document.querySelector('.gradesheet-assessment-management');
+                if (replacement && management) management.open = true;
+                closeDialog(replacement || management?.querySelector('summary'));
               } catch (error) {
                 saveStatus.textContent = 'Die Leistung wurde nicht gespeichert. Bitte prüfen und erneut versuchen. ' + error.message;
               } finally {
                 saveBtn.disabled = false;
+                cancelBtn.disabled = false;
               }
             });
 
             const cancelBtn = document.createElement("button");
             cancelBtn.textContent = "Abbrechen";
             cancelBtn.type = "button";
-            cancelBtn.addEventListener("click", function() {
-              try { document.body.removeChild(overlay); } catch (e) {}
+            function closeDialog(focusTarget = triggerButton) {
+              if (!dialog.parentNode) return;
+              dialog.parentNode.removeChild(dialog);
+              focusTarget?.focus();
+            }
+            cancelBtn.addEventListener('click', function () { closeDialog(); });
+            dialog.addEventListener('cancel', function (event) {
+              event.preventDefault();
+              if (!saveBtn.disabled) closeDialog();
             });
 
             btnRow.appendChild(cancelBtn);
@@ -8794,8 +8730,9 @@ ${buildPrintHeaderCss()}
             dialog.appendChild(btnRow);
             dialog.appendChild(saveStatus);
 
-            overlay.appendChild(dialog);
-            document.body.appendChild(overlay);
+            document.body.appendChild(dialog);
+            dialog.showModal();
+            titleInput.focus();
           }
 
           // Kein Kurs gewählt?
@@ -9571,6 +9508,7 @@ ${buildPrintHeaderCss()}
           const visibleLabel = document.createElement("label");
           visibleLabel.htmlFor = "visible-checkbox-new";
           visibleLabel.textContent = "In PDF-Berichten anzeigen";
+          visibleLabel.title = "Ausgeblendete Einzelleistungen zählen zum ausgewiesenen Leistungsstand.";
           visibleLabel.style.fontSize = "0.9rem";
           visibleLabel.style.display = "flex";
           visibleLabel.style.alignItems = "center";
@@ -10032,12 +9970,13 @@ ${buildPrintHeaderCss()}
             const editBtn = document.createElement("button");
             editBtn.type = "button";
             editBtn.className = "gradesheet-assessment-action";
+            editBtn.dataset.editAssessmentId = assessment.id;
             editBtn.textContent = "Bearbeiten";
             editBtn.title = "Leistung bearbeiten";
             editBtn.setAttribute("aria-label", `Leistung „${displayTitle}“ bearbeiten`);
             editBtn.addEventListener("click", function (ev) {
               ev.stopPropagation();
-              editAssessment(assessment);
+              editAssessment(assessment, editBtn);
             });
             actions.appendChild(editBtn);
 
@@ -10064,35 +10003,37 @@ ${buildPrintHeaderCss()}
               : 'term-section-current');
             const isUpperSecGradesheet = course.schemaMode === DomainModel.SCHEMA_MODES.UPPERSEC;
 
-            const header = document.createElement('div');
+            const header = document.createElement('button');
+            header.type = 'button';
             // Gleicher Ein-/Ausklapp-Mechanismus wie in Einstellungen/Statistiken
             const collapsedFlag = persistCollapse
               ? (isPrev ? !!course._prevCollapsed : !!course._currCollapsed)
               : false;
             const isOpen = !collapsedFlag;
             header.className = 'collapsible-header' + (isOpen ? '' : ' collapsed');
-            header.style.padding = '0.25rem 0.35rem';
-            header.style.border = '1px solid var(--border-soft)';
-            header.style.borderRadius = '6px';
-            header.style.display = 'flex';
-            header.style.justifyContent = 'space-between';
-            header.style.alignItems = 'center';
-            header.style.marginBottom = '0.5rem';
+            header.setAttribute('aria-expanded', String(isOpen));
 
             const title = document.createElement('strong');
             title.textContent = isPrev ? `Archiv: ${termLabel}` : `Halbjahr: ${termLabel}`;
             header.appendChild(title);
 
             const content = document.createElement('div');
+            content.id = 'gradesheet-term-' + termKeyRaw;
+            header.setAttribute('aria-controls', content.id);
             content.className = 'collapsible-content' + (isOpen ? '' : ' hidden');
             content.style.marginTop = '0.5rem';
             content.style.overflowX = 'auto';
             content.style.maxWidth = '100%';
 
-            // Klick auf Header toggelt die Sichtbarkeit für aktuelle und Vorjahr-Sektion
+            function setTermSectionExpanded(expanded) {
+              content.classList.toggle('hidden', !expanded);
+              header.classList.toggle('collapsed', !expanded);
+              header.setAttribute('aria-expanded', String(expanded));
+            }
+
             header.addEventListener('click', async function () {
-              const nowHidden = content.classList.toggle('hidden');
-              header.classList.toggle('collapsed');
+              const nowHidden = !content.classList.contains('hidden');
+              setTermSectionExpanded(!nowHidden);
               if (persistCollapse) {
                 const courseId = course.id;
                 const key = isPrev ? '_prevCollapsed' : '_currCollapsed';
@@ -10103,8 +10044,7 @@ ${buildPrintHeaderCss()}
                 } catch (error) {
                   const confirmed = DomainModel.findCourseById(state, courseId);
                   const hidden = confirmed ? !!confirmed[key] : !nowHidden;
-                  content.classList.toggle('hidden', hidden);
-                  header.classList.toggle('collapsed', hidden);
+                  setTermSectionExpanded(!hidden);
                   if (!isStateCommitAborted(error)) console.error('Der Ansichtsstatus konnte nicht gespeichert werden:', error);
                 }
               }
@@ -10484,8 +10424,7 @@ ${buildPrintHeaderCss()}
                     finish: finishCurrentTermScoreEditor,
                     isClean: currentTermScoreEditorIsClean,
                     focus: function () {
-                      content.classList.remove('hidden');
-                      header.classList.remove('collapsed');
+                      setTermSectionExpanded(true);
                       input.focus();
                     }
                   });
@@ -10506,17 +10445,26 @@ ${buildPrintHeaderCss()}
                   });
 
                   input.addEventListener('keydown', async function(event) {
-                    if (!['Enter', 'Tab', 'ArrowDown', 'ArrowUp'].includes(event.key)) return;
+                    if (event.key === 'Tab') {
+                      await saveCurrentTermScoreEditor();
+                      return;
+                    }
+                    if (!['Enter', 'ArrowDown', 'ArrowUp'].includes(event.key)) return;
+                    const focusAtKeydown = document.activeElement;
                     const allInputs = Array.from(document.querySelectorAll('.gradesheet-input'));
                     const target = findNextGradesheetInput(allInputs, input, event.key);
-                    const shouldSave = event.key === 'Enter' || event.key === 'Tab';
+                    const shouldSave = event.key === 'Enter';
                     if (!target && !shouldSave) return;
-                    if (target || event.key === 'Enter') event.preventDefault();
+                    event.preventDefault();
                     if (shouldSave) {
                       const saved = await saveCurrentTermScoreEditor();
                       if (!saved) return false;
                     }
-                    if (target) setTimeout(function () { target.focus(); target.select(); }, 0);
+                    if (target) setTimeout(function () {
+                      if (document.activeElement !== focusAtKeydown) return;
+                      target.focus();
+                      target.select();
+                    }, 0);
                     return false;
                   });
 
@@ -11439,17 +11387,13 @@ ${buildPrintHeaderCss()}
                   focus: function () { input.focus(); }
                 });
 
-                // ------------------------------------------------------
-                // FEATURE: Schnelleingabe-Modus - Excel-ähnliche Tastaturnavigation
-                // Kombinierter Event-Handler für Enter, Tab und Pfeiltasten
-                // WICHTIG: Mit capture-Phase (true), damit der Handler VOR den Browser-Standardaktionen ausgeführt wird
-                // Dies ermöglicht Navigation durch die Notenerfassungstabelle mit:
-                // - Enter/Tab: Nächste Zelle rechts, am Zeilenende zur nächsten Zeile
-                // - Pfeiltasten: Hoch/Runter in derselben Spalte
-                // - Automatische Validierung und Speicherung bei Enter/Tab
-                // ------------------------------------------------------
+                // Tab folgt der nativen Reihenfolge einschließlich der Statusauswahl.
                 input.addEventListener("keydown", async function (e) {
-                  if (e.key === "Enter" || e.key === "Tab" || e.key === "ArrowDown" || e.key === "ArrowUp") {
+                  if (e.key === 'Tab') {
+                    await saveCurrentGradesheetEditor();
+                    return;
+                  }
+                  if (e.key === "Enter" || e.key === "ArrowDown" || e.key === "ArrowUp") {
                     const navigationRevision = draftRevision;
                     const focusAtKeydown = document.activeElement;
                     e.preventDefault();
@@ -11458,16 +11402,7 @@ ${buildPrintHeaderCss()}
 
                     const allInputsNav = Array.from(document.querySelectorAll('.gradesheet-input'));
                     const targetInput = findNextGradesheetInput(allInputsNav, input, e.key);
-                    let shouldSave = false;
-
                     if (e.key === "Enter") {
-                      shouldSave = true;
-                    } else if (e.key === "Tab") {
-                      shouldSave = true;
-                    }
-
-                    // Wenn wir speichern sollen (Enter/Tab), validiere und speichere
-                    if (shouldSave) {
                       const submittedSignature = editorSignature();
                       const saved = await saveCurrentGradesheetEditor();
                       if (!saved || draftRevision !== navigationRevision ||
@@ -12507,6 +12442,7 @@ ${buildPrintHeaderCss()}
               delBtn.style.fontSize = "0.85rem";
               delBtn.addEventListener("click", async function() {
                 const subcategoryId = subcat.id;
+                if (!window.confirm('Unterkategorie „' + subcat.name + '“ löschen? Zugeordnete Leistungen aktiver Kurse bleiben mit ihren Bewertungen in der Hauptkategorie „' + category.name + '“.')) return;
                 try {
                   await commitStateChange(function (candidate) {
                     const candidateCategory = (candidate.settings.categories || []).find(function (item) { return item.id === categoryId; });
@@ -12514,6 +12450,12 @@ ${buildPrintHeaderCss()}
                     const before = (candidateCategory.subcategories || []).length;
                     candidateCategory.subcategories = (candidateCategory.subcategories || []).filter(function (item) { return item.id !== subcategoryId; });
                     if (candidateCategory.subcategories.length === before) throw new Error('Die Unterkategorie ist nicht mehr verfügbar.');
+                    const activeIds = new Set(DomainModel.listActiveCourses(candidate).map(course => course.id));
+                    for (const assessment of candidate.assessments) {
+                      if (activeIds.has(assessment.courseId) && assessment.categoryId === categoryId && assessment.subcategoryId === subcategoryId) {
+                        assessment.subcategoryId = null;
+                      }
+                    }
                   }, { render: false });
                   renderTable();
                 } catch (error) {
@@ -13391,6 +13333,9 @@ ${buildPrintHeaderCss()}
                     candidate.settings.weightTemplates = candidate.settings.weightTemplates.filter(
                       function (template) { return template.id !== wt.id; }
                     );
+                    for (const course of DomainModel.listActiveCourses(candidate)) {
+                      if (course.weightTemplateId === wt.id) course.weightTemplateId = null;
+                    }
                   });
                 } catch (error) {
                   try { window.alert('Die Gewichtungsvorlage konnte nicht gelöscht werden: ' + error.message); } catch (e) {}
@@ -13948,7 +13893,7 @@ ${buildPrintHeaderCss()}
                 c.name || "",
                 c.subject || "",
                 classLabel,
-                s ? s.id : "",
+                s ? (s.importKey || s.id) : "",
                 s ? s.lastName : "",
                 s ? s.firstName : "",
                 s ? s.birthDate : ""
@@ -14530,32 +14475,31 @@ ${buildPrintHeaderCss()}
           mergeRow.appendChild(mergeLabel);
           importWrapper.appendChild(mergeRow);
 
+          const archiveLabel = document.createElement('label');
+          archiveLabel.className = 'transfer-merge-option';
+          const archiveCheckbox = document.createElement('input');
+          archiveCheckbox.id = 'json-import-single-archive';
+          archiveCheckbox.type = 'checkbox';
+          archiveLabel.appendChild(archiveCheckbox);
+          const archiveHint = document.createElement('span');
+          archiveHint.textContent = ' Umbenanntes Einzelarchiv einer älteren Version importieren';
+          archiveLabel.appendChild(archiveHint);
+          importWrapper.appendChild(archiveLabel);
+
           const fileInputJson = document.createElement("input");
           fileInputJson.id = "json-import-file";
           fileInputJson.type = "file";
           fileInputJson.accept = "application/json";
 
-          async function commitImportedState(parsedState, sourceLabel, mergeMode) {
+          async function commitImportedState(parsedState, sourceLabel, mergeMode, repairNotice = '', legacyArchiveFile = false) {
+            const archiveImport = prepareSingleArchiveImport(parsedState, legacyArchiveFile);
+            parsedState = archiveImport.state;
             validateRawTermResults(parsedState);
             validateRawUpperSecContexts(parsedState);
             validateImportedState(parsedState);
             function prepareIncomingState(currentState) {
               const raw = JSON.parse(JSON.stringify(parsedState));
-              if (!mergeMode) {
-                // Alte Backups ohne Stufen-Einstellungen behalten die lokalen Vorgaben.
-                // Vor der Migration ergänzen, damit auch fehlende Leistungsterme
-                // anhand der tatsächlich wiederhergestellten Zeiträume entstehen.
-                for (const key of ['halfYearSettings', 'halfYearNames']) {
-                  if (raw.settings[key] == null) raw.settings[key] = {};
-                  if (typeof raw.settings[key] !== 'object' || Array.isArray(raw.settings[key])) continue;
-                  for (const level of ['seckI', 'seckII']) {
-                    const local = currentState.settings?.[key]?.[level];
-                    if (raw.settings[key][level] == null && local) {
-                      raw.settings[key][level] = JSON.parse(JSON.stringify(local));
-                    }
-                  }
-                }
-              }
+              supplementMissingImportPeriods(raw, currentState);
               return DomainModel.ensureStateShape(raw);
             }
             const incoming = prepareIncomingState(state);
@@ -14563,20 +14507,20 @@ ${buildPrintHeaderCss()}
             let candidate;
             let mergeSummary = null;
             if (mergeMode) {
-              const merged = mergeImportedStateIntoCurrent(state, incoming);
+              const merged = mergeImportedStateIntoCurrent(state, incoming, archiveImport.predecessor);
               candidate = merged.state; mergeSummary = merged.summary;
             } else {
               candidate = incoming;
             }
             validateImportedState(candidate);
             const modeText = mergeMode ? 'zusammenführen' : 'vollständig ersetzen';
-            const details = candidate.students.length + ' Schüler:innen, ' + candidate.courses.length + ' Kurse, ' + candidate.assessments.length + ' Leistungen';
+            const details = candidate.students.length + ' Schüler:innen, ' + candidate.courses.length + ' Kurse, ' + candidate.assessments.length + ' Leistungen' + repairNotice;
             if (!window.confirm(sourceLabel + ' wurde geprüft.\n\nZiel: ' + modeText + '\nErgebnis: ' + details + (mergeSummary ? '\nLeistungsmetadaten-Konflikte (lokale Werte bleiben): ' + mergeSummary.assessmentMetadataConflicts + '\nScore-Konflikte (vorhandener Wert bleibt): ' + mergeSummary.scoreConflicts + '\nFestsetzungs-Konflikte (lokaler Wert bleibt): ' + mergeSummary.termResultConflicts + '\nSek-II-Kontextkonflikte (lokaler Wert bleibt): ' + mergeSummary.upperSecContextConflicts + '\nQ4-Prüfungsfach-Konflikte (lokaler Wert bleibt): ' + mergeSummary.writtenExamSubjectConflicts + '\nÜbersprungene Archivänderungen: ' + mergeSummary.archiveConflicts : '') + '\n\nJetzt übernehmen?')) return false;
             if (!mergeMode && !window.confirm('Der aktuelle Datenbestand wird ersetzt. Diese Aktion kann nur mit einem vorhandenen Backup rückgängig gemacht werden. Wirklich ersetzen?')) return false;
             if (mergeMode) {
               let actualSummary = null;
               await commitStateChange(function (currentCandidate) {
-                const actualMerge = mergeImportedStateIntoCurrent(currentCandidate, incoming);
+                const actualMerge = mergeImportedStateIntoCurrent(currentCandidate, incoming, archiveImport.predecessor);
                 validateImportedState(actualMerge.state);
                 actualSummary = actualMerge.summary;
                 overwriteStateObject(currentCandidate, actualMerge.state);
@@ -14592,6 +14536,7 @@ ${buildPrintHeaderCss()}
                   await Storage.replaceState(replacement);
                   if (uiStateEpoch !== importEpoch) throw createStateCommitAbortedError();
                   state = replacement;
+                  if (!applyStoredSessionTimeout(state)) Storage.setSessionTimeoutMinutes(15);
                 } catch (error) {
                   await reconcileExclusiveState(importEpoch);
                   throw error;
@@ -14612,10 +14557,12 @@ ${buildPrintHeaderCss()}
             const readId = ++jsonFileReadId;
             const selectionEpoch = uiStateEpoch;
             const mergeMode = mergeCheckbox.checked;
+            const selectedArchiveMode = archiveCheckbox.checked;
             const file = this.files && this.files[0];
             if (!file) {
               return;
             }
+            archiveCheckbox.checked = false;
 
             const reader = new FileReader();
             let readEventHandled = false;
@@ -14628,6 +14575,8 @@ ${buildPrintHeaderCss()}
                 try { maybe = JSON.parse(text); } catch (e) { maybe = null; }
                 let parsedState;
                 let sourceLabel = 'JSON-Datei';
+                const legacyArchiveFile = selectedArchiveMode ||
+                  /^notenverwaltung_archiv_\d{4}-\d{2}-\d{2}T\d{2}-\d{2}-\d{2}\.enc\.json$/i.test(file.name);
                 if (maybe && maybe.format === 'notenverwaltung_envelope') {
                   if (maybe.version !== 2) throw new Error('Unbekanntes verschlüsseltes Backupformat.');
                   const pw = await window.promptPassword({
@@ -14636,13 +14585,13 @@ ${buildPrintHeaderCss()}
                     onRecovery: async function () {
                       const code = await window.promptPassword({ message: 'Vollständigen Wiederherstellungscode dieser Sicherungsdatei eingeben:', secretKind: 'recovery-code' });
                       if (!code || readId !== jsonFileReadId || uiStateEpoch !== selectionEpoch) return false;
-                      parsedState = await Storage.importStateEncryptedWithRecovery(text, code);
+                      parsedState = await Storage.importStateEncryptedWithRecovery(text, code, legacyArchiveFile);
                       return readId === jsonFileReadId && uiStateEpoch === selectionEpoch;
                     }
                   });
                   if (!parsedState) {
                     if (!pw) return;
-                    parsedState = await Storage.importStateEncryptedFromText(text, pw);
+                    parsedState = await Storage.importStateEncryptedFromText(text, pw, legacyArchiveFile);
                   }
                   sourceLabel = 'Verschlüsseltes Backup';
                 }
@@ -14662,7 +14611,9 @@ ${buildPrintHeaderCss()}
                   parsedState = maybe || JSON.parse(text);
                 }
                 if (readId !== jsonFileReadId || uiStateEpoch !== selectionEpoch) return;
-                await commitImportedState(parsedState, sourceLabel, mergeMode);
+                const legacyBackup = maybe?.format === 'notenverwaltung_enc_v1' || (!maybe && text.includes(':'));
+                const repairNotice = legacyBackup ? repairLegacyWeightReferences(parsedState) : '';
+                await commitImportedState(parsedState, sourceLabel, mergeMode, repairNotice, legacyArchiveFile);
               } catch (err) {
                 console.error("Fehler beim JSON-Import:", err);
                 window.alert("Import fehlgeschlagen. Der bisherige Datenbestand bleibt erhalten. " + err.message);
@@ -16980,14 +16931,14 @@ ${buildPrintHeaderCss()}
             wave7State.settings
           );
           const wave7PdfOverall = GradingLogic.computeWeightedOverallForAssessments(
-            wave7PdfAssessments,
+            filterPdfOverallAssessments(wave7Assessments, wave7Course, "2025-H1", "2025-H1"),
             wave7Course,
             wave7StudentId,
             wave7State.settings
           );
           record(
             "Wave 7 H11: PDF-Sichtbarkeit verändert interne Berechnung nicht",
-            wave7InternalOverall === 3 && wave7PdfOverall === 1,
+            wave7InternalOverall === 3 && wave7PdfOverall === 3,
             { internal: wave7InternalOverall, pdf: wave7PdfOverall }
           );
 
@@ -17045,10 +16996,11 @@ ${buildPrintHeaderCss()}
             "2025-H2"
           );
           record(
-            "Wave 7 H11: PDF-Gesamtnote bezieht nur sichtbares Vorhalbjahr ein",
-            wave7OverallPdf.length === 2 &&
+            "Wave 7 H11: PDF-Gesamtnote berücksichtigt alle Leistungen beider Halbjahre",
+            wave7OverallPdf.length === 3 &&
               wave7OverallPdf[0].id === wave7CurrentAssessment.id &&
-              wave7OverallPdf[1].id === wave7PreviousAssessment.id,
+              wave7OverallPdf[1].id === wave7PreviousAssessment.id &&
+              wave7OverallPdf[2].id === wave7HiddenPreviousAssessment.id,
             wave7OverallPdf.map(assessment => assessment.id).join(",")
           );
 

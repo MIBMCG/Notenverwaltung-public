@@ -1,5 +1,7 @@
 # Weiterarbeit am Desktop
 
+**20. November 2026.** Der lokale Branch `codex/review-korrekturen` enthält die weitere Bearbeitung von A3 bis D3. Der [Maßnahmenplan](superpowers/plans/2026-11-18-review-korrekturen.md) enthält die Abnahme. Die folgenden Angaben dokumentieren die frühere Übergabe auf dem Stand von A2.
+
 Stand vom 19. November 2026. Arbeitsrepository ist `MIBMCG/Notenverwaltung-public`.
 Der Branch `codex/a2-halbjahreszuordnung` enthält beide abgeschlossenen Korrekturen
 und diese Übergabe. Im bestehenden öffentlichen Checkout am Desktop weiterarbeiten.
@@ -70,7 +72,7 @@ Programmdateien und Entwicklungsdokumente werden über Git übertragen.
 Ein benötigter Browserbestand wird über ein verschlüsseltes Anwendungsbackup
 übernommen.
 
-## Nächster Auftrag
+## Auftrag bei der Übergabe vom 19. November
 
 Als Nächstes folgt **A3, Festsetzungen beim Schemawechsel schützen**, entsprechend
 Reviewbefund 6. Der erste Regressionstest prüft den Kurseditor mit festgesetzten
@@ -84,7 +86,7 @@ Die fachliche Entscheidung zu Befund 3 gilt weiterhin. Der Bericht zeigt den
 gewichteten Leistungsstand. Gleich gewichtete 15 und 1 Punkte ergeben 8,00,
 auch wenn eine Einzelzeile ausgeblendet ist.
 
-## Startprompt für Codex am Desktop
+## Historischer Startprompt vom 19. November
 
 > Lies START-HIER.md, docs/DESKTOP-START.md und den verlinkten Umsetzungsplan.
 > Prüfe den tatsächlichen Checkout, Branch, HEAD, Remote und vorhandene

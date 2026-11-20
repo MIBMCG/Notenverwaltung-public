@@ -21,6 +21,7 @@ const withoutResumeReference = value => {
   const comparable = serializable(value);
   delete comparable.lastGradesheetCourseId;
   delete comparable.settings.schoolProfile;
+  delete comparable.settings.categoryRoles;
   for (const assessment of comparable.assessments || []) delete assessment.termAssignment;
   return comparable;
 };

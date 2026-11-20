@@ -9,6 +9,19 @@ const fixture = name => fs.readFileSync(path.join(__dirname, 'fixtures', `accept
 const VALID = fixture('valid');
 const WARNING = fixture('warning');
 
+test('file import keeps namesakes with distinct CSV IDs enrolled separately', async () => {
+  const h = await harness();
+  const file = { name: 'namen.csv', text: [
+    'KursID;Kurs;Fach;Klasse;SchuelerID;Nachname;Vorname;Geburtstag',
+    'a;Bio;Bio;8a;one;Muster;Mia;', 'b;Bio;Bio;8b;two;Muster;Mia;'
+  ].join('\n') };
+  await h.select(file);
+  await h.select(file);
+  const state = await h.state();
+  assert.equal(state.students.filter(person => person.lastName === 'Muster').length, 2);
+  assert.notEqual(state.courses[0].enrollments[0].studentId, state.courses[1].enrollments[0].studentId);
+});
+
 async function harness() {
   const app = await loadDashboardUi();
   const csvBlobs = [];
@@ -76,6 +89,7 @@ async function harness() {
     state: () => app.Storage.loadState(),
     async settle() { await saved; await new Promise(resolve => setImmediate(resolve)); },
     async select(file) {
+      const input = findByAttribute(app.root, 'id', 'csv-import-file');
       input.files = file ? [file] : [];
       input.value = file ? file.name : '';
       await input.dispatch('change');
@@ -87,6 +101,69 @@ async function harness() {
     }
   };
 }
+
+test('B1: a transferred CSV and the original roster update the same people in another installation', async () => {
+  const roster = { name: 'stammliste.csv', text: [
+    'KursID;Kurs;Fach;Klasse;SchuelerID;Nachname;Vorname;Geburtstag',
+    'a;Bio;Bio;8a;extern-a;Muster;Mia;', 'b;Bio;Bio;8b;extern-b;Muster;Mia;'
+  ].join('\n') };
+  const source = await harness();
+  await source.select(roster);
+  findByAttribute(source.app.root, 'id', 'transfer-course-select').value = '__all__';
+  await source.button('CSV für Import exportieren').dispatch('click');
+  assert.equal(source.csvBlobs.length, 1, source.alerts.join('\n'));
+
+  const target = await harness();
+  await target.select({ name: 'transfer.csv', text: await source.csvBlobs[0].text() });
+  const before = await target.state();
+  assert.equal(before.students.filter(student => student.lastName === 'Muster').length, 2);
+  await target.select(roster);
+  const after = await target.state();
+  assert.equal(after.students.length, before.students.length);
+  assert.deepEqual(after.courses.map(course => course.enrollments), before.courses.map(course => course.enrollments));
+});
+
+test('B3: reimported CSV course cannot overwrite an archive identity by archiving, rollover or restoration', async () => {
+  const h = await harness();
+  const { app } = h;
+  const go = label => h.button(label).dispatch('click');
+  const file = { name: 'course.csv', text: VALID };
+  const startArchive = async () => {
+    await app.root.querySelectorAll('[data-role="edit"]')[0].dispatch('click');
+    const completion = go('Kurs archivieren');
+    const overlay = app.document.body.children.at(-1);
+    await findByText(overlay, 'Kurs archivieren').dispatch('click');
+    return { overlay, completion };
+  };
+  await h.select(file);
+  await go('Kurse');
+  const first = await startArchive();
+  await first.completion;
+  await go('Import / Export');
+  await h.select(file);
+  const base = await h.state();
+  assert.equal(base.courses.length, 2);
+  assert.equal(base.courses[0].importKey, base.courses[1].importKey);
+  const bytes = app.storage.getItem('notenverwaltung_v1_state_enc');
+  await go('Kurse');
+  const other = await startArchive();
+  assert.match(other.overlay.textContent, /Kurskennung.*CSV-ABNAHME/i);
+  assert.equal(app.storage.getItem('notenverwaltung_v1_state_enc'), bytes);
+  await findByText(other.overlay, 'Abbrechen').dispatch('click');
+  await other.completion;
+  app.sandbox.window.confirm = () => true;
+  await go('Wiederherstellen');
+  assert.match(h.alerts.at(-1), /Kurskennung.*CSV-ABNAHME/i);
+  assert.equal(app.storage.getItem('notenverwaltung_v1_state_enc'), bytes);
+  await go('Schuljahreswechsel');
+  const applying = go('Vorschau bestätigen und durchführen');
+  const metadata = app.document.body.children.at(-1);
+  await findByText(metadata, 'Angaben übernehmen').dispatch('click');
+  assert.match(metadata.textContent, /Kurskennung.*CSV-ABNAHME/i);
+  assert.equal(app.storage.getItem('notenverwaltung_v1_state_enc'), bytes);
+  await findByText(metadata, 'Abbrechen').dispatch('click');
+  await applying;
+});
 
 test('the real CSV template download uses the protected fourteen-column format', async () => {
   const h = await harness();

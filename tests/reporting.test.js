@@ -728,7 +728,8 @@ function loadPdfAssessmentFilter(modules) {
   } catch (error) {
     return null;
   }
-  const source = `${extractFunction(readSourceLines(), 'getAssessmentTerm')}\n${helperSource}\n` +
+  const source = `${extractFunction(readSourceLines(), 'getAssessmentTerm')}\n` +
+    `${extractFunction(readSourceLines(), 'filterPdfOverallAssessments')}\n${helperSource}\n` +
     'globalThis.__filterPdfAssessments = filterPdfAssessments;';
   vm.runInContext(source, modules.sandbox, { filename: 'filterPdfAssessments.js' });
   return modules.sandbox.__filterPdfAssessments;
@@ -784,7 +785,6 @@ function loadIndividualAllTermsPdfConsumer(modules, state) {
     isPoorValue: () => false,
     computeReportOverallForAssessments: (assessments, course, studentId, settings, term) =>
       modules.GradingLogic.computeWeightedOverallForAssessments(assessments, course, studentId, settings, term),
-    getStudentDetailOverallLabel: () => 'Gesamtnote/-punkte'
   });
   const start = lines.findIndex(line => /^\s*function generateStudentGradePDF\s*\(/.test(line));
   const end = lines.findIndex((line, index) => index > start && line.includes('// Überschrift und Einleitung'));
@@ -799,6 +799,7 @@ function loadIndividualAllTermsPdfConsumer(modules, state) {
     `${extractFunction(lines, 'filterPdfAssessments')}\n` +
     `${extractFunction(lines, 'filterPdfOverallAssessments')}\n` +
     `${extractFunction(lines, 'getPdfOverallLabel')}\n` +
+    `${extractFunction(lines, 'getStudentDetailOverallLabel')}\n` +
     `${extractFunction(lines, 'getSchoolProfile')}\n` +
     `${extractFunction(lines, 'getSchoolLogoSources')}\n` +
     `${extractFunction(lines, 'buildPrintHeaderHtml')}\n` +
@@ -903,6 +904,65 @@ function buildSignaturePaginationFixture(modules) {
 
   return { ...ctx, student, archivedCourse };
 }
+
+function bothPrintedReports(modules, ctx, selectedTerm) {
+  const student = ctx.students[0];
+  const single = loadIndividualAllTermsPdfConsumer(modules, ctx.state);
+  single.generate(student, selectedTerm);
+  const batch = loadMassAllTermsPdfConsumer(modules, ctx.state, ctx.course, student, {
+    selectedTerm, courses: modules.DomainModel.listStudentReportCourses(ctx.state, student.id)
+  });
+  batch.generate();
+  return [single.capture.html, batch.capture.html];
+}
+
+for (const [schemaMode, visibleValue, hiddenValue, expected] of [
+  ['grades', '2', '4', '3.00'], ['uppersec', '15', '1', '8.00']
+]) {
+  for (const selectedTerm of ['2025-H1', null]) {
+    test(`C2: ${schemaMode}, ${selectedTerm || 'Alle'} prints the actual result with only released rows`, () => {
+      const modules = loadModules();
+      const ctx = buildCourseState(modules, { schemaMode });
+      const studentId = ctx.students[0].id;
+      const visible = addAssessment(modules, ctx, { title: 'Freigegeben', term: '2025-H1', categoryId: ctx.categoryIds.oral });
+      const hidden = addAssessment(modules, ctx, { title: 'Ausgeblendeter Titel', term: '2025-H1', categoryId: ctx.categoryIds.oral, visible: false });
+      setScore(modules, visible, studentId, visibleValue);
+      setScore(modules, hidden, studentId, hiddenValue);
+      if (schemaMode === 'uppersec') modules.DomainModel.setTermResult(ctx.state, ctx.course.id, studentId, '2025-H1', 0);
+      for (const allHidden of [false, true]) {
+        visible.visible = !allHidden;
+        for (const html of bothPrintedReports(modules, ctx, selectedTerm)) {
+          assert.ok(html.includes(': ' + expected + '</div>'), 'full weighted result missing');
+          assert.equal(html.includes('Freigegeben'), !allHidden);
+          assert.ok(!html.includes('Ausgeblendeter Titel'));
+          assert.ok(!html.includes('<td>' + hiddenValue + '</td>'));
+          if (schemaMode === 'uppersec') assert.ok(html.includes('Festgesetzte Punktzahl: 0</div>'));
+        }
+      }
+      for (const html of bothPrintedReports(modules, ctx, '2024-H1')) {
+        assert.doesNotMatch(html, /: \d+\.\d{2}<\/div>|Festgesetzte Punktzahl: 0/);
+        assert.ok(html.includes(ctx.course.name), 'an empty period still belongs to the enrolled course');
+        assert.ok(!html.includes('in keinem Kurs eingeschrieben'));
+      }
+    });
+  }
+}
+
+test('C3: both H2 reports print one annual grade for each course even with only H1 rows', () => {
+  const modules = loadModules();
+  const ctx = buildCourseState(modules);
+  const second = modules.DomainModel.createCourse({ name: 'Kurs B' });
+  modules.DomainModel.addCourseToState(ctx.state, second);
+  modules.DomainModel.enrollStudentInCourse(ctx.state, second.id, ctx.students[0].id);
+  for (const [course, term, grade] of [[ctx.course, '2025-H1', '2'], [second, '2025-H2', '4']]) {
+    const assessment = addAssessment(modules, { ...ctx, course }, { title: term + '-Einzelzeile', categoryId: ctx.categoryIds.oral, term });
+    setScore(modules, assessment, ctx.students[0].id, grade);
+  }
+  for (const html of bothPrintedReports(modules, ctx, '2025-H2')) {
+    assert.deepEqual(Array.from(html.matchAll(/Jahresgesamtnote \(H1 \+ H2\): (\d\.\d{2})/g), match => match[1]), ['2.00', '4.00']);
+    assert.ok(!html.includes('2025-H1-Einzelzeile'));
+  }
+});
 
 function assertSelectedAndAllTermsFixture(selectedHtml, allTermsHtml, archivedCourseHeading, emptyArchiveMessage) {
   assert.equal(
@@ -1237,9 +1297,8 @@ test('H11: hidden assessments remain part of internal grade calculations', () =>
   });
   setScore(modules, visible, ctx.students[0].id, '1');
   setScore(modules, hidden, ctx.students[0].id, '5');
-  const filterPdfAssessments = loadPdfAssessmentFilter(modules);
+  const filterPdfOverallAssessments = loadPdfOverallAssessmentFilter(modules);
 
-  assert.equal(typeof filterPdfAssessments, 'function', 'the shared PDF visibility filter is missing');
   assert.equal(
     modules.GradingLogic.computeWeightedOverallForAssessments(
       ctx.state.assessments,
@@ -1252,13 +1311,13 @@ test('H11: hidden assessments remain part of internal grade calculations', () =>
   );
   assert.equal(
     modules.GradingLogic.computeWeightedOverallForAssessments(
-      filterPdfAssessments(ctx.state.assessments, ctx.course, null, '2025-H1'),
+      filterPdfOverallAssessments(ctx.state.assessments, ctx.course, '2025-H1', '2025-H1'),
       ctx.course,
       ctx.students[0].id,
       ctx.state.settings
     ),
-    1,
-    'the PDF result must use only assessments released for reports'
+    3,
+    'the reported result includes hidden assessments'
   );
 });
 
@@ -1310,7 +1369,7 @@ test('M31 task-7: Sek-I H2 PDF totals include H1 and H2 independently of the leg
     term: '2025-H1',
     visible: true
   });
-  addAssessment(modules, ctx, {
+  const hiddenPrevious = addAssessment(modules, ctx, {
     categoryId: ctx.categoryIds.written,
     title: 'Vorhalbjahr intern',
     term: '2025-H1',
@@ -1324,7 +1383,7 @@ test('M31 task-7: Sek-I H2 PDF totals include H1 and H2 independently of the leg
       filterPdfOverallAssessments(ctx.state.assessments, ctx.course, '2025-H2', '2025-H2'),
       assessment => assessment.id
     ),
-    [current.id, previous.id]
+    [current.id, previous.id, hiddenPrevious.id]
   );
 
   modules.DomainModel.archiveCourse(ctx.state, ctx.course.id, 'manual', {});
@@ -1334,8 +1393,8 @@ test('M31 task-7: Sek-I H2 PDF totals include H1 and H2 independently of the leg
       filterPdfOverallAssessments(ctx.state.assessments, ctx.course, '2025-H2', '2025-H2'),
       assessment => assessment.id
     ),
-    [current.id, previous.id],
-    'an archive snapshot must keep the same PDF-only visibility semantics'
+    [current.id, previous.id, hiddenPrevious.id],
+    'an archive snapshot retains its full calculation basis'
   );
 });
 
@@ -2119,6 +2178,29 @@ test('M31: the shared upper-sec presentation reports Q4 context and person-speci
   assert.equal(build(ctx.course, ctx.students[1].id, term, ctx.state).calculatedText, '9.00');
 });
 
+test('C1: selected and all-term reports identify the actual Q4 basis when the legacy role is unclear', () => {
+  const modules = loadModules();
+  const ctx = buildCourseState(modules, { schemaMode: 'uppersec' });
+  ctx.course.upperSecContext = { courseType: 'basic', qualificationYear: 'q3-q4' };
+  const term = '2025-H2';
+  const written = addAssessment(modules, ctx, { categoryId: ctx.categoryIds.written, title: 'Klausur', term });
+  const oral = addAssessment(modules, ctx, { categoryId: ctx.categoryIds.oral, title: 'Mündlich', term });
+  setScore(modules, written, ctx.students[0].id, '15');
+  setScore(modules, oral, ctx.students[0].id, '8');
+  for (const known of [true, false]) {
+    ctx.state.settings.categoryRoles = { upperSecWrittenCategoryId: known ? ctx.categoryIds.written : null };
+    for (const selected of [term, null]) {
+      for (const html of bothPrintedReports(modules, ctx, selected)) {
+        assert.ok(html.includes('Rechenwert: ' + (known ? '8.00' : '11.50')));
+        if (!known) {
+          assert.match(html, /Klausurkategorie ungeklärt.*Kursgewichtung/);
+          assert.ok(!html.includes('nur allgemeiner Teil'));
+        }
+      }
+    }
+  }
+});
+
 test('M31 task-7: retained non-applicable Q4 exam values stay internal in student score presentation', () => {
   const modules = loadModules();
   const ctx = buildCourseState(modules, { schemaMode: 'uppersec', studentCount: 1 });
@@ -2277,7 +2359,7 @@ test('Task 4: individual print keeps the selected-term fixture and protects its 
     selected.capture.html,
     allTerms.capture.html,
     /Archivkurs ohne H1-Zeilen \(AT1\)/,
-    /Noch keine Noten eingetragen\./
+    /Keine Einzelnoten zur Anzeige\./
   );
   assertCompactUnfragmentedSignatureArea(selected.capture.html);
 });
@@ -2307,7 +2389,7 @@ test('Task 4: mass print keeps the selected-term fixture and protects its compac
     selected.capture.html,
     allTerms.capture.html,
     /Archivkurs ohne H1-Zeilen \(AT1\) \[Archiv\]/,
-    /Keine gespeicherten Leistungen; Archivzuordnung ist vorhanden\./
+    /Keine Einzelnoten zur Anzeige\./
   );
   assertCompactUnfragmentedSignatureArea(selected.capture.html);
 });
