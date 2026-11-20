@@ -4,7 +4,7 @@
     "algorithm": "sha256",
     "normalization": "UTF-8 text with CRLF and CR normalized to LF",
     "files": {
-      "Notenverwaltung.html": "ed7b38952c0aa54442bfd5e0a1a6c1fde7102ea2039e39b6d2e33ed9f1cc8d5a",
+      "Notenverwaltung.html": "1d43e4f3b3430e6d06e8a3b63bd373ef0903618b3f4356e2fc2b3ac3e901793d",
       "src/document.html": "0ddc5e4d268e94aced3fc18c9ebb45448a0c225c057e37499bd79f0c43d2225c",
       "src/domain/assessments.js": "544ddb00b4ca92476ef93533e97daf1bdf7834ce06410b19fde4371c5919a32e",
       "src/domain/course-colors.js": "3f0951a032ab2fd179aad7b70867de5b5d0a7dfee02e9f7507b7a39f3789bf6a",
@@ -29,7 +29,7 @@
       "src/infrastructure/recovery-envelope.js": "3f790646b175c50c8fd8a65a1f6b2bf7817cd26316598c4344330a7755013e48",
       "src/infrastructure/session-coordinator.js": "34488a6c3c3e0eb54e282b5edf57c64636ffd741d05d5682acecfbc378c67d2b",
       "src/infrastructure/storage.js": "9c2f8a928cd5fc86ff76cb8d87c6715f9c70abf4b3b997e1b3e6b8adecb7182b",
-      "src/legacy/application.js": "3da6e800c900e6dc6f8c6a27a3f21704e9e293644db1db4c7ab4bd7cf48f0da1",
+      "src/legacy/application.js": "e80aba6d7bf2771690e79da458a87d3618966df176fef2b468f6d864ce355f5b",
       "src/legacy/early-errors.js": "36fc884f619ecf1fb7067866a492050553950a63f88d1fe072ee724fba911a0e",
       "src/styles/legacy.css": "ed49019d8bb9e5cbc655630c96344496c13bc0b675e06eeeccd9a7dfbe939559",
       "src/transfer/csv-decoding.js": "a4c4ea923c986d21ad0c4caabdb3639a004d379d89569e14f4bc7267e2ddf317",

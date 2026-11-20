@@ -1,10 +1,10 @@
-# Notenverwaltung 1.7.2 – Kurzanleitung
+# Notenverwaltung 1.7.3 – Kurzanleitung
 
 Diese Anleitung beschreibt den vorgesehenen Alltag mit der lokalen
 `Notenverwaltung.html`. Die Anwendung benötigt keine Installation und keinen
 Internetanschluss.
 
-Version 1.7.2 vom 04.11.2026 richtet sich vor allem an Desktop-PCs und Laptops.
+Version 1.7.3 vom 20.11.2026 richtet sich vor allem an Desktop-PCs und Laptops.
 Die Nachrüstung eines Codes und eine Wiederherstellung wurden vom Nutzer
 erfolgreich ausprobiert; Browser, Betriebssystem und Wiederherstellungsvariante
 sind dabei nicht benannt. Eine vollständige Browser- oder Geräteabnahme liegt

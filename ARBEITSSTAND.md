@@ -1,5 +1,9 @@
 # Aktueller Arbeitsstand
 
+## 1.7.3 – 20.11.2026
+
+Die Korrekturen des November-Reviews schützen gespeicherte Bewertungen, vereinheitlichen Einzel- und Sammelberichte und beheben Zuordnungsfehler bei CSV-, Archiv- und Backup-Importen. [Änderungen und Umstieg](docs/releases/1.7.3.md).
+
 ## Desktop-Übergabe nach A1 und A2 – 19.11.2026
 
 Arbeitsrepository ist `MIBMCG/Notenverwaltung-public`, aktueller Branch

@@ -1,10 +1,8 @@
-# Veröffentlichung und prüfbarer Quellstand 1.7.2
+# Veröffentlichung und prüfbarer Quellstand 1.7.3
 
 Ziel ist das bestehende öffentliche Repository
 [MIBMCG/Notenverwaltung-public](https://github.com/MIBMCG/Notenverwaltung-public).
-Version 1.7.2 vom 04.11.2026 übernimmt beim vollständigen Ersetzen auch die
-gesicherten Halbjahres-/Semestergrenzen und Bezeichnungen für Sek I und Sek II.
-Die Veröffentlichung wurde am 04.11.2026 ausdrücklich beauftragt.
+Version 1.7.3 vom 20.11.2026 enthält die Korrekturen des November-Reviews.
 Private
 Entwicklungshistorie, Supportdateien und echte Notenbestände gehören nicht zum
 öffentlichen Quellstand.
@@ -47,8 +45,8 @@ die Entwicklungstests und ihre Grenzen. Technische Tests und
 ## Anwendungspaket
 
 ```sh
-npm run build:release -- --version 1.7.2 --out <absoluter-Ordner>
-npm run verify:release -- --zip <absoluter-ZIP-Pfad> --version 1.7.2
+npm run build:release -- --version 1.7.3 --out <absoluter-Ordner>
+npm run verify:release -- --zip <absoluter-ZIP-Pfad> --version 1.7.3
 ```
 
 Das Paket enthält genau zehn Dateien im ZIP-Wurzelverzeichnis. Seine
@@ -63,7 +61,7 @@ prüft das ZIP. Vor Veröffentlichung werden ein bytegleicher Doppelbuild, die
 2. Branch ohne Force-Push veröffentlichen, Pull Request auf `main` anlegen und
    alle vier CI-Jobs abwarten. Nur den unverändert geprüften Stand integrieren.
 3. Den integrierten Quellstand mit dem geprüften Branch vergleichen, erneut
-   erforderliche Prüfungen abwarten und `v1.7.2` auf diesen Commit setzen.
+   erforderliche Prüfungen abwarten und `v1.7.3` auf diesen Commit setzen.
    Bestehende Tags und alte Downloads bleiben unverändert.
 4. Release mit ZIP, äußerer Prüfsumme und Releasehinweisen veröffentlichen.
    GitHubs privates Vulnerability Reporting muss weiterhin aktiviert sein.

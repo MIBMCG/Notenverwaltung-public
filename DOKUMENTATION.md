@@ -44,9 +44,9 @@ Entwicklungswerkzeugen; die ausgelieferte Datei benötigt weiterhin keine
 Paketverwaltung und keine Serverkomponente. `Notenverwaltung.html` kann direkt
 im Browser geöffnet werden. Alle Nutzdaten werden lokal im Browser gespeichert.
 
-Programmfassung: **1.7.2 vom 04.11.2026**. Öffentliche Downloads gehören zum
+Programmfassung: **1.7.3 vom 20.11.2026**. Öffentliche Downloads gehören zum
 Repository MIBMCG/Notenverwaltung-public; die frühere private Ablage ist davon
-getrennt. Maßgeblich sind die [Release-Hinweise für 1.7.2](docs/releases/1.7.2.md).
+getrennt. Maßgeblich sind die [Release-Hinweise für 1.7.3](docs/releases/1.7.3.md).
 Die sichtbare Versionsnummer ist unabhängig von `state.version`, das nur das
 gespeicherte Datenformat bezeichnet. Ältere Prüfnachweise und Versionsangaben
 in den folgenden Abschnitten sind historische Zwischenstände.
