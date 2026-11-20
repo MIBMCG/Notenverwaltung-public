@@ -15,6 +15,58 @@ function loadImportMerge(modules) {
   }).mergeImportedStateIntoCurrent;
 }
 
+test('C1: imported active Q4 courses keep their written role when category IDs are mapped', () => {
+  const modules = loadModules();
+  const base = modules.DomainModel.createEmptyState();
+  const incoming = buildCourseState(modules, { schemaMode: 'uppersec' });
+  incoming.course.upperSecContext = { courseType: 'basic', qualificationYear: 'q3-q4' };
+  const source = incoming.state.settings.categories.find(category => category.id === incoming.categoryIds.written);
+  source.name = 'Schriftliche Fachprüfung';
+  base.settings.categories.push({ id: 'local-exam', name: source.name, active: true, subcategories: [] });
+  for (const [categoryId, score] of [[source.id, '15'], [incoming.categoryIds.oral, '8']]) {
+    const assessment = addAssessment(modules, incoming, { categoryId, term: '2025-H2' });
+    setScore(modules, assessment, incoming.students[0].id, score);
+  }
+  const { state } = loadImportMerge(modules)(base, incoming.state);
+  const course = state.courses.find(item => item.id === incoming.course.id);
+  assert.equal(state.assessments[0].categoryId, 'local-exam');
+  const settings = modules.GradingLogic.getSettingsForCourse(course, state);
+  assert.equal(modules.GradingLogic.computeWeightedOverallForAssessments(state.assessments, course, incoming.students[0].id, settings, '2025-H2'), 8);
+  const conflicting = JSON.parse(JSON.stringify(incoming.state));
+  conflicting.courses[0].categoryRoles = { upperSecWrittenCategoryId: incoming.categoryIds.oral };
+  const repeated = loadImportMerge(modules)(state, conflicting);
+  assert.equal(repeated.summary.upperSecContextConflicts, 1);
+  assert.equal(repeated.state.courses[0].categoryRoles.upperSecWrittenCategoryId, 'local-exam');
+
+  modules.DomainModel.archiveCourse(incoming.state, incoming.course.id, 'manual', {});
+  const archived = loadImportMerge(modules)(base, incoming.state).state;
+  const snapshot = JSON.stringify(archived.courses[0].archiveSnapshot);
+  assert.equal(archived.assessments[0].categoryId, source.id);
+  assert.equal(modules.DomainModel.restoreCourse(archived, incoming.course.id), true);
+  assert.equal(JSON.stringify(archived.courses[0].archiveHistory.at(-1).snapshot), snapshot);
+  assert.equal(archived.assessments[0].categoryId, 'local-exam');
+  assert.equal(modules.GradingLogic.computeWeightedOverallForAssessments(archived.assessments, archived.courses[0],
+    incoming.students[0].id, archived.settings, '2025-H2'), 8);
+});
+
+test('merge assigns newly imported dated automatic assessments to the effective local period', () => {
+  const modules = loadModules();
+  const ctx = buildCourseState(modules);
+  const base = JSON.parse(JSON.stringify(ctx.state));
+  base.courses[0].termCutoffs = { h2StartMonth: 2, h2StartDay: 1 };
+  ctx.course.termCutoffs = { h2StartMonth: 2, h2StartDay: 15 };
+  for (const [title, date, termAssignment] of [
+    ['dated', '2027-02-08', 'auto'], ['manual', '2027-02-08', 'manual'], ['undated', null, 'auto']
+  ]) {
+    const assessment = addAssessment(modules, ctx, { categoryId: ctx.categoryIds.oral, title, term: '2026-H1', termAssignment });
+    assessment.date = date;
+  }
+  const merge = loadImportMerge(modules);
+  const first = merge(base, ctx.state);
+  assert.deepEqual(Array.from(first.state.assessments, item => item.term), ['2026-H2', '2026-H1', '2026-H1']);
+  assert.equal(merge(first.state, ctx.state).summary.assessmentMetadataConflicts, 0);
+});
+
 test('module merge preserves both inputs and makes a repeated identical import idempotent', () => {
   const modules = loadModules();
   const base = modules.DomainModel.createEmptyState();

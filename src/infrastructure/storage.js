@@ -3,6 +3,7 @@ import {
 } from './encryption.js';
 
 import { createEnvelope, unlockEnvelope, reencryptState, inspectEnvelope, normalizeRecoveryCode, disposeEnvelopeSession } from './recovery-envelope.js';
+import { prepareSingleArchiveImport } from '../transfer/import-validation.js';
 import { validateImportedState, validateRawTermResults, validateRawUpperSecContexts } from '../transfer/import-validation.js';
 
 export function createStorage({ DomainModel, createInitialState, sessionCoordinator }) {
@@ -593,14 +594,14 @@ export function createStorage({ DomainModel, createInitialState, sessionCoordina
       }
 
       // Importiert einen verschlüsselten Export (JSON-String) mit dem angegebenen Passwort
-      async function importStateEncryptedFromText(text, password) {
+      async function importStateEncryptedFromText(text, password, legacyArchiveFile = false) {
         let obj;
         try {
           obj = JSON.parse(text);
         } catch (err) {
           throw new Error('Ungültiges JSON');
         }
-        if (obj && obj.format === 'notenverwaltung_envelope') return _importV2(text, {kind:'password',value:password});
+        if (obj && obj.format === 'notenverwaltung_envelope') return _importV2(text, {kind:'password',value:password}, legacyArchiveFile);
         if (!obj || obj.format !== 'notenverwaltung_enc_v1' || !obj.salt || !obj.payload) {
           throw new Error('Unbekanntes verschlüsseltes Format');
         }
@@ -943,9 +944,10 @@ export function createStorage({ DomainModel, createInitialState, sessionCoordina
         error.code = code;
         return error;
       }
-      function _parseRecoveryState(json) {
+      function _parseRecoveryState(json, legacyArchiveFile = false) {
         try {
-          const raw = JSON.parse(json);
+          const parsed = JSON.parse(json);
+          const raw = legacyArchiveFile ? prepareSingleArchiveImport(parsed, true).state : parsed;
           if (!raw || typeof raw !== 'object' || Array.isArray(raw)) throw new Error('root');
           validateRawTermResults(raw);
           validateRawUpperSecContexts(raw);
@@ -1003,11 +1005,11 @@ export function createStorage({ DomainModel, createInitialState, sessionCoordina
         if (entry.session) disposeEnvelopeSession(entry.session);
         entry.session = entry.password = entry.code = entry.json = null;
       }
-      async function _openChecked(text, access, preparation) {
+      async function _openChecked(text, access, preparation, legacyArchiveFile = false) {
         const opened = await unlockEnvelope(text,access).catch(error => { _assertPreparation(preparation); throw error; });
         try {
           _assertPreparation(preparation);
-          _parseRecoveryState(opened.stateJson);
+          _parseRecoveryState(opened.stateJson, legacyArchiveFile);
           return opened;
         } catch (error) { disposeEnvelopeSession(opened.session); throw error; }
       }
@@ -1177,9 +1179,9 @@ export function createStorage({ DomainModel, createInitialState, sessionCoordina
         try { _tokenEntry(result.sourceToken,'source'); return result.summary; }
         finally { cancelPreparedProtection(result.sourceToken); }
       }
-      async function _importV2(text,access) {
+      async function _importV2(text,access,legacyArchiveFile = false) {
         const context = _capturePreparation();
-        const opened = await _openChecked(text,access,context);
+        const opened = await _openChecked(text,access,context,legacyArchiveFile);
         try {
           _assertPreparation(context);
           // _openChecked has validated both the raw and migrated state. As for
@@ -1189,7 +1191,7 @@ export function createStorage({ DomainModel, createInitialState, sessionCoordina
         }
         finally { disposeEnvelopeSession(opened.session); }
       }
-      function importStateEncryptedWithRecovery(text,code) { return _importV2(text,{kind:'recovery',value:code}); }
+      function importStateEncryptedWithRecovery(text,code,legacyArchiveFile = false) { return _importV2(text,{kind:'recovery',value:code},legacyArchiveFile); }
 
       function isEncrypted() {
         return _isEncryptedFlagSet() || localStorage.getItem(STORAGE_KEY_JOURNAL) !== null;

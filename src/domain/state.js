@@ -74,6 +74,14 @@ function normalizeCategoryName(value) {
     .trim();
 }
 
+const writtenCategoryAliases = [
+  "schriftlich", "schriftliche leistungen", "klassenarbeit", "klassenarbeiten", "klausur", "klausuren"
+];
+
+export function isKnownWrittenCategory(category) {
+  return !!category && writtenCategoryAliases.includes(normalizeCategoryName(category.name));
+}
+
 export function createDefaultWeightTemplates(categories, existingTemplates = []) {
   const categoryIds = new Set(categories.map(category => category.id));
   const catByName = new Map(
@@ -92,10 +100,7 @@ export function createDefaultWeightTemplates(categories, existingTemplates = [])
     "mundlich", "muendlich", "mundliche leistungen", "muendliche leistungen",
     "mitarbeit", "sonstige mitarbeit"
   ]);
-  let writtenId = findByAliases([
-    "schriftlich", "schriftliche leistungen", "klassenarbeit", "klassenarbeiten",
-    "klausur", "klausuren"
-  ]);
+  let writtenId = findByAliases(writtenCategoryAliases);
   const otherId = findByAliases([
     "sonstiges", "sonstige", "sonstige leistungen", "weitere leistungen"
   ]);
@@ -176,6 +181,7 @@ export function createDefaultSettings() {
     schoolProfile: normalizeSchoolProfile(null),
     gradeMapping: createDefaultGradeMapping(),
     categories: categories,
+    categoryRoles: { upperSecWrittenCategoryId: categories.find(isKnownWrittenCategory).id },
     weightTemplates: weightTemplates,
     // Zentrale Halbjahrs-Einstellungen für Sek I und Sek II
     halfYearSettings: {

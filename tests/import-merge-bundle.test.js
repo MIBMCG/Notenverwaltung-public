@@ -21,7 +21,7 @@ function extractAsyncFunction(lines, name) {
 
 function artifactLinesWithMergeSentinel() {
   const lines = readSourceLines(htmlPath);
-  const line = lines.findIndex(item => /^    function mergeImportedStateIntoCurrent\d*\(base, incoming\) \{/.test(item));
+  const line = lines.findIndex(item => /^    function mergeImportedStateIntoCurrent\d*\(/.test(item));
   assert.ok(line >= 0, 'das gebaute Artefakt muss die gemeinsame Merge-Funktion enthalten');
   lines.splice(line + 1, 0, '      throw new Error("artifact-merge-used");');
   return lines;
@@ -181,6 +181,8 @@ function loadArtifactMergeCommit({ htmlLines = readSourceLines(htmlPath), initia
     extractFunction(htmlLines, 'invalidateUiStateEpoch'),
     extractFunction(htmlLines, 'commitStateChange'),
     extractFunction(htmlLines, 'overwriteStateObject'),
+    extractFunction(htmlLines, 'prepareSingleArchiveImport'),
+    extractFunction(htmlLines, 'supplementMissingImportPeriods'),
     extractAsyncFunction(htmlLines, 'commitImportedState'),
     '  globalThis.__artifactMerge = mergeImportedStateIntoCurrent;',
     '  globalThis.__commitImportedMergeState = commitImportedState;',

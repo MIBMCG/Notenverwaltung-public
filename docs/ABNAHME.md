@@ -1,4 +1,10 @@
-# Abnahme und Prüfgrenzen – Version 1.7.2
+# Abnahme und Prüfgrenzen – Version 1.7.3
+
+Am Korrekturstand bd4a1f9 bestanden 1.573 von 1.573 Tests. In Chrome 145 unter Windows wurden Notenkorrektur, Tastaturbedienung und der Leistungsdialog bei 320, 360 und 390 CSS-Pixeln Breite geprüft. Einzel- und Sammeldruck erzeugten PDFs mit dem korrekten Rechenwert. Passwortimporte aus V1- und V2-Backups stellten die gesicherte Note wieder her. Die Proben nutzten synthetische Daten. Physische Mobilgeräte und Papierausdruck waren nicht Teil der Prüfung.
+
+[Release 1.7.3](https://github.com/MIBMCG/Notenverwaltung-public/releases/tag/v1.7.3)
+
+## Frühere Nachweise
 
 **Stand: 04.11.2026.** Version 1.7.2 korrigiert die Übernahme gesicherter
 Halbjahres-/Semestergrenzen und Bezeichnungen beim vollständigen Ersetzen
@@ -13,7 +19,7 @@ sie sind keine vollständige Freigabe aller Browser und Geräte.
 `NOT RUN` einen fehlenden Nachweis. Automatisierte Tests und DOM-Harnesses
 ersetzen keine Bedienprüfung im realen Browser.
 
-## Aktueller Stand 1.7.2
+## Stand 1.7.2
 
 | Bereich | Status | Reichweite |
 | --- | --- | --- |
@@ -60,7 +66,7 @@ enthält die Veröffentlichung und ihre Paketprüfsummen. Diese externen Links
 benötigen eine Internetverbindung.
 
 Paket, Prüfsummen und Tag der aktuellen Fassung werden der
-[Release-Seite für 1.7.2](https://github.com/MIBMCG/Notenverwaltung-public/releases/tag/v1.7.2)
+[Release-Seite für 1.7.3](https://github.com/MIBMCG/Notenverwaltung-public/releases/tag/v1.7.3)
 zugeordnet;
 die [GitHub-Actions-Läufe](https://github.com/MIBMCG/Notenverwaltung-public/actions)
 ordnen CI-Ergebnisse dem jeweiligen Commit zu.

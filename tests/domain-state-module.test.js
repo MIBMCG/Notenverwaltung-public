@@ -27,6 +27,9 @@ test('Wave 3.1 state module preserves constants and default state', () => {
   delete modernDefault.lastGradesheetCourseId;
   // School branding is independently covered by school-branding.test.js.
   delete modernDefault.settings.schoolProfile;
+  assert.equal(modernDefault.settings.categoryRoles.upperSecWrittenCategoryId,
+    modernDefault.settings.categories.find(category => category.name === 'Schriftlich').id);
+  delete modernDefault.settings.categoryRoles;
   assert.deepEqual(modernDefault, legacyDefault);
 });
 

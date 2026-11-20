@@ -4,20 +4,20 @@
     "algorithm": "sha256",
     "normalization": "UTF-8 text with CRLF and CR normalized to LF",
     "files": {
-      "Notenverwaltung.html": "0808a12aaf4e7a5ee0ecf09774fad4a9a5179c231fa1c871d5fbd487686da412",
+      "Notenverwaltung.html": "1d43e4f3b3430e6d06e8a3b63bd373ef0903618b3f4356e2fc2b3ac3e901793d",
       "src/document.html": "0ddc5e4d268e94aced3fc18c9ebb45448a0c225c057e37499bd79f0c43d2225c",
       "src/domain/assessments.js": "544ddb00b4ca92476ef93533e97daf1bdf7834ce06410b19fde4371c5919a32e",
       "src/domain/course-colors.js": "3f0951a032ab2fd179aad7b70867de5b5d0a7dfee02e9f7507b7a39f3789bf6a",
       "src/domain/course-settings.js": "2737d7b849788785a0ac5413476a59305dacf104a1c72f8d05413e0892fcad87",
       "src/domain/course-symbols.js": "e1908cfa2a2c68647086630b67e29dfd9097354d324abd4335df6409891e07ba",
-      "src/domain/courses.js": "9f5545d80f538b745f52301846ac8d79ff054edbb7a08c6a0223c9b46c7ab3c9",
+      "src/domain/courses.js": "5f29e96306b2dce8b44bc1025e89b8aaa37771a5af50aaa524b8a4f3cbc29fbc",
       "src/domain/domain-model.js": "b048c5236d005b35dcb9398404d74d64e838207c7aaafdb9989ae063f9467af7",
       "src/domain/grading-logic.js": "9ed7b34dff4c4cf7a04c7e7825f76d5e3b5b1da6869159936cc6b0bba5b00185",
-      "src/domain/grading.js": "7a42cf79d9d42d0b866414139995803711610042a56a8c5e314eeb1f15631ba8",
+      "src/domain/grading.js": "5ed835ccc29f4be723ef29935177e72be4b5e22840021d062bce13ddc39a01a0",
       "src/domain/initial-assessments.js": "2d08fe004ae78ad377bf8197b64e92e84bc0f09f1497ba4e7275feaa5867474f",
       "src/domain/initial-state.js": "a434df76323cdcda75d1f901b4fa63711997fdcf1dbcf2018923338de86560bd",
-      "src/domain/migrations.js": "1dd87c98a0de23b3840a4b3ca1f9d82362361a8346bb7c32c0bd1211af2c936d",
-      "src/domain/state.js": "6152ec46647fce2a3e3d5a145742e474f35f72e2a9f16bc630fe46e71eaa98ed",
+      "src/domain/migrations.js": "dcae83d022ca77d2ef6f2df490b37e40880fde9c1d4a6255fdbf766591420812",
+      "src/domain/state.js": "61dd7fdb868a793e35bf4a0a52ad764db1913c6207d1c11434c24e3866bdcef8",
       "src/domain/students.js": "6a5fddc1db7ba67dd26fd233c0d19d89d8571f0aca5873f8fd6a3f82ff35314b",
       "src/domain/terms.js": "cb8301f5320d0bb5f526774a7181f34879d9dbf385cc3ea5be38c33584cc189d",
       "src/entry.js": "00e4df480c71c4af8666a96ec649d9fc7ad2c0849adeb51478af537b9ad96004",
@@ -28,17 +28,17 @@
       "src/infrastructure/encryption.js": "134aca20000b131b42cb9accee1afc26ea863b6b9e68e01d5d977dc7595f50b4",
       "src/infrastructure/recovery-envelope.js": "3f790646b175c50c8fd8a65a1f6b2bf7817cd26316598c4344330a7755013e48",
       "src/infrastructure/session-coordinator.js": "34488a6c3c3e0eb54e282b5edf57c64636ffd741d05d5682acecfbc378c67d2b",
-      "src/infrastructure/storage.js": "e06cbdde9ff97a0ece866eb5432c7fd683987efd386ec0c4d37c3cb6fcb83dcd",
-      "src/legacy/application.js": "86b4dae8de44afc151e652de6fd1428857e811eaefdc4880a3d62bef98be2a4a",
+      "src/infrastructure/storage.js": "9c2f8a928cd5fc86ff76cb8d87c6715f9c70abf4b3b997e1b3e6b8adecb7182b",
+      "src/legacy/application.js": "e80aba6d7bf2771690e79da458a87d3618966df176fef2b468f6d864ce355f5b",
       "src/legacy/early-errors.js": "36fc884f619ecf1fb7067866a492050553950a63f88d1fe072ee724fba911a0e",
-      "src/styles/legacy.css": "c584e81391853818e3eb11a73d237ad87ad2b2f52793ee597bb6b80440438e5e",
+      "src/styles/legacy.css": "ed49019d8bb9e5cbc655630c96344496c13bc0b675e06eeeccd9a7dfbe939559",
       "src/transfer/csv-decoding.js": "a4c4ea923c986d21ad0c4caabdb3639a004d379d89569e14f4bc7267e2ddf317",
       "src/transfer/csv-format.js": "a5a32acb2984e7c8518fbb645b51e0e1567b0d98f94520c4f2a2dea1846e37de",
-      "src/transfer/csv-import-orchestrator.js": "b1b98e2761182df87d324e8dba1ace8927684f4fdecbd9a27068d96a8d5bb183",
+      "src/transfer/csv-import-orchestrator.js": "327d214504eefab4db11a8a1c6938ffbca43a72b5f8c55f054b0528078099611",
       "src/transfer/csv-import-rules.js": "28ca89637893dfddbc133d26fb8834373e5e0d938f6280720df6a1b3e2a1abde",
       "src/transfer/excel-export.js": "c45356529ed0314c9a4ed7d3d2f27ca622357a2734f5137d0c25b57e25119cad",
-      "src/transfer/import-merge.js": "854429406782e79a65edd971ccec0bbd35e216aae585b04c7ac92c209cb822ab",
-      "src/transfer/import-validation.js": "e61f8628d83fa8811d2b3f2a161018db60114563d8f8210e8d8d444846ddfdca",
+      "src/transfer/import-merge.js": "38b478d5432b2cc77c522a85fd64a0373405678a27e2b99b8a36f0f105514a50",
+      "src/transfer/import-validation.js": "e43983d4bcb8ca371a26a848458408f3e8181989088eef043ce43d207312e415",
       "src/ui/course-cards.css": "bd6fb4cdf1a545ddb91520cfe260ccb884b855758809dfdb41f07554fe81bd77",
       "src/ui/course-cards.js": "d3035aa4be05cffc6c3151e8549407b9dc94c8ae69b9ca20da7a0df0c1f30ab3",
       "src/ui/course-color-picker.js": "6b27c0890f33cd929993d3f78c121ed2bbd70cb176ae5fd80d98399a8cea62c1",
@@ -90,10 +90,6 @@
     "syncDebugArtifacts": {
       "path": "Notenverwaltung.html",
       "text": "removeDebugModeArtifacts"
-    },
-    "validateCsvIdentity": {
-      "path": "Notenverwaltung.html",
-      "text": "validateCsvStudentIdentity"
     },
     "calculateGradeFromPercentage": {
       "path": "Notenverwaltung.html",
@@ -275,7 +271,7 @@
         ]
       },
       "targetWave": null,
-      "notes": "Phase 1 Wave 5."
+      "notes": "Phase 1 Wave 5. Die A1-Regressionen prüfen zusätzlich das Verwerfen eines Entwurfs mit Escape, auch während einer laufenden Speicherung."
     },
     {
       "id": "K5",
@@ -413,11 +409,12 @@
       "sourceLabel": "H7 - Sitzungs-Timeout wird gespeichert aber nie angewendet",
       "severity": "high",
       "status": "closed",
-      "summary": "Ein gueltiger gespeicherter Timeout wird nach dem Laden auf den Sitzungstimer angewandt.",
+      "summary": "Nach dem Laden und nach bestätigtem Vollimport gilt die wiederhergestellte Sperrfrist. Ein Backup ohne eigene Frist verwendet 15 Minuten.",
       "evidence": {
         "commits": [],
         "tests": [
           "tests/privacy.test.js",
+          "tests/backup-import-file.test.js",
           "tests/storage.test.js"
         ],
         "codeAnchors": [
@@ -469,7 +466,7 @@
       "sourceLabel": "H10 - CSV doppelte SchuelerID ueberschreibt oder verschluckt eine Person",
       "severity": "high",
       "status": "closed",
-      "summary": "Widerspruechliche CSV-Identitaeten brechen vor Persistenz ab.",
+      "summary": "Explizite Schülerkennungen unterscheiden auch gleichnamige Personen. Mehrdeutige Zuordnungen werden vor dem Speichern gemeldet.",
       "evidence": {
         "commits": [],
         "tests": [
@@ -477,7 +474,7 @@
         ],
         "codeAnchors": [
           "importCsvText",
-          "validateCsvIdentity"
+          "validateCsvStudentIdentity"
         ]
       },
       "targetWave": null,
@@ -488,14 +485,15 @@
       "sourceLabel": "H11 - Sichtbarkeits-Schalter wirkt in drei Ansichten unterschiedlich",
       "severity": "high",
       "status": "closed",
-      "summary": "visible steuert einheitlich nur PDF-Berichte und nicht interne Berechnungen.",
+      "summary": "Die PDF-Sichtbarkeit steuert die Einzelzeilen. Der ausgewiesene Leistungsstand in Einzel- und Sammelberichten berücksichtigt alle fachlich wirksamen Leistungen.",
       "evidence": {
         "commits": [],
         "tests": [
           "tests/reporting.test.js"
         ],
         "codeAnchors": [
-          "filterPdfAssessments"
+          "filterPdfAssessments",
+          "filterPdfOverallAssessments"
         ]
       },
       "targetWave": null,
@@ -652,7 +650,7 @@
         ]
       },
       "targetWave": null,
-      "notes": "Term consistency wave."
+      "notes": "Term consistency wave. Der A2-Regressionstest prüft das migrierte Halbjahr einer undatierten Leistung auch nach verschlüsseltem Speichern und erneutem Öffnen."
     },
     {
       "id": "M6",
@@ -1132,12 +1130,15 @@
       "sourceLabel": "M31 - Sek-II-Kurskontext und Q1 bis Q4 fehlen",
       "severity": "medium",
       "status": "closed",
-      "summary": "Sek-II-Kontext, Q-Phasen, Gewichtung und personenspezifisches Q4-Fach sind durchgaengig modelliert.",
+      "summary": "Die Q4-Berechnung berücksichtigt das persönliche Prüfungsfach und die gespeicherte Klausurkategorie, auch bei geänderten Gewichtungsvorlagen und importierten Archiven.",
       "evidence": {
         "commits": [],
         "tests": [
           "tests/uppersec-context.test.js",
-          "tests/course-context-ui.test.js"
+          "tests/course-context-ui.test.js",
+          "tests/grading.test.js",
+          "tests/import-merge.test.js",
+          "tests/backup-import-file.test.js"
         ],
         "codeAnchors": [
           "DomainModel.createCourse",

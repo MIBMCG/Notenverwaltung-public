@@ -44,9 +44,9 @@ Entwicklungswerkzeugen; die ausgelieferte Datei benötigt weiterhin keine
 Paketverwaltung und keine Serverkomponente. `Notenverwaltung.html` kann direkt
 im Browser geöffnet werden. Alle Nutzdaten werden lokal im Browser gespeichert.
 
-Programmfassung: **1.7.2 vom 04.11.2026**. Öffentliche Downloads gehören zum
+Programmfassung: **1.7.3 vom 20.11.2026**. Öffentliche Downloads gehören zum
 Repository MIBMCG/Notenverwaltung-public; die frühere private Ablage ist davon
-getrennt. Maßgeblich sind die [Release-Hinweise für 1.7.2](docs/releases/1.7.2.md).
+getrennt. Maßgeblich sind die [Release-Hinweise für 1.7.3](docs/releases/1.7.3.md).
 Die sichtbare Versionsnummer ist unabhängig von `state.version`, das nur das
 gespeicherte Datenformat bezeichnet. Ältere Prüfnachweise und Versionsangaben
 in den folgenden Abschnitten sind historische Zwischenstände.
@@ -338,7 +338,11 @@ Ein Leistungsnachweis enthaelt:
 - PDF-Sichtbarkeit
 - Score-Eintraege pro Schueler:in
 
-Der Schalter `In PDF-Berichten anzeigen` steuert ausschliesslich, ob eine Leistung in Einzel- und Sammel-PDFs erscheint und dort in den berichteten Durchschnitt eingeht. Eine fuer PDFs ausgeblendete Leistung bleibt in der Notentabelle sichtbar und wird weiterhin in Statistik und interner Notenberechnung beruecksichtigt. Damit kann eine Lehrkraft eine Leistung intern weiterfuehren, ohne sie bereits in einem Bericht an Schueler:innen oder Eltern auszugeben. Ist fuer einen Kurs die Einbeziehung des Vorhalbjahrs aktiviert, verwenden Einzel- und Sammelbericht fuer den Gesamtdurchschnitt dieselbe sichtbare Leistungsmenge aus ausgewaehltem und vorherigem Halbjahr; der Sammelbericht kennzeichnet diesen Wert ausdruecklich als `Gesamtdurchschnitt inkl. Vorhalbjahr`.
+Der Schalter `In PDF-Berichten anzeigen` steuert die Einzelzeile in Einzel- und Sammelberichten. Ausgeblendete Einzelleistungen zählen nach denselben Status- und Gewichtungsregeln wie in der Notentabelle zum ausgewiesenen Leistungsstand. Bei gleich gewichteten 15 und 1 Punkten beträgt der Rechenwert also auch dann 8,00, wenn nur die Zeile mit 15 Punkten erscheint. Festgesetzte Semesterpunkte werden gesondert ausgewiesen.
+
+Im Q4-Grundkurs bleibt die schriftliche Kategorie über ihre gespeicherte Kennung zugeordnet. Eine Änderung der Vorlagenprozente oder des Kategorienamens ändert diese Zuordnung nicht. Bei einem älteren Bestand mit mehrdeutiger Zuordnung nennen Detailansicht und Bericht die verwendete Kursgewichtung. Beim Zusammenführen und Reaktivieren eines Archivs verwendet der aktive Kurs die zugehörigen lokalen Kategoriekennungen. Der Archivstand behält die ursprünglichen Kennungen.
+
+In Sek I umfasst die Halbjahresnote in H1 die Leistungen aus H1. Die `Jahresgesamtnote (H1 + H2)` im H2-Bericht berücksichtigt die Einzelleistungen beider Halbjahre desselben Schuljahrs, auch wenn ein Kurs nur in H1 Bewertungen enthält. In Sek II gilt jeweils das einzelne Semester.
 
 Score-Eintraege enthalten:
 
@@ -425,7 +429,7 @@ Beispiele:
 
 Fuer Sek II koennen die Halbjahre in der UI als Q-Phasen dargestellt werden, die interne Speicherung bleibt jedoch im H-Format.
 
-Jede Leistung speichert ausserdem die Herkunft ihrer Zuordnung. `termAssignment: "auto"` bedeutet, dass Datum und Stichtage das Halbjahr bestimmen. Aenderungen am Datum oder an globalen beziehungsweise kursbezogenen Stichtagen berechnen nur diese aktiven Leistungen neu. `termAssignment: "manual"` bezeichnet eine ausdrueckliche Auswahl im Editor; sie bleibt bei Neustart und Stichtagsaenderungen erhalten. Archivierte Kurse behalten ihre gespeicherten Zuordnungen unabhaengig von der Herkunft.
+Jede Leistung speichert die Herkunft ihrer Halbjahreszuordnung. Bei `termAssignment: "auto"` bestimmen das Leistungsdatum und die wirksamen Stichtage das Halbjahr. Bleibt das Datum beim Anlegen leer, speichert die Anwendung das dann aktuelle Halbjahr. Dieses bleibt beim Öffnen, bei einer Titeländerung und bei geänderten Stichtagen erhalten. Wird später ein Datum eingetragen, berechnet die Anwendung das Halbjahr anhand dieses Datums. Wird das Datum wieder entfernt, gilt das zuletzt gespeicherte Halbjahr. `termAssignment: "manual"` bezeichnet eine ausdrückliche Auswahl im Editor. Sie bleibt bei Neustart und Stichtagsänderungen erhalten. Archivierte Kurse behalten ihre gespeicherten Zuordnungen unabhängig von der Herkunft.
 
 Vorhandene kanonische Halbjahre ohne Herkunftsmerkmal werden bei der Migration vorsichtig als `manual` uebernommen, weil ihre fruehere Entstehung nicht sicher feststellbar ist. Fehlt das Halbjahr, darf es nach den bestehenden Regeln abgeleitet und als `auto` markiert werden. Eindeutig korrigierbare Altwerte werden getrimmt und grossgeschrieben, zum Beispiel ` 2025-h2 ` zu `2025-H2`. Unbekannte Werte wie `2025-H3` gelten als Integritaetsfehler; die Anwendung loescht sie nicht und ordnet sie keinem vermuteten Halbjahr zu.
 
@@ -800,6 +804,8 @@ Kurs, Leistungen, referenzierte Personen und Einstellungen. Ein Backup aus einem
 V2-Bestand enthält die passenden Zugangshüllen und einen frisch verschlüsselten
 Snapshot mit aktualisierter Sicherungszeit.
 
+Ein einzeln exportierter Folgekurs lässt sich auch ohne seinen Vorgänger einlesen. Beim Zusammenführen mit einem Bestand, der den Vorgänger enthält, bleibt die Verbindung erhalten. Ältere Einzelarchive erkennt die Anwendung an ihrem ursprünglichen Dateinamen. Für umbenannte Dateien aktiviere vor der Dateiauswahl **Umbenanntes Einzelarchiv einer älteren Version importieren**.
+
 Normaler Import validiert die Quelle, baut einen Kandidaten und speichert ihn
 mit dem bestehenden lokalen Passwort und gegebenenfalls Code. Die Quellzugänge
 ersetzen den lokalen Schutz nicht. **Vollständig ersetzen** übernimmt auch die
@@ -857,7 +863,7 @@ Zuordnungslogik:
 
 - Kurse werden bevorzugt ueber `KursID` bzw. `importKey` erkannt.
 - Ohne KursID wird anhand von Kursname und Fach zugeordnet.
-- Schueler:innen werden anhand von Name und Geburtsdatum erkannt.
+- Eine bekannte Schülerkennung ordnet die Zeile der vorhandenen Person zu. Eine neue Kennung kann über Namen und Geburtsdatum mit einer eindeutig passenden Person ohne externe Kennung verbunden werden. Verschiedene Kennungen unterscheiden auch gleichnamige Personen. Mehrdeutige Zuordnungen erscheinen in der Importvorschau. Der CSV-Export übernimmt die externe Kennung, sofern vorhanden.
 - Doppelte Zeilen und fehlerhafte Zeilen werden gesammelt und in Dialogen gemeldet.
 - Bei fatalen Fehlern wird der Import abgebrochen und der vorherige Zustand wiederhergestellt.
 - Beim Ueberspringen nichtfatal fehlerhafter Zeilen berechnet die Anwendung den Import aus den verbleibenden CSV-Records neu. Ausgeschlossene Zeilen beeinflussen weder bestehende Einschreibungen und Q4-Kennzeichen noch die Namens-, Datums- und Klassenzuordnung anderer Zeilen. Die Zeilennummer bezeichnet bei gequoteten mehrzeiligen Feldern den physischen Anfang des Records. Mehrere Warnungen derselben Zeile zaehlen beim Ueberspringen einmal. Sind alle Datenzeilen ausgeschlossen, meldet die Anwendung „Keine gültigen Zeilen übernommen“ und speichert nichts.
@@ -1152,7 +1158,7 @@ Erwartung: Nur ganze Punkte von 0 bis 15 werden akzeptiert; Dezimalwerte und aus
 3. Das Feld leeren, waehrend der Status `valid` ist.
 4. Dieselben Schritte in einem Sek-I-Kurs mit `3abc` und `3` wiederholen.
 
-Erwartung: `15.3`, `3abc` und der Leerwert werden rot markiert und nicht gespeichert. `15` und `3` werden gespeichert. `missing` entfernt den numerischen Beitrag sofort aus dem Durchschnitt; der Rueckwechsel auf `valid` berechnet ihn aus dem weiterhin vorhandenen gueltigen Rohwert neu. Bei einem Speicherfehler bleibt der vorherige State erhalten und das Feld zeigt einen Inline-Hinweis. Sehr schnelle Folgeaenderungen in derselben oder in verschiedenen Zellen werden in Aufrufreihenfolge gespeichert; erst danach wird gegebenenfalls per Enter oder Tab navigiert.
+Erwartung: `15.3`, `3abc` und der Leerwert werden rot markiert und nicht gespeichert. `15` und `3` werden gespeichert. `missing` entfernt den numerischen Beitrag sofort aus dem Durchschnitt; der Rueckwechsel auf `valid` berechnet ihn aus dem weiterhin vorhandenen gueltigen Rohwert neu. Bei einem Speicherfehler bleibt der vorherige State erhalten und das Feld zeigt einen Inline-Hinweis. Sehr schnelle Folgeaenderungen in derselben oder in verschiedenen Zellen werden in Aufrufreihenfolge gespeichert. Enter wartet auf die Speicherung, bevor es den Fokus verschiebt. Tab und Umschalt+Tab starten die Speicherung und folgen der normalen Fokusreihenfolge des Browsers.
 
 ### Gewichtungsprofile und Altbestand
 

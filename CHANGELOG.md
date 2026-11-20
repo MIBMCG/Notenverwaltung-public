@@ -1,5 +1,9 @@
 # Änderungen
 
+## 1.7.3 – 20.11.2026
+
+Die Korrekturen des November-Reviews schützen gespeicherte Bewertungen, vereinheitlichen Einzel- und Sammelberichte und beheben Zuordnungsfehler bei CSV-, Archiv- und Backup-Importen. [Änderungen und Umstieg](docs/releases/1.7.3.md).
+
 ## 1.7.2 – 04.11.2026
 
 - Beim vollständigen Wiederherstellen eines Backups werden jetzt auch die

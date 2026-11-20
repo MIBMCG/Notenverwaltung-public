@@ -18,11 +18,16 @@ function createState(DomainModel, prefix) {
   return state;
 }
 
-async function createImportHarness(prepareState = () => {}) {
+async function createImportHarness(prepareState = () => {}, protection = 'V1') {
   const seed = await loadDashboardUi();
   const initialState = createState(seed.DomainModel, 'Lokal');
   prepareState(initialState, seed.DomainModel);
   const app = await loadDashboardUi({ state: initialState });
+  if (protection === 'V2') {
+    const draft = await app.Storage.prepareRecoveryEnrollment({ password: app.password });
+    await app.Storage.confirmPreparedProtection(draft.token, draft.recoveryCode);
+    await app.Storage.commitPreparedProtection(draft.token);
+  }
   app.sandbox.mergeImportedStateIntoCurrent =
     app.sandbox.__module_exports.ImportMerge.mergeImportedStateIntoCurrent;
   await app.UiShell.init('app');
@@ -94,6 +99,46 @@ test('structured backup file replaces the persisted state only after both confir
   assert.equal(harness.input.value, '');
 });
 
+for (const protection of ['V1', 'V2']) {
+  test(`C1: ${protection} file restores global and course-specific Q4 category IDs after reopening`, async () => {
+    const source = await loadDashboardUi();
+    const data = createState(source.DomainModel, 'Q4');
+    const [oral, written, other] = data.settings.categories;
+    data.settings.categoryRoles = { upperSecWrittenCategoryId: other.id };
+    const course = data.courses[0];
+    course.schemaMode = 'uppersec';
+    course.upperSecContext = { courseType: 'basic', qualificationYear: 'q3-q4' };
+    course.categoryRoles = { upperSecWrittenCategoryId: written.id };
+    for (const [category, points] of [[oral, '8'], [written, '15']]) {
+      category.name = 'Umbenannt ' + points;
+      const assessment = source.DomainModel.createAssessment({ courseId: course.id, categoryId: category.id, term: '2025-H2' });
+      assessment.scores[data.students[0].id] = source.DomainModel.createScoreEntry({ valueRaw: points });
+      data.assessments.push(assessment);
+    }
+    let text;
+    if (protection === 'V2') {
+      const prepared = await source.Storage.prepareRecoveryEnrollment({ password: source.password });
+      await source.Storage.confirmPreparedProtection(prepared.token, prepared.recoveryCode);
+      await source.Storage.commitPreparedProtection(prepared.token);
+      text = await source.Storage.encryptForBackup(JSON.stringify(data));
+    } else {
+      text = await source.Storage.exportStateEncrypted(source.password, data);
+    }
+    const target = await createImportHarness();
+    target.setDialogs({ passwords: [source.password], confirms: [true, true] });
+    await target.importFile({ name: 'q4.enc.json', text });
+    assert.equal(target.confirmations.length, 2, target.alerts.join('\n'));
+    await target.app.Storage.lockSession();
+    const reopened = await loadDashboardUi({ storage: target.app.storage, lockManager: target.app.lockManager, useExistingStorage: true });
+    await reopened.UiShell.init('app');
+    const restored = await reopened.Storage.loadState();
+    assert.equal(restored.settings.categoryRoles.upperSecWrittenCategoryId, other.id);
+    assert.equal(restored.courses[0].categoryRoles.upperSecWrittenCategoryId, written.id);
+    assert.equal(reopened.sandbox.__module_exports.GradingLogic.computeWeightedOverallForAssessments(restored.assessments,
+      restored.courses[0], restored.students[0].id, restored.settings, '2025-H2'), 8);
+  });
+}
+
 const savedPeriods = {
   seckI: {
     schoolYearStartYear: 2030, schoolYearStartMonth: 8, schoolYearStartDay: 26,
@@ -111,6 +156,244 @@ const savedPeriodNames = {
   seckII: { h1: 'Semester A', h2: 'Semester B' }
 };
 const plain = value => JSON.parse(JSON.stringify(value));
+
+test('replacement by a default backup restores the standard 15-minute timeout', async () => {
+  const h = await createImportHarness(state => { state.settings.sessionTimeoutMinutes = 1; });
+  const incoming = createState(h.app.DomainModel, 'Import');
+  const text = await h.app.Storage.exportStateEncrypted(h.app.password, incoming);
+  assert.equal(h.app.Storage.getSessionTimeoutMinutes(), 1);
+  h.setDialogs({ passwords: [h.app.password], confirms: [true, true] });
+  await h.importFile({ name: 'default.enc.json', text });
+  assert.equal(h.app.Storage.getSessionTimeoutMinutes(), 15);
+});
+
+test('a file merge saves a dated automatic assessment in the target period before and after unlock', async () => {
+  const h = await createImportHarness(state => {
+    state.courses[0].termCutoffs = { h2StartMonth: 2, h2StartDay: 1 };
+  });
+  const incoming = JSON.parse(h.initialSnapshot);
+  incoming.courses[0].termCutoffs.h2StartDay = 15;
+  incoming.assessments.push(h.app.DomainModel.createAssessment({
+    id: 'dated', title: 'Test', courseId: incoming.courses[0].id,
+    categoryId: incoming.settings.categories[0].id, date: '2027-02-08',
+    term: '2026-H1', termAssignment: 'auto'
+  }));
+  h.merge.checked = true;
+  const text = await h.app.Storage.exportStateEncrypted(h.app.password, incoming);
+  h.setDialogs({ passwords: [h.app.password], confirms: [true] });
+  await h.importFile({ name: 'dated.enc.json', text });
+  assert.equal((await h.loadedState()).assessments[0].term, '2026-H2', h.alerts.join(' '));
+  await h.app.Storage.lockSession();
+  const reopened = await loadDashboardUi({ storage: h.app.storage, lockManager: h.app.lockManager, useExistingStorage: true });
+  await reopened.UiShell.init('app');
+  assert.equal((await reopened.Storage.loadState()).assessments[0].term, '2026-H2');
+});
+
+test('merge, cancellation and failed replacement preserve the local inactivity timeout', async () => {
+  for (const mode of ['merge', 'cancel', 'failed']) {
+    const h = await createImportHarness(state => { state.settings.sessionTimeoutMinutes = 15; });
+    const source = createState(h.app.DomainModel, 'Import');
+    source.settings.sessionTimeoutMinutes = 1;
+    const text = await h.app.Storage.exportStateEncrypted(h.app.password, source);
+    h.merge.checked = mode === 'merge';
+    h.setDialogs({ passwords: [h.app.password], confirms: [true, mode !== 'cancel'] });
+    if (mode === 'failed') h.app.Storage.replaceState = async () => { throw new Error('Testfehler'); };
+    await h.importFile({ name: 'timeout.enc.json', text });
+    assert.equal(h.app.Storage.getSessionTimeoutMinutes(), 15, mode);
+    assert.equal((await h.loadedState()).settings.sessionTimeoutMinutes, 15, mode);
+  }
+});
+
+for (const protection of ['V1', 'V2']) {
+  test(`old ${protection} single archive imports without its predecessor and links a local predecessor only on merge`, async () => {
+    const source = await loadDashboardUi();
+    if (protection === 'V2') {
+      const enrollment = await source.Storage.prepareRecoveryEnrollment({ password: source.password });
+      await source.Storage.confirmPreparedProtection(enrollment.token, enrollment.recoveryCode);
+      await source.Storage.commitPreparedProtection(enrollment.token);
+    }
+    const incoming = createState(source.DomainModel, 'Archiv');
+    source.DomainModel.archiveCourse(incoming, 'Archiv-course', 'manual', {});
+    for (const predecessor of ['Lokal-course', 'missing-course']) {
+      incoming.courses[0].carriedForwardFromCourseId = predecessor;
+      const text = await source.Storage.encryptForBackup(JSON.stringify(incoming));
+      for (const merge of [true, false]) {
+        const h = await createImportHarness();
+        h.merge.checked = merge;
+        const renamed = merge && predecessor === 'missing-course';
+        if (renamed) findByAttribute(h.app.root, 'id', 'json-import-single-archive').checked = true;
+        h.setDialogs({ passwords: [source.password], confirms: [true, true] });
+        await h.importFile({ name: renamed ? 'mein-kurs.json' : 'notenverwaltung_archiv_2026-11-20T14-15-16.enc.json', text });
+        const course = (await h.loadedState()).courses.find(course => course.id === 'Archiv-course');
+        assert.ok(course, h.alerts.join(' '));
+        assert.equal(course.carriedForwardFromCourseId, merge && predecessor === 'Lokal-course' ? predecessor : null);
+      }
+      const strict = await createImportHarness();
+      strict.setDialogs({ passwords: [source.password], confirms: [true, true] });
+      await strict.importFile({ name: 'notenverwaltung_backup_2026-11-20T14-15-16.enc.json', text });
+      assert.equal(strict.confirmations.length, 0);
+      assert.equal(JSON.stringify(await strict.loadedState()), strict.initialSnapshot);
+    }
+  });
+}
+
+function weightingFixture(D) {
+  const state = createState(D, 'Bewertung');
+  for (const category of state.settings.categories) category.subcategories = [];
+  const student = state.students[0];
+  const cat = state.settings.categories[0];
+  cat.subcategories = [{ id: 's-oral', name: 'Beitrag', weightPercent: 100 }];
+  state.settings.weightTemplates.push(D.createWeightTemplate({ id: 'w-custom', name: 'Eigen', items: [{ categoryId: cat.id, weightPercent: 100 }] }));
+  const archive = D.createCourse({ id: 'old-course', name: 'Altkurs', schemaMode: 'uppersec' });
+  state.courses.push(archive);
+  D.enrollStudentInCourse(state, archive.id, student.id);
+  for (const course of state.courses) {
+    course.schemaMode = 'uppersec';
+    course.weightTemplateId = 'w-custom';
+    D.setTermResult(state, course.id, student.id, '2025-H1', 0);
+    const a = D.createAssessment({ id: 'score-' + course.id, courseId: course.id, categoryId: cat.id, subcategoryId: 's-oral', term: '2025-H1' });
+    a.scores[student.id] = D.createScoreEntry({ valueRaw: '7', valueNumeric: 7 });
+    state.assessments.push(a);
+  }
+  D.archiveCourse(state, archive.id);
+  return state;
+}
+
+for (const format of ['raw', 'structured']) {
+  test(`A4: ${format} V1 offers narrow repairs and rejects a mixed broken file`, async () => {
+    const target = await createImportHarness();
+    const D = target.app.DomainModel;
+    const incoming = weightingFixture(D);
+    incoming.settings.weightTemplates = incoming.settings.weightTemplates.filter(t => t.id !== 'w-custom');
+    incoming.settings.categories[0].subcategories = [];
+    const snapshot = plain(incoming.courses[1].archiveSnapshot);
+    const encrypt = () => format === 'raw' ? target.app.Storage.encryptForBackup(JSON.stringify(incoming))
+      : target.app.Storage.exportStateEncrypted(target.app.password, incoming);
+    const file = { name: 'alt.enc.json', text: await encrypt() };
+    target.setDialogs({ passwords: [target.app.password], confirms: [false] });
+    await target.importFile(file);
+    assert.equal(JSON.stringify(await target.loadedState()), target.initialSnapshot);
+    assert.match(target.confirmations[0] || '', /1.*Gleichverteilung/);
+    assert.match(target.confirmations[0], /1.*Hauptkategorie/);
+    for (let attempt = 0; attempt < 2; attempt++) {
+      target.setDialogs({ passwords: [target.app.password], confirms: [true, true] });
+      await target.importFile(file);
+      const repaired = await target.loadedState();
+      assert.equal(repaired.courses[0].weightTemplateId, null);
+      assert.equal(repaired.assessments[0].subcategoryId, null);
+      assert.equal(repaired.assessments[0].scores[incoming.students[0].id].valueNumeric, 7);
+      assert.equal(repaired.courses[0].termResults[0].points, 0);
+      assert.deepEqual(plain(repaired.courses[1].archiveSnapshot), snapshot);
+      assert.equal(repaired.assessments[1].subcategoryId, 's-oral');
+    }
+    for (const corrupt of [
+      a => { a.scores['lost-person'] = a.scores[incoming.students[0].id]; },
+      a => { a.courseId = 'lost-course'; }, a => { a.categoryId = 'lost-category'; },
+      a => { a.categoryId = null; a.subcategoryId = null; }
+    ]) {
+      const original = plain(incoming.assessments[0]);
+      corrupt(incoming.assessments[0]);
+      const before = target.app.storage.getItem('notenverwaltung_v1_state_enc');
+      target.setDialogs({ passwords: [target.app.password], confirms: [true, true] });
+      await target.importFile({ name: file.name, text: await encrypt() });
+      assert.match(target.alerts.at(-1), /fehlgeschlagen/);
+      assert.equal(target.app.storage.getItem('notenverwaltung_v1_state_enc'), before);
+      incoming.assessments[0] = original;
+    }
+  });
+}
+
+for (const protection of ['V1', 'V2']) {
+  test(`A4: ${protection} setting deletions and restored archive survive encrypted export, import and reopening`, async () => {
+    const seed = await loadDashboardUi();
+    const incoming = weightingFixture(seed.DomainModel);
+    const app = await loadDashboardUi({state: incoming});
+    if (protection === 'V2') {
+      const draft = await app.Storage.prepareRecoveryEnrollment({ password: app.password });
+      await app.Storage.confirmPreparedProtection(draft.token, draft.recoveryCode);
+      await app.Storage.commitPreparedProtection(draft.token);
+    }
+    const downloads = [];
+    app.sandbox.downloadBlobFile = text => downloads.push(text);
+    await app.UiShell.init('app');
+    const button = (root, label) => root.querySelectorAll('button').find(b => b.textContent.trim() === label);
+    await button(app.root, 'Einstellungen').dispatch('click');
+    const templateDelete = () => button(app.root.querySelectorAll('input').find(i => i.value === 'Eigen').parentNode, 'Vorlage löschen');
+    const openSub = findByAttribute(app.root, 'aria-label', 'Unterkategorien von ' + incoming.settings.categories[0].name + ' bearbeiten');
+    await openSub.dispatch('click');
+    const subDialog = findByText(app.document.body, 'Unterkategorien für: ' + incoming.settings.categories[0].name).parentNode;
+    for (const [action, expected] of [[() => button(subDialog, 'Löschen'), /Hauptkategorie/], [templateDelete, /Gleichverteilung/]]) {
+      const before = app.storage.getItem('notenverwaltung_v1_state_enc');
+      let prompt = '';
+      app.sandbox.window.confirm = message => { prompt = message; return false; };
+      await action().dispatch('click');
+      assert.match(prompt, expected);
+      assert.equal(app.storage.getItem('notenverwaltung_v1_state_enc'), before);
+      app.sandbox.window.confirm = () => true;
+      const save = app.Storage.saveState;
+      app.Storage.saveState = async () => { throw new Error('synthetischer Speicherfehler'); };
+      await action().dispatch('click');
+      assert.equal(app.storage.getItem('notenverwaltung_v1_state_enc'), before);
+      app.Storage.saveState = save;
+      await action().dispatch('click');
+    }
+    const exportAndReopen = async () => {
+      await app.root._find(e => e.className === 'header-action header-action-primary').dispatch('click');
+      const target = await createImportHarness(s => { s.students = []; s.courses = []; }, protection);
+      target.setDialogs({ passwords: [app.password], confirms: [true, true] });
+      await target.importFile({ name: 'neu.enc.json', text: downloads.at(-1) });
+      assert.match(target.alerts.at(-1), /erfolgreich/);
+      await target.app.Storage.lockSession();
+      const reopened = await loadDashboardUi({storage: target.app.storage, useExistingStorage: true});
+      return reopened.Storage.loadState();
+    };
+    const deleted = await exportAndReopen();
+    assert.equal(deleted.courses[0].weightTemplateId, null);
+    assert.equal(deleted.assessments[0].subcategoryId, null);
+    assert.equal(deleted.assessments[0].categoryId, incoming.settings.categories[0].id);
+    assert.equal(deleted.assessments[0].scores[incoming.students[0].id].valueNumeric, 7);
+    assert.equal(deleted.assessments[1].subcategoryId, 's-oral');
+    assert.deepEqual(plain(deleted.courses[1].archiveSnapshot), plain(incoming.courses[1].archiveSnapshot));
+    await button(app.root, 'Kurse').dispatch('click');
+    await button(app.root, 'Wiederherstellen').dispatch('click');
+    const restored = await exportAndReopen();
+    assert.equal(restored.courses[1].archivedAt, null);
+    assert.equal(restored.courses[1].weightTemplateId, null);
+    assert.equal(restored.assessments[1].subcategoryId, null);
+    assert.equal(restored.courses[1].termResults[0].points, 0);
+    assert.deepEqual(plain(restored.courses[1].archiveHistory[0].snapshot), plain(incoming.courses[1].archiveSnapshot));
+  });
+}
+
+test('replacing a backup immediately arms the restored one-minute inactivity timer', async () => {
+  const h = await createImportHarness();
+  const pending = new Map();
+  let clock = 0;
+  let nextTimer = 0;
+  h.app.sandbox.setTimeout = (callback, delay) => {
+    pending.set(++nextTimer, { callback, due: clock + delay });
+    return nextTimer;
+  };
+  h.app.sandbox.clearTimeout = id => pending.delete(id);
+  const advance = ms => {
+    clock += ms;
+    for (const [id, timer] of pending) {
+      if (timer.due > clock) continue;
+      pending.delete(id);
+      timer.callback();
+    }
+  };
+  h.app.Storage.setSessionTimeoutMinutes(15);
+  const incoming = createState(h.app.DomainModel, 'Import');
+  incoming.settings.sessionTimeoutMinutes = 1;
+  const text = await h.app.Storage.exportStateEncrypted(h.app.password, incoming);
+  h.setDialogs({ passwords: [h.app.password], confirms: [true, true] });
+  await h.importFile({ name: 'timeout.enc.json', text });
+  advance(59999);
+  assert.equal(h.app.Storage.hasSessionPassword(), true);
+  advance(1);
+  assert.equal(h.app.Storage.hasSessionPassword(), false);
+});
 
 // Catches replacement silently overwriting dates/names that the real backup
 // button exported correctly. Uses separate source/target browser storage.

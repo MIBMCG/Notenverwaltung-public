@@ -5,6 +5,74 @@ const vm = require('node:vm');
 const { readSourceLines, extractFunction } = require('./harness/extract.js');
 const { loadModules } = require('./harness/load.js');
 const { loadEsmGraph } = require('./harness/load-esm-graph.js');
+const { buildCourseState, addAssessment, setScore } = require('./harness/fixtures.js');
+const { loadDashboardUi } = require('./harness/dashboard-app.js');
+
+for (const protection of ['V1', 'V2']) {
+  for (const points of [0, 12]) {
+    test(`A3: ${protection} course editor preserves finalized ${points} points through reopening`, async () => {
+      const modules = loadModules();
+      const { state, course, students: [person] } = buildCourseState(modules, { schemaMode: 'uppersec', studentCount: 1 });
+      course.upperSecContext = { courseType: 'basic', qualificationYear: 'q3-q4' };
+      modules.DomainModel.setTermResult(state, course.id, person.id, '2025-H1', points);
+      const app = await loadDashboardUi({ state });
+      if (protection === 'V2') {
+        const draft = await app.Storage.prepareRecoveryEnrollment({ password: app.password });
+        await app.Storage.confirmPreparedProtection(draft.token, draft.recoveryCode);
+        await app.Storage.commitPreparedProtection(draft.token);
+      }
+      await app.UiShell.init('app');
+      const messages = [];
+      app.sandbox.window.alert = message => messages.push(message);
+      await app.root.querySelectorAll('button').find(button => button.textContent === 'Kurse').dispatch('click');
+      await app.root.querySelectorAll('[data-role="edit"]')[0].dispatch('click');
+      const select = app.document.getElementById('course-editor-schema');
+      const encryptedBefore = app.storage.getItem('notenverwaltung_v1_state_enc');
+      select.value = modules.DomainModel.SCHEMA_MODES.GRADES;
+      await select.dispatch('change');
+      assert.match(messages.join(' '), /festgesetz|Festsetzung/i);
+      assert.equal(select.value, course.schemaMode);
+      assert.ok(app.root.querySelectorAll('select').some(field => field.value === 'q3-q4'));
+      assert.equal(app.storage.getItem('notenverwaltung_v1_state_enc'), encryptedBefore);
+      await app.Storage.lockSession();
+      const reopened = await loadDashboardUi({ useExistingStorage: true, storage: app.storage });
+      const stored = (await reopened.Storage.loadState()).courses.find(item => item.id === course.id);
+      assert.equal(stored.schemaMode, course.schemaMode);
+      assert.equal(reopened.DomainModel.getTermResult(stored, person.id, '2025-H1'), points);
+      await reopened.Storage.lockSession();
+    });
+  }
+}
+
+for (const schema of ['grades', 'uppersec']) {
+  test(`A3: individual scores including retained raw values prevent leaving ${schema}`, async () => {
+    const { modules, bindEditor } = loadCourseSchemaContextEditor();
+    const ctx = buildCourseState(modules, { schemaMode: schema, studentCount: 1 });
+    const assessment = addAssessment(modules, ctx, { categoryId: ctx.categoryIds.oral });
+    setScore(modules, assessment, ctx.students[0].id, '2', modules.DomainModel.SCORE_STATUS.EXCUSED);
+    const doc = createDocumentStub();
+    modules.sandbox.document = doc;
+    const schemaSelect = doc.createElement('select');
+    schemaSelect.value = ctx.course.schemaMode;
+    const contextHost = doc.createElement('div');
+    const errors = [];
+    let writes = 0;
+    const binding = bindEditor({ ...createCommitHarness(modules, ctx.state, async () => { writes++; }),
+      courseId: ctx.course.id, schemaSelect, contextHost, onError: error => errors.push(error.message) });
+    schemaSelect.value = schema === 'grades' ? modules.DomainModel.SCHEMA_MODES.UPPERSEC : modules.DomainModel.SCHEMA_MODES.GRADES;
+    await schemaSelect.dispatch('change');
+    if (schema === 'grades') {
+      const editor = binding.getContextEditor();
+      editor.courseTypeSelect.value = 'advanced';
+      editor.qualificationYearSelect.value = 'q1-q2';
+      await editor.qualificationYearSelect.dispatch('change');
+    }
+    assert.match(errors.join(' '), /Einzelbewertung/);
+    assert.equal(writes, 0);
+    assert.equal(schemaSelect.value, ctx.course.schemaMode);
+    assert.equal(contextHost.children.length, schema === 'grades' ? 0 : 1);
+  });
+}
 
 function createCommitHarness(modules, initialState, persistState = async () => {}) {
   let confirmedState = initialState;
@@ -34,6 +102,21 @@ function createCommitHarness(modules, initialState, persistState = async () => {
   modules.sandbox.commitStateChange = commitStateChange;
   return { readState, commitStateChange };
 }
+
+test('A3: empty assessments and a status without a grade survive an allowed schema change', () => {
+  const { modules, helpers } = loadCourseContextUiHelpers();
+  const ctx = buildCourseState(modules, { studentCount: 1 });
+  addAssessment(modules, ctx, { categoryId: ctx.categoryIds.oral });
+  const statusOnly = addAssessment(modules, ctx, { categoryId: ctx.categoryIds.written });
+  setScore(modules, statusOnly, ctx.students[0].id, null, modules.DomainModel.SCORE_STATUS.EXCUSED);
+  helpers.applyCourseSchemaContextChange(ctx.state, ctx.course.id, {
+    schemaMode: modules.DomainModel.SCHEMA_MODES.UPPERSEC, upperSecContext: { courseType: 'basic', qualificationYear: 'q1-q2' }
+  });
+  const stored = modules.DomainModel.ensureStateShape(ctx.state);
+  assert.equal(stored.courses[0].schemaMode, modules.DomainModel.SCHEMA_MODES.UPPERSEC);
+  assert.equal(stored.assessments.length, 2);
+  assert.equal(stored.assessments[1].scores[ctx.students[0].id].status, 'excused');
+});
 
 function loadCourseContextUiHelpers() {
   const modules = loadModules();

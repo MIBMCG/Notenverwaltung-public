@@ -1,10 +1,14 @@
-import { validateMergeIdentityPreflight } from './import-validation.js';
+import { supplementMissingImportPeriods, validateMergeIdentityPreflight } from './import-validation.js';
+import { courseImportScope, effectiveCourseYear, resolveUpperSecWrittenCategoryId } from '../domain/courses.js';
+import { SCHEMA_MODES } from '../domain/state.js';
+import { parseAssessmentDateValue, resolveAssessmentTermFromDateValue } from '../domain/terms.js';
 
 export function createImportMerge({ ensureStateShape, createEmptyState, generateId }) {
-  function mergeImportedStateIntoCurrent(base, incoming) {
+  function mergeImportedStateIntoCurrent(base, incoming, singleArchivePredecessor) {
     const clone = value => JSON.parse(JSON.stringify(value));
     const rawBase = clone(base || createEmptyState());
     const rawIncoming = clone(incoming);
+    supplementMissingImportPeriods(rawIncoming, rawBase);
     const identityPreflight = validateMergeIdentityPreflight(rawBase, rawIncoming);
     const result = ensureStateShape(rawBase);
     incoming = ensureStateShape(rawIncoming);
@@ -119,21 +123,52 @@ export function createImportMerge({ ensureStateShape, createEmptyState, generate
     }));
 
     const courseIdMap = new Map();
+    // Die Archivleistungen behalten bis zur Reaktivierung die IDs ihres Snapshots.
+    function mapArchiveRestoreReferences(course) {
+      const previous = course.archiveRestoreReferences || {};
+      const categories = [];
+      for (const category of course.archiveSnapshot.categories) {
+        const prior = previous.categories?.find(entry => entry.id === category.id);
+        const sourceId = prior?.targetId || category.id;
+        const targetId = categoryIdMap.get(sourceId) || sourceId;
+        const subcategories = [];
+        for (const sub of category.subcategories || []) {
+          const sourceSubId = prior?.subcategories?.find(entry => entry.id === sub.id)?.targetId || sub.id;
+          const targetSubId = subcategoryIdMap.get(sourceId + '|' + sourceSubId) || sourceSubId;
+          if (targetSubId !== sub.id) subcategories.push({ id: sub.id, targetId: targetSubId });
+        }
+        if (category.id !== targetId || subcategories.length) categories.push({ id: category.id, targetId, subcategories });
+      }
+      const sourceTemplateId = previous.weightTemplateId || course.weightTemplateId;
+      const weightTemplateId = weightTemplateIdMap.get(sourceTemplateId) || sourceTemplateId;
+      return categories.length || weightTemplateId !== course.weightTemplateId ? { categories, weightTemplateId } : null;
+    }
     const coursesAddedByThisMerge = new Set();
     const coursesById = new Map((result.courses || []).map(c => [c.id, c]));
     const isExistingLocalArchive = course =>
       !!(course && course.archivedAt && !coursesAddedByThisMerge.has(course.id));
-    const courseMergeScope = c => [
-      c.schemaMode || '',
-      Number.isInteger(Number(c.schoolYearStartYear)) ? String(Number(c.schoolYearStartYear)) : '',
-      !!c.archivedAt
-    ].join('|');
+    const courseMergeScope = course => courseImportScope(result, course);
     const coursesByImportKey = new Map((result.courses || []).filter(c => c.importKey).map(c => [norm(c.importKey) + '|' + courseMergeScope(c), c]));
     for (const course of incoming.courses || []) {
       const plannedTargetId = identityPreflight.courseTargetIds.get(course.id);
       let target = coursesById.get(plannedTargetId) || null;
+      const isActiveUpperSec = !course.archivedAt && course.schemaMode === SCHEMA_MODES.UPPERSEC;
+      const mappedWrittenRole = isActiveUpperSec
+        ? categoryIdMap.get(resolveUpperSecWrittenCategoryId(incoming.settings, course)) || null : null;
       if (!target) {
         target = clone(course);
+        const sourceYear = effectiveCourseYear(incoming, course);
+        if (!target.schoolYearStartYear && sourceYear !== effectiveCourseYear(result, target)) {
+          target.schoolYearStartYear = sourceYear;
+        }
+        if (course.archivedAt) {
+          const restoreReferences = mapArchiveRestoreReferences(course);
+          if (restoreReferences) target.archiveRestoreReferences = restoreReferences;
+          else delete target.archiveRestoreReferences;
+        }
+        if (isActiveUpperSec && (course.categoryRoles || mappedWrittenRole !== resolveUpperSecWrittenCategoryId(result.settings))) {
+          target.categoryRoles = { upperSecWrittenCategoryId: mappedWrittenRole };
+        }
         target.carriedForwardFromCourseId = null;
         target.enrollments = [];
         target.termResults = [];
@@ -141,7 +176,8 @@ export function createImportMerge({ ensureStateShape, createEmptyState, generate
           ? (course.weightTemplateId || null)
           : (weightTemplateIdMap.get(course.weightTemplateId) || course.weightTemplateId || null);
         result.courses.push(target); coursesById.set(target.id, target); coursesAddedByThisMerge.add(target.id); summary.coursesAdded++;
-      } else if (JSON.stringify(target.upperSecContext || null) !== JSON.stringify(course.upperSecContext || null)) {
+      } else if (JSON.stringify(target.upperSecContext || null) !== JSON.stringify(course.upperSecContext || null) ||
+          (isActiveUpperSec && mappedWrittenRole !== resolveUpperSecWrittenCategoryId(result.settings, target))) {
         summary.upperSecContextConflicts++;
       }
       const incomingImportKey = course.importKey
@@ -227,6 +263,10 @@ export function createImportMerge({ ensureStateShape, createEmptyState, generate
 
     for (const incomingCourse of incoming.courses || []) {
       const targetCourse = coursesById.get(courseIdMap.get(incomingCourse.id));
+      if (singleArchivePredecessor && targetCourse?.archivedAt && coursesAddedByThisMerge.has(targetCourse.id) &&
+          coursesById.has(singleArchivePredecessor) && singleArchivePredecessor !== targetCourse.id) {
+        targetCourse.carriedForwardFromCourseId = singleArchivePredecessor;
+      }
       if (!targetCourse || !incomingCourse.carriedForwardFromCourseId) continue;
       const mappedPredecessorId = courseIdMap.get(incomingCourse.carriedForwardFromCourseId);
       if (!mappedPredecessorId) continue;
@@ -310,6 +350,10 @@ export function createImportMerge({ ensureStateShape, createEmptyState, generate
         ? (assessment.subcategoryId || null)
         : (assessment.subcategoryId ? (subcategoryIdMap.get(assessment.categoryId + '|' + assessment.subcategoryId) || assessment.subcategoryId) : null);
       const probe = { ...assessment, courseId: mappedCourseId, categoryId: mappedCategoryId, subcategoryId: mappedSubcategoryId };
+      if (!mappedCourse.archivedAt && probe.termAssignment === 'auto' && probe.date) {
+        const date = parseAssessmentDateValue(probe.date);
+        if (date) probe.term = resolveAssessmentTermFromDateValue(date, mappedCourse, result.settings);
+      }
       let target = assessmentsById.get(assessment.id);
       if (!target) {
         target = clone(probe);

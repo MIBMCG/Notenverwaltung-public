@@ -8,8 +8,8 @@ import { normalizeCourseSymbol } from './course-symbols.js';
 import { normalizeCourseCardHue } from './course-colors.js';
 import { parseAssessmentDateValue } from './terms.js';
 import {
-  normalizeArchiveHistory, normalizeArchiveRetentionUntil, normalizeArchiveNote,
-  normalizeUpperSecContext
+  courseImportScope, normalizeArchiveHistory, normalizeArchiveRetentionUntil, normalizeArchiveNote,
+  normalizeUpperSecContext, resolveUpperSecWrittenCategoryId
 } from './courses.js';
 
 function isRecord(value) {
@@ -269,11 +269,6 @@ function repairStateReferences(state) {
   }
 
   const importKeysByScope = new Set();
-  const courseScope = course => [
-    course.schemaMode || '',
-    Number.isInteger(Number(course.schoolYearStartYear)) ? String(Number(course.schoolYearStartYear)) : '',
-    !!course.archivedAt
-  ].join('|');
   for (const course of state.courses) {
     const predecessorId = typeof course.carriedForwardFromCourseId === 'string'
       ? course.carriedForwardFromCourseId.trim()
@@ -282,7 +277,7 @@ function repairStateReferences(state) {
       isUnambiguousReference(predecessorId, courses) ? predecessorId : null;
 
     const importKey = typeof course.importKey === 'string' ? course.importKey.trim() : '';
-    const scopedKey = importKey ? importKey.toLowerCase() + '|' + courseScope(course) : '';
+    const scopedKey = importKey ? importKey.toLowerCase() + '|' + courseImportScope(state, course) : '';
     if (!importKey || importKeysByScope.has(scopedKey)) course.importKey = null;
     else {
       course.importKey = importKey;
@@ -378,6 +373,7 @@ export function ensureStateShape(raw, now, termServices) {
   }
 
   if (!Array.isArray(raw.settings.weightTemplates)) raw.settings.weightTemplates = [];
+  raw.settings.categoryRoles = { upperSecWrittenCategoryId: resolveUpperSecWrittenCategoryId(raw.settings) };
   const legacyTemplateBaseName = "Altbestand Sek I (67/33) – Fachkonferenz prüfen";
   const occupiedTemplateNames = new Set(
     raw.settings.weightTemplates

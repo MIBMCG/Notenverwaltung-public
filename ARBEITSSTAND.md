@@ -1,5 +1,24 @@
 # Aktueller Arbeitsstand
 
+## 1.7.3 – 20.11.2026
+
+Die Korrekturen des November-Reviews schützen gespeicherte Bewertungen, vereinheitlichen Einzel- und Sammelberichte und beheben Zuordnungsfehler bei CSV-, Archiv- und Backup-Importen. [Änderungen und Umstieg](docs/releases/1.7.3.md).
+
+## Desktop-Übergabe nach A1 und A2 – 19.11.2026
+
+Arbeitsrepository ist `MIBMCG/Notenverwaltung-public`, aktueller Branch
+`codex/a2-halbjahreszuordnung`. A1 wurde mit `6923301` und A2 mit `3399b48`
+abgeschlossen. Beide Commits liegen im aktuellen Branch.
+Die [Desktop-Übergabe](docs/DESKTOP-START.md) enthält den Startprompt,
+die Checkout-Anleitung, den Prüfstand und den nächsten Auftrag A3.
+
+Die vollständige Suite auf dem korrigierten Quellstand bestand unter
+Windows/Node 26.12.1 seriell mit 1.525 Tests. Beide Fehlerfolgen wurden in
+Chrome 157 einschließlich Browserneustart und Entsperren geprüft.
+Der [Umsetzungsplan](docs/superpowers/plans/2026-11-18-review-korrekturen.md)
+enthält die Abnahmevermerke. Die folgenden Einträge dokumentieren die
+früheren Releasearbeiten.
+
 ## Version 1.7.2: Zeiträume aus Backups wiederherstellen – 04.11.2026
 
 Arbeitsordner: `Notenverwaltung-public`, Branch `codex/backup-period-settings`,

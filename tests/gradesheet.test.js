@@ -3,12 +3,13 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
+const path = require('node:path');
 const vm = require('node:vm');
 const { readSourceLines, extractFunction } = require('./harness/extract.js');
 const { loadModules, localStorageStub } = require('./harness/load.js');
 const { buildCourseState, addAssessment, setScore } = require('./harness/fixtures.js');
 const { loadEsmGraph } = require('./harness/load-esm-graph.js');
-const { loadDashboardUi, findByAttribute } = require('./harness/dashboard-app.js');
+const { loadDashboardUi, loadGeneratedDashboardUi, findByAttribute } = require('./harness/dashboard-app.js');
 
 function installCommitHarness(modules) {
   const lines = readSourceLines();
@@ -239,6 +240,7 @@ function createEditorDocumentStub() {
 
     focus() {}
     select() {}
+    showModal() { this.open = true; }
     closest(selector) {
       let current = this;
       const wantedTag = String(selector || '').toLowerCase();
@@ -1364,6 +1366,122 @@ test('half-year creation preserves an explicit next-term choice when no date is 
   assert.equal(created.date, null);
   assert.equal(created.term, '2026-H2');
   assert.equal(created.termAssignment, 'manual');
+});
+
+async function openGradesheetCourse(app, courseId) {
+  const card = findByAttribute(app.root, 'data-course-id', courseId);
+  assert.ok(card, 'der synthetische Kurs erscheint in der Übersicht');
+  const open = card.querySelectorAll('button').find(button => button.textContent.trim() === 'Noten öffnen');
+  assert.ok(open);
+  await open.dispatch('click');
+}
+
+async function createUndatedUpperSecAssessment() {
+  const dateImpl = fixedDateClass('2026-11-18');
+  const modules = loadModules({ dateImpl });
+  const ctx = buildCourseState(modules, { schemaMode: 'uppersec', studentCount: 1 });
+  configureQ1Q2Course(modules, ctx.course);
+  const app = await loadDashboardUi({ state: ctx.state, dateImpl });
+  await app.UiShell.init('app');
+  await openGradesheetCourse(app, ctx.course.id);
+
+  const controls = findAssessmentCreationControls(app.root);
+  assert.equal(controls.date.value, '');
+  assert.equal(controls.term.value, 'auto');
+  controls.category.value = ctx.categoryIds.written;
+  controls.title.value = 'Undatierte Leistung';
+  await controls.add.dispatch('click');
+
+  const studentId = ctx.students[0].id;
+  const row = app.root.querySelectorAll('tr').find(item =>
+    item.dataset.student === studentId && item.dataset.term === '2026-H1');
+  assert.ok(row);
+  const input = row.querySelector('.gradesheet-input');
+  assert.ok(input);
+  input.value = '12';
+  await input.dispatch('change');
+  const stored = await app.Storage.loadCurrentSessionState();
+  const assessment = stored.assessments.find(item => item.courseId === ctx.course.id);
+  assert.equal(assessment.date, null);
+  assert.equal(assessment.term, '2026-H1');
+  assert.equal(assessment.termAssignment, 'auto');
+  assert.equal(assessment.scores[studentId].valueRaw, '12');
+  return { app, courseId: ctx.course.id, studentId, assessmentId: assessment.id };
+}
+
+test('A2: undatierte 12 Punkte bleiben beim Öffnen im März im ersten Halbjahr', async () => {
+  const { app, courseId, studentId } = await createUndatedUpperSecAssessment();
+  await app.Storage.lockSession();
+  const reopened = await loadDashboardUi({
+    dateImpl: fixedDateClass('2027-03-01'), storage: app.storage,
+    lockManager: app.lockManager, useExistingStorage: true
+  });
+  await reopened.UiShell.init('app');
+  await openGradesheetCourse(reopened, courseId);
+
+  const gradeIn = term => reopened.root.querySelectorAll('tr').find(row =>
+    row.dataset.student === studentId && row.dataset.term === term)
+    ?.querySelector('.gradesheet-input')?.value ?? '';
+  assert.deepEqual([gradeIn('2026-H1'), gradeIn('2026-H2')], ['12', ''],
+    'die undatierte Bewertung gehört auch im März in Q1');
+});
+
+async function openAssessmentEditDialog(app, title) {
+  const edit = findByAttribute(app.root, 'aria-label', `Leistung „${title}“ bearbeiten`);
+  assert.ok(edit);
+  await edit.dispatch('click', { stopPropagation() {} });
+  const heading = app.document.body.querySelectorAll('h3').find(item => item.textContent === 'Leistung bearbeiten');
+  assert.ok(heading);
+  return heading.parentNode;
+}
+
+async function saveAssessmentEdit(dialog) {
+  // The document stub does not coerce number input values to strings as browsers do.
+  const weight = dialog.querySelectorAll('input').find(item => item.type === 'number');
+  weight.value = String(weight.value);
+  const save = dialog.querySelectorAll('button').find(item => item.textContent === 'Speichern');
+  await save.dispatch('click');
+}
+
+test('A2: reine Titeländerung bewahrt die Zuordnung einer undatierten Leistung zum nächsten Halbjahr', async () => {
+  const { app, assessmentId } = await createUndatedUpperSecAssessment();
+  // The editor permits the current and upcoming terms. Open it with Q1 upcoming.
+  app.sandbox.Date = fixedDateClass('2026-07-15');
+  const dialog = await openAssessmentEditDialog(app, 'Undatierte Leistung');
+  const title = dialog.querySelectorAll('input').find(item => item.type === 'text');
+  title.value = 'Geänderter Titel';
+  await saveAssessmentEdit(dialog);
+
+  const stored = await app.Storage.loadCurrentSessionState();
+  const assessment = stored.assessments.find(item => item.id === assessmentId);
+  assert.equal(assessment.title, 'Geänderter Titel');
+  assert.equal(assessment.term, '2026-H1');
+  assert.equal(assessment.termAssignment, 'auto');
+});
+
+test('A2: ein neues Datum verschiebt die automatische Zuordnung und Löschen des Datums bewahrt sie', async () => {
+  const { app, assessmentId } = await createUndatedUpperSecAssessment();
+  let dialog = await openAssessmentEditDialog(app, 'Undatierte Leistung');
+  let date = dialog.querySelectorAll('input').find(item => item.type === 'date');
+  date.value = '2027-03-01';
+  await date.dispatch('change');
+  await saveAssessmentEdit(dialog);
+
+  let stored = await app.Storage.loadCurrentSessionState();
+  const dated = stored.assessments.find(item => item.id === assessmentId);
+  assert.equal(dated.date, '2027-03-01');
+  assert.equal(dated.term, '2026-H2');
+  dialog = await openAssessmentEditDialog(app, 'Undatierte Leistung');
+  date = dialog.querySelectorAll('input').find(item => item.type === 'date');
+  date.value = '';
+  await date.dispatch('change');
+  await saveAssessmentEdit(dialog);
+
+  stored = await app.Storage.loadCurrentSessionState();
+  const assessment = stored.assessments.find(item => item.id === assessmentId);
+  assert.equal(assessment.date, null);
+  assert.equal(assessment.term, '2026-H2');
+  assert.equal(assessment.termAssignment, 'auto');
 });
 
 test('completed creation resets the form, then a re-entered March date saves a second visible Q2 assessment', async () => {
@@ -2551,6 +2669,75 @@ function renderSplitTermKeyboardFixture(column) {
   return { modules, ctx, assessment: assessments[column], input };
 }
 
+test('D1: Tab and Shift+Tab leave focus movement to the browser in the combined table, split table and term result', async () => {
+  const combined = renderMainScoreInputWithSaveSpy('Tab');
+  const split = renderSplitTermKeyboardFixture(0);
+  const result = renderTermResultEditorWithTransition();
+  for (const [fixture, value] of [[combined, '1'], [split, '11'], [result, '11']]) {
+    let saves = 0;
+    fixture.modules.Storage.saveState = async () => { saves += 1; };
+    for (const shiftKey of [true, false]) {
+      let prevented = false;
+      fixture.input.value = shiftKey ? value : '2';
+      await fixture.input.dispatch('keydown', {
+        key: 'Tab', shiftKey, preventDefault() { prevented = true; }
+      });
+      assert.equal(prevented, false, 'Tab muss den sichtbaren Status oder das nächste native Fokusziel erreichen');
+      await fixture.input.dispatch('change');
+    }
+    assert.equal(saves, 2, 'pro Änderung darf nur einmal gespeichert werden');
+  }
+});
+
+test('D1: Halbjahresköpfe sind native Schaltflächen und veröffentlichen ihren Klappzustand', async () => {
+  const fixture = await createCollapsibleHalfYearFixture();
+  const current = findTermSection(fixture.container, 'Halbjahr: 26/27 Q1');
+  const archive = collectElements(fixture.container, element => element.classList?.contains('prev-term'))[0];
+  for (const section of [current, archive]) {
+    const [header, content] = section.children;
+    assert.equal(header.tagName, 'button');
+    assert.equal(header.attributes.get('aria-expanded'), String(!content.classList.contains('hidden')));
+    await header.dispatch('click');
+    assert.equal(header.attributes.get('aria-expanded'), String(!content.classList.contains('hidden')));
+  }
+});
+
+test('D2: Leistungsdialog benennt und fokussiert das Formular und kehrt nach Escape zur Auslösung zurück', async () => {
+  const { document, modules, render } = loadGradesheetRenderer();
+  const ctx = buildCourseState(modules, { studentCount: 1 });
+  const assessment = addAssessment(modules, ctx, {
+    categoryId: ctx.categoryIds.written, term: '2025-H2', title: 'Unverändert lassen'
+  });
+  Object.assign(modules.sandbox, { state: ctx.state, currentCourseId: ctx.course.id });
+  const container = document.createElement('main');
+  document.body.appendChild(container);
+  render(container);
+  const trigger = collectElements(container, element => element.title === 'Leistung bearbeiten')[0];
+  trigger.focus = () => { document.activeElement = trigger; };
+  const createElement = document.createElement;
+  document.createElement = tag => {
+    const element = createElement(tag);
+    element.focus = () => { document.activeElement = element; };
+    return element;
+  };
+
+  await trigger.dispatch('click');
+  const heading = collectElements(document.body, element =>
+    element.tagName === 'h3' && element.textContent === 'Leistung bearbeiten')[0];
+  const dialog = heading.parentNode;
+  assert.equal(dialog.tagName, 'dialog');
+  assert.equal(dialog.open, true);
+  assert.equal(dialog.attributes.get('aria-labelledby'), heading.id);
+  const title = collectElements(dialog, element => element.tagName === 'input' && element.type === 'text')[0];
+  assert.equal(document.activeElement, title);
+  title.value = 'Ungespeicherter Entwurf';
+
+  await dialog.dispatch('cancel');
+  assert.equal(dialog.parentNode, null);
+  assert.equal(document.activeElement, trigger);
+  assert.equal(confirmedAssessment(modules, assessment.id).title, 'Unverändert lassen');
+});
+
 function createDashboardTransitionRecorder() {
   const editors = [];
   return {
@@ -2565,9 +2752,9 @@ function createDashboardTransitionRecorder() {
   };
 }
 
-function renderMainScoreEditorWithTransition() {
+function renderMainScoreEditorWithTransition({ studentCount = 1 } = {}) {
   const { modules, document, render } = loadGradesheetRenderer();
-  const ctx = buildCourseState(modules, { studentCount: 1 });
+  const ctx = buildCourseState(modules, { studentCount });
   const assessment = addAssessment(modules, ctx, {
     categoryId: ctx.categoryIds.written,
     title: 'Abschlusseditor',
@@ -2579,14 +2766,267 @@ function renderMainScoreEditorWithTransition() {
   const container = document.createElement('main');
   document.body.appendChild(container);
   render(container, transition);
-  const input = collectElements(container, element =>
+  const [input, nextInput] = collectElements(container, element =>
     element.className === 'gradesheet-input' && element.dataset.gradesheetTerm === 'all'
-  )[0];
+  );
+  input.blur = () => {};
   const statusSelect = collectElements(input.closest('td'), element =>
     element.className === 'gradesheet-status'
   )[0];
-  return { modules, ctx, assessment, input, statusSelect, transition };
+  return { modules, ctx, assessment, input, nextInput, statusSelect, transition };
 }
+
+test('A1: Escape behält die gespeicherte Note beim Ansichtswechsel und nach dem Neustart', async () => {
+  const dateImpl = fixedDateClass('2026-03-15');
+  const modules = loadModules({ dateImpl });
+  const ctx = buildCourseState(modules, { studentCount: 1 });
+  const studentId = ctx.students[0].id;
+  const assessment = addAssessment(modules, ctx, {
+    categoryId: ctx.categoryIds.written,
+    title: 'Synthetische Notenkorrektur',
+    date: '2026-03-10',
+    term: '2025-H2'
+  });
+  setScore(modules, assessment, studentId, '5');
+  const artifact = fs.readFileSync(path.join(__dirname, '..', 'Notenverwaltung.html'), 'utf8');
+
+  async function startApp(options) {
+    const app = await loadGeneratedDashboardUi({ artifact, ...options });
+    app.sandbox.Date = dateImpl;
+    await app.start();
+    return app;
+  }
+
+  async function openGradeEditor(app) {
+    const card = findByAttribute(app.root, 'data-course-id', ctx.course.id);
+    assert.ok(card, 'der synthetische Kurs erscheint in der Übersicht');
+    const open = card.querySelectorAll('button').find(button => button.textContent.trim() === 'Noten öffnen');
+    assert.ok(open);
+    await open.dispatch('click');
+    const row = app.root.querySelectorAll('tr').find(item =>
+      item.dataset.student === studentId && item.dataset.term === 'all');
+    assert.ok(row, 'die kombinierte Sek-I-Zeile ist sichtbar');
+    const input = row.querySelector('.gradesheet-input');
+    assert.ok(input);
+    return input;
+  }
+
+  const app = await startApp({ state: ctx.state });
+  const input = await openGradeEditor(app);
+  assert.equal(input.value, '5');
+  input.value = '1';
+  await input.dispatch('change');
+  const confirmed = await app.Storage.loadCurrentSessionState();
+  assert.equal(confirmed.assessments.find(item => item.id === assessment.id).scores[studentId].valueRaw, '1');
+
+  input.focus();
+  input.blur = () => { app.document.activeElement = null; };
+  input.value = '3';
+  await input.dispatch('input');
+  await input.dispatch('keydown', { key: 'Escape' });
+  const valueAfterEscape = input.value;
+  const overviewButton = () => app.document.getElementById('main-navigation').querySelectorAll('button')
+    .find(button => button.textContent.trim() === 'Übersicht');
+  await overviewButton().dispatch('click');
+  for (let attempt = 0; attempt < 200 && overviewButton().getAttribute('aria-current') !== 'page'; attempt++) {
+    await new Promise(resolve => setTimeout(resolve, 5));
+  }
+  assert.equal(overviewButton().getAttribute('aria-current'), 'page');
+  const reopenedValue = (await openGradeEditor(app)).value;
+
+  await app.Storage.lockSession();
+  const restarted = await startApp({ storage: app.storage, lockManager: app.lockManager, useExistingStorage: true });
+  const restartedValue = (await openGradeEditor(restarted)).value;
+  assert.equal(restartedValue, '1', 'der Ansichtswechsel darf die bestätigte 1 nicht im Speicher überschreiben');
+  assert.equal(reopenedValue, '1');
+  assert.equal(valueAfterEscape, '1');
+});
+
+test('A1: Escape während eines Statuswechsels folgt dem bestätigten Eintrag', async () => {
+  const fixture = renderMainScoreEditorWithTransition();
+  const { input, statusSelect, modules, transition } = fixture;
+  const save = deferred();
+  modules.Storage.saveState = () => save.promise;
+  input.value = '1';
+  statusSelect.value = 'missing';
+  const pendingChange = statusSelect.dispatch('change');
+  await new Promise(resolve => setImmediate(resolve));
+
+  input.value = '3';
+  await input.dispatch('input');
+  await input.dispatch('keydown', { key: 'Escape' });
+  const beforeConfirmation = [input.value, statusSelect.value];
+  save.resolve();
+  await pendingChange;
+
+  assert.deepEqual(beforeConfirmation, ['5', 'valid']);
+  assert.deepEqual([input.value, statusSelect.value], ['1', 'missing']);
+  assert.equal(await transition.editors[0].finish(), true);
+  assert.equal(confirmedScore(fixture).valueRaw, '1');
+  assert.equal(confirmedScore(fixture).status, 'missing');
+});
+
+test('A1: Ein fehlgeschlagener Statuswechsel überschreibt nach Escape keinen neuen Entwurf', async () => {
+  const fixture = renderMainScoreEditorWithTransition();
+  const { input, statusSelect, modules, transition } = fixture;
+  modules.Storage.saveState = async () => {};
+  input.value = '1';
+  await input.dispatch('change');
+
+  const save = deferred();
+  modules.Storage.saveState = () => save.promise;
+  statusSelect.value = 'missing';
+  const pendingChange = statusSelect.dispatch('change');
+  await new Promise(resolve => setImmediate(resolve));
+  input.value = '3';
+  await input.dispatch('input');
+  await input.dispatch('keydown', { key: 'Escape' });
+  const beforeNewDraft = [input.value, statusSelect.value];
+  input.value = '2';
+  await input.dispatch('input');
+  save.reject(new Error('Synthetischer Speicherfehler'));
+  await pendingChange;
+
+  assert.deepEqual(beforeNewDraft, ['1', 'valid']);
+  assert.deepEqual([input.value, statusSelect.value], ['2', 'valid']);
+  assert.equal(confirmedScore(fixture).valueRaw, '1');
+  assert.equal(confirmedScore(fixture).status, 'valid');
+  modules.Storage.saveState = async () => {};
+  assert.equal(await transition.editors[0].finish(), true);
+  assert.equal(confirmedScore(fixture).valueRaw, '2');
+});
+
+test('A1: Eine erneut eingegebene Note erhält die Darstellung des bestätigten Werts', async () => {
+  const fixture = renderMainScoreEditorWithTransition();
+  const { input, modules } = fixture;
+  const averages = input.closest('tr').querySelectorAll('td.gradesheet-avg');
+  assert.ok(averages.some(cell => cell.textContent === '5.00'));
+  assert.equal(input.style.backgroundColor, 'var(--grade-bg-critical)');
+  const save = deferred();
+  modules.Storage.saveState = () => save.promise;
+  input.value = '1';
+  const pendingChange = input.dispatch('change');
+  await new Promise(resolve => setImmediate(resolve));
+
+  input.value = '3';
+  await input.dispatch('input');
+  await input.dispatch('keydown', { key: 'Escape' });
+  input.focus();
+  input.value = '1';
+  await input.dispatch('input');
+  save.resolve();
+  await pendingChange;
+
+  assert.equal(confirmedScore(fixture).valueRaw, '1');
+  assert.equal(input.value, '1');
+  assert.ok(averages.some(cell => cell.textContent === '1.00'), 'der sichtbare Durchschnitt muss die bestätigte Note enthalten');
+  assert.equal(input.style.backgroundColor, 'var(--grade-bg-best)');
+});
+
+test('A1: Ein beim Verlassen nach Escape beobachteter Speicherfehler bleibt sichtbar', async () => {
+  const fixture = renderMainScoreEditorWithTransition();
+  const { input, modules, transition } = fixture;
+  const save = deferred();
+  let saveCalls = 0;
+  modules.Storage.saveState = () => { saveCalls += 1; return save.promise; };
+  input.value = '1';
+  const pendingChange = input.dispatch('change');
+  await new Promise(resolve => setImmediate(resolve));
+  input.value = '3';
+  await input.dispatch('input');
+  await input.dispatch('keydown', { key: 'Escape' });
+  const leaving = transition.editors[0].finish();
+  save.reject(new Error('Synthetischer Speicherfehler'));
+  await pendingChange;
+
+  assert.equal(await leaving, false);
+  assert.equal(saveCalls, 1);
+  assert.equal(confirmedScore(fixture).valueRaw, '5');
+  assert.equal(input.value, '5');
+  const error = input.closest('td').querySelectorAll('.gradesheet-input-error')[0];
+  assert.equal(error.style.display, 'block');
+  assert.match(error.textContent, /Speichern fehlgeschlagen/);
+  assert.equal(await transition.editors[0].finish(), true, 'ein erneuter bewusster Wechsel darf weitergehen');
+});
+
+test('A1: Escape nach einem sichtbaren Speicherfehler erlaubt den Ansichtswechsel', async () => {
+  const fixture = renderMainScoreEditorWithTransition();
+  const { input, modules, transition } = fixture;
+  let saveCalls = 0;
+  modules.Storage.saveState = async () => {
+    saveCalls += 1;
+    throw new Error('Synthetischer Speicherfehler');
+  };
+  input.value = '1';
+  await input.dispatch('change');
+  const error = input.closest('td').querySelectorAll('.gradesheet-input-error')[0];
+  assert.equal(error.style.display, 'block');
+
+  await input.dispatch('keydown', { key: 'Escape' });
+
+  assert.equal(error.style.display, 'none');
+  assert.equal(input.value, '5');
+  assert.equal(await transition.editors[0].finish(), true);
+  assert.equal(confirmedScore(fixture).valueRaw, '5');
+  assert.equal(saveCalls, 1);
+});
+
+test('A1: Speichern mit Enter lässt nach Escape die neue Eingabe und den Fokus bestehen', async () => {
+  const fixture = renderMainScoreEditorWithTransition({ studentCount: 2 });
+  const { input, nextInput, modules } = fixture;
+  const scheduled = [];
+  modules.sandbox.setTimeout = callback => { scheduled.push(callback); };
+  let focusMoves = 0;
+  nextInput.focus = () => { focusMoves += 1; };
+  const save = deferred();
+  modules.Storage.saveState = () => save.promise;
+  input.value = '1';
+  const pendingEnter = input.dispatch('keydown', { key: 'Enter' });
+  await new Promise(resolve => setImmediate(resolve));
+
+  input.value = '3';
+  await input.dispatch('input');
+  await input.dispatch('keydown', { key: 'Escape' });
+  input.focus();
+  input.value = '2';
+  await input.dispatch('input');
+  save.resolve();
+  await pendingEnter;
+  for (const callback of scheduled) callback();
+  const valueAfterEarlierSave = input.value;
+  await input.dispatch('change');
+
+  assert.equal(confirmedScore(fixture).valueRaw, '2', 'der alte Tastendruck darf den späteren change nicht unterdrücken');
+  assert.equal(valueAfterEarlierSave, '2');
+  assert.equal(focusMoves, 0, 'der alte Tastendruck darf den Fokus nicht nachträglich verschieben');
+});
+
+test('A1: Enter verschiebt den Fokus nach einem zwischenzeitlichen Feldwechsel nicht erneut', async () => {
+  const fixture = renderMainScoreEditorWithTransition({ studentCount: 3 });
+  const { input, nextInput, modules } = fixture;
+  const { document } = modules.sandbox;
+  const otherInput = document.querySelectorAll('.gradesheet-input').find(element =>
+    element.dataset.gradesheetTerm === 'all' && element !== input && element !== nextInput);
+  assert.ok(otherInput);
+  nextInput.focus = () => { document.activeElement = nextInput; };
+  otherInput.focus = () => { document.activeElement = otherInput; };
+  document.activeElement = input;
+  const scheduled = [];
+  modules.sandbox.setTimeout = callback => { scheduled.push(callback); };
+  const save = deferred();
+  modules.Storage.saveState = () => save.promise;
+  input.value = '1';
+  const pendingEnter = input.dispatch('keydown', { key: 'Enter' });
+  await new Promise(resolve => setImmediate(resolve));
+  otherInput.focus();
+  save.resolve();
+  await pendingEnter;
+  for (const callback of scheduled) callback();
+
+  assert.equal(confirmedScore(fixture).valueRaw, '1');
+  assert.equal(document.activeElement?.dataset.gradesheetRow, otherInput.dataset.gradesheetRow,
+    'der Fokus bleibt bei dem inzwischen gewählten Feld');
+});
 
 test('combined Sek-I editor explains invalid values without saving them', async () => {
   const fixture = renderMainScoreEditorWithTransition();

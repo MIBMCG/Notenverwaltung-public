@@ -221,6 +221,41 @@ test('freie Geburtstagstexte bleiben beim Bearbeiten erhalten und lassen sich be
   assert.equal(storedEmmy.birthDate, null, 'bewusstes Leeren bleibt als null gespeichert');
 });
 
+test('D3: der Inline-Editor lehnt zwei leere Namensbestandteile ab und speichert einen einzelnen Namen', async () => {
+  const { app, state, emmy } = await studentsApp();
+  const findRow = () => findByAttribute(app.root, 'data-student-id', emmy.id);
+  const readEnrollments = candidate => candidate.courses.flatMap(course => course.enrollments)
+    .filter(enrollment => enrollment.studentId === emmy.id);
+  const originalEnrollments = JSON.stringify(readEnrollments(state));
+  const alerts = [];
+  app.sandbox.window.alert = message => alerts.push(message);
+  const row = findRow();
+  await findByText(row, 'Edit').dispatch('click');
+  const lastName = findByAttribute(row, 'id', 'students-edit-students-emmy-last-name');
+  const firstName = findByAttribute(row, 'id', 'students-edit-students-emmy-first-name');
+  const save = findByText(row, 'Speichern');
+
+  for (const blank of ['', '  \t ']) {
+    lastName.value = firstName.value = blank;
+    await save.dispatch('click');
+    const stored = await app.Storage.loadState();
+    const student = stored.students.find(candidate => candidate.id === emmy.id);
+    assert.equal(student.lastName, 'Noether');
+    assert.equal(student.firstName, 'Emmy');
+    assert.equal(JSON.stringify(readEnrollments(stored)), originalEnrollments);
+  }
+  assert.deepEqual(alerts, Array(2).fill('Bitte mindestens Nachname oder Vorname angeben.'));
+
+  firstName.value = ' Emmy ';
+  await save.dispatch('click');
+  const stored = await app.Storage.loadState();
+  const student = stored.students.find(candidate => candidate.id === emmy.id);
+  assert.equal(student.lastName, '');
+  assert.equal(student.firstName, 'Emmy');
+  assert.equal(JSON.stringify(readEnrollments(stored)), originalEnrollments);
+  assert.match(findRow().textContent, /Emmy/);
+});
+
 test('die Schüleranlage speichert ein frei eingegebenes Geburtsdatum unverändert', async () => {
   const { app } = await studentsApp();
   const createButton = findByText(app.root, 'Schüler anlegen');

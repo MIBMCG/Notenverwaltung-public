@@ -20,6 +20,40 @@ function assertRejectedWithoutMutation(validator, candidate, expected) {
   assert.equal(JSON.stringify(candidate), JSON.stringify(before));
 }
 
+test('B3: raw import and merge use the effective year of each external course key', () => {
+  const m = loadModules();
+  const D = m.DomainModel;
+  const base = D.createEmptyState();
+  base.settings.halfYearSettings.seckI.schoolYearStartYear = 2026;
+  const current = D.createCourse({id: 'current', name: 'Lokal', importKey: 'BIO', schoolYearStartYear: 2026});
+  base.courses.push(current);
+  const incoming = cloned(base);
+  incoming.courses = [D.createCourse({id: 'foreign', name: 'Import', importKey: 'bio'})];
+  const duplicates = cloned(base);
+  duplicates.courses.push(incoming.courses[0]);
+  assertRejectedWithoutMutation(loadValidators().validateImportedState, duplicates, /doppelte externe Kurskennung/);
+  assert.equal(m.ImportMerge.mergeImportedStateIntoCurrent(base, incoming).state.courses.length, 1);
+  incoming.settings.halfYearSettings.seckI.schoolYearStartYear = 2024;
+  const result = m.ImportMerge.mergeImportedStateIntoCurrent(base, incoming).state;
+  const imported = result.courses.find(course => course.id === 'foreign');
+  assert.equal(imported.schoolYearStartYear, 2024);
+  assert.equal(imported.importKey, 'bio');
+  assert.equal(m.ImportMerge.mergeImportedStateIntoCurrent(result, incoming).state.courses.length, 2);
+});
+
+test('B3: absent legacy course year and absent period settings inherit target year on merge', () => {
+  const m = loadModules();
+  const base = m.DomainModel.createEmptyState();
+  base.settings.halfYearSettings.seckI.schoolYearStartYear = 2024;
+  base.courses.push(m.DomainModel.createCourse({ id: 'shared', name: 'Biologie', importKey: 'BIO' }));
+  const historic = cloned(base);
+  delete historic.settings.halfYearSettings;
+  delete historic.courses[0].schoolYearStartYear;
+  const merged = m.ImportMerge.mergeImportedStateIntoCurrent(base, historic);
+  assert.equal(merged.state.courses.length, 1);
+  assert.equal(merged.state.courses[0].importKey, 'BIO');
+});
+
 test('shared import validators accept a valid empty state without changing it', () => {
   const validators = loadValidators();
   const state = loadModules().DomainModel.createEmptyState();
@@ -29,6 +63,28 @@ test('shared import validators accept a valid empty state without changing it', 
   assert.equal(validators.validateRawTermResults(state), true);
   assert.equal(validators.validateRawUpperSecContexts(state), true);
   assert.equal(JSON.stringify(state), before);
+});
+
+test('C1: raw import rejects a dangling active or global written category before migration', () => {
+  const { validateRawUpperSecContexts } = loadValidators();
+  for (const scope of ['global', 'course']) {
+    const ctx = buildCourseState(loadModules(), { schemaMode: 'uppersec' });
+    const owner = scope === 'global' ? ctx.state.settings : ctx.course;
+    owner.categoryRoles = { upperSecWrittenCategoryId: 'missing-category' };
+    assertRejectedWithoutMutation(validateRawUpperSecContexts, ctx.state, /unbekannte Klausurkategorie/);
+  }
+});
+
+test('archive restore mappings must refer to unique historical categories and subcategories', () => {
+  const { validateImportedState } = loadValidators();
+  const modules = loadModules();
+  const ctx = buildCourseState(modules);
+  modules.DomainModel.archiveCourse(ctx.state, ctx.course.id, 'manual', {});
+  const valid = { id: ctx.categoryIds.written, targetId: ctx.categoryIds.other, subcategories: [] };
+  for (const categories of [[{ ...valid, id: 'absent' }], [valid, valid], [{ ...valid, subcategories: [{ id: 'absent', targetId: 'new' }] }]]) {
+    ctx.course.archiveRestoreReferences = { categories };
+    assertRejectedWithoutMutation(validateImportedState, ctx.state, /Reaktivierung/);
+  }
 });
 
 test('shared full-state validator rejects duplicate students and assessments with unknown courses without mutation', () => {

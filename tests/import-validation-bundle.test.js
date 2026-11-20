@@ -45,6 +45,7 @@ function loadArtifactCommit({ htmlLines = readSourceLines(htmlPath), initialStat
   const modules = loadModules();
   const validations = [
     extractArtifactConstants(htmlLines),
+    ...['effectiveCourseYear', 'courseYearScope', 'courseImportScope'].map(name => extractFunction(htmlLines, name)),
     validatorNames.map(name => extractFunction(htmlLines, name)).join('\n\n')
   ].join('\n\n');
   vm.runInContext(validations, modules.sandbox, { filename: 'import-validation-from-artifact.js' });
@@ -76,6 +77,9 @@ function loadArtifactCommit({ htmlLines = readSourceLines(htmlPath), initialStat
     '  function mergeImportedStateIntoCurrent() { throw new Error("merge must not run in replace tests"); }',
     '  function render() { globalThis.__renderCalls = (globalThis.__renderCalls || 0) + 1; }',
     extractFunction(htmlLines, 'createSerializedTransactionQueue'),
+    extractFunction(htmlLines, 'prepareSingleArchiveImport'),
+    extractFunction(htmlLines, 'supplementMissingImportPeriods'),
+    extractFunction(htmlLines, 'applyStoredSessionTimeout'),
     '  const enqueueStatePersistenceTransaction = createSerializedTransactionQueue();',
     extractFunction(htmlLines, 'invalidateUiStateEpoch'),
     extractFunction(htmlLines, 'createStateCommitAbortedError'),
@@ -185,8 +189,10 @@ test('artifact JSON commit uses the validator embedded in the HTML artifact', as
 
 test('application imports the shared validators while the generated HTML retains one executable copy of each', () => {
   const source = readSourceLines().join('\n');
-  assert.match(source, /import \{ validateImportedState, validateRawTermResults, validateRawUpperSecContexts \} from '\.\.\/transfer\/import-validation\.js';/);
+  const importedValidators = source.match(/import \{([^{}]+)\} from '\.\.\/transfer\/import-validation\.js';/);
+  assert.ok(importedValidators);
   for (const name of validatorNames) {
+    assert.ok(importedValidators[1].split(',').map(item => item.trim()).includes(name), name);
     assert.equal((source.match(new RegExp(`function ${name}\\s*\\(`, 'g')) || []).length, 0, name);
     assert.equal(readSourceLines(htmlPath).filter(line => new RegExp(`function ${name}\\s*\\(`).test(line)).length, 1, name);
   }

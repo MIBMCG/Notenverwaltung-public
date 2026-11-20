@@ -1,11 +1,14 @@
 # Einstieg in die Notenverwaltung
 
+## Entwicklung am Desktop fortsetzen
+
+Der [Maßnahmenplan](docs/superpowers/plans/2026-11-18-review-korrekturen.md) dokumentiert die abgeschlossenen Korrekturen und die Browserabnahme.
+
 ## Anwendung nutzen
 
-Version **1.7.2 vom 04.11.2026** stellt beim vollständigen Backup-Import auch
-die gesicherten Halbjahres-/Semestergrenzen und Bezeichnungen wieder her.
-Das Anwendungspaket findest du auf der [Release-Seite für 1.7.2](https://github.com/MIBMCG/Notenverwaltung-public/releases/tag/v1.7.2).
-Die [Release-Hinweise](docs/releases/1.7.2.md) erklären den Umstieg;
+Version **1.7.3 vom 20.11.2026** korrigiert Noteneingabe, Q4-Berechnung, Berichte und Importe.
+Das Anwendungspaket findest du auf der [Release-Seite für 1.7.3](https://github.com/MIBMCG/Notenverwaltung-public/releases/tag/v1.7.3).
+Die [Release-Hinweise](docs/releases/1.7.3.md) erklären den Umstieg;
 der technische Prüfstand und die Grenzen stehen in der [Abnahme](docs/ABNAHME.md).
 
 Das vollständige Anwendungspaket in einen festen Ordner entpacken und

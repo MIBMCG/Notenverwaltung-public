@@ -519,6 +519,8 @@ test('M31: Sek-II archive snapshots freeze context, enrollment flags, template a
 
 test('M31 final re-review: ambiguous percentage profiles freeze no arbitrary written category role', () => {
   const state = DomainModel.createEmptyState();
+  delete state.settings.categoryRoles;
+  state.settings.categories.forEach(category => { category.name = 'Individuell'; });
   const [firstCategory, secondCategory, thirdCategory] = state.settings.categories;
   state.settings.weightTemplates = [
     {

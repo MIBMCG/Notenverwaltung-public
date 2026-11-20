@@ -15,15 +15,11 @@ import { createInitialAssessmentsForCourse } from '../domain/initial-assessments
 import { getSettingsForCourse } from '../domain/course-settings.js';
 import { resolveAssessmentTermFromDateValue } from '../domain/terms.js';
 
-function updateStudentCreatedInCurrentCsv(candidate, createdStudentIds, studentId, values) {
-  if (!createdStudentIds || !createdStudentIds.has(studentId)) return null;
-  const student = (candidate.students || []).find(item => item.id === studentId);
-  if (!student) return null;
+function completeCreatedStudent(student, values) {
   if (!student.lastName && values.lastName) student.lastName = values.lastName;
   if (!student.firstName && values.firstName) student.firstName = values.firstName;
   if (!student.birthDate && values.birthDate) student.birthDate = values.birthDate;
   if (!student.homeClass && values.homeClass) student.homeClass = values.homeClass;
-  return student;
 }
 
 export function createCsvImportOrchestrator({ DomainModel, now = () => new Date() }) {
@@ -103,11 +99,43 @@ export function createCsvImportOrchestrator({ DomainModel, now = () => new Date(
       csvStudentIdentities.set(csvStudentKey, consolidated);
     }
 
-    const studentIndex = new Map();
-    for (const student of importCandidate.students) {
-      const key = normLower(student.lastName) + '|' + normLower(student.firstName) + '|' + norm(student.birthDate);
-      if (!studentIndex.has(key)) studentIndex.set(key, student.id);
-      else if (studentIndex.get(key) !== student.id) studentIndex.set(key, null);
+    // Reserve existing IDs before considering names so row order cannot assign
+    // the same unkeyed local person to two different external identities.
+    const initialStudents = importCandidate.students.slice();
+    const studentsById = new Map(initialStudents.map(student => [student.id, student]));
+    const legacyStudents = initialStudents.filter(student => !student.importKey && !csvStudentIdentities.has(student.id));
+    const identityKey = student => JSON.stringify([normLower(student.lastName), normLower(student.firstName), norm(student.birthDate)]);
+    const collect = (map, key, item) => {
+      if (!map.has(key)) map.set(key, []);
+      map.get(key).push(item);
+    };
+    const byExplicitId = new Map();
+    const legacyExact = new Map();
+    const csvKeysByIdentity = new Map();
+    const peopleByIdentity = new Map();
+    for (const student of initialStudents) {
+      collect(byExplicitId, student.id, student);
+      if (student.importKey && student.importKey !== student.id) collect(byExplicitId, student.importKey, student);
+      collect(peopleByIdentity, identityKey(student), student);
+    }
+    for (const student of legacyStudents) collect(legacyExact, identityKey(student), student);
+    const matchesByKey = new Map();
+    const claimedIds = new Map();
+    for (const [key, identity] of csvStudentIdentities) {
+      const signature = identityKey(identity);
+      collect(csvKeysByIdentity, signature, key);
+      const exact = byExplicitId.get(key) || legacyExact.get(signature);
+      const match = exact
+        ? { studentId: exact[0].id, ambiguous: exact.length > 1 }
+        : findCompatibleCsvStudent(legacyStudents, identity);
+      matchesByKey.set(key, match);
+      if (!match.studentId) continue;
+      const previous = claimedIds.get(match.studentId);
+      if (previous) {
+        previous.ambiguous = true;
+        match.ambiguous = true;
+      }
+      claimedIds.set(match.studentId, match);
     }
 
     const explicitCourseIndex = new Map();
@@ -128,10 +156,10 @@ export function createCsvImportOrchestrator({ DomainModel, now = () => new Date(
     let createdStudents = 0;
     let createdEnrollments = 0;
     const createdStudentIds = new Set();
+    const createdWithoutId = [];
     const createdEnrollmentKeys = new Set();
     const csvCourseContexts = new Map();
     const csvEnrollmentWrittenFlags = new Map();
-    const seenStudentSKey = new Map();
 
     for (const row of dataLines) {
       const lineNum = row.line;
@@ -255,7 +283,7 @@ export function createCsvImportOrchestrator({ DomainModel, now = () => new Date(
         studentId = csvStudentMap.get(csvStudentKey);
         if (!lastName || !firstName) errors.push({ line: lineNum, issues: ['Vorname oder Nachname fehlt.'] });
         pendingCreatedStudentUpdate = { lastName, firstName, birthDate: birthDate || '', homeClass };
-        const mappedStudent = importCandidate.students.find(item => item.id === studentId);
+        const mappedStudent = studentsById.get(studentId);
         const identityConflicts = validateCsvStudentIdentity(mappedStudent, pendingCreatedStudentUpdate);
         if (identityConflicts.length > 0) {
           errors.push({
@@ -271,25 +299,21 @@ export function createCsvImportOrchestrator({ DomainModel, now = () => new Date(
         const matchingLastName = consolidatedIdentity.lastName || lastName;
         const matchingFirstName = consolidatedIdentity.firstName || firstName;
         const matchingBirthDate = consolidatedIdentity.birthDate || birthDate || '';
-        const studentKey = normLower(matchingLastName) + '|' + normLower(matchingFirstName) + '|' + matchingBirthDate;
-        if (studentIndex.has(studentKey)) {
-          studentId = studentIndex.get(studentKey);
-          if (!studentId) {
-            errors.push({ line: lineNum, issues: ['Ungültige CSV-Schüleridentität: Die SchuelerID passt zu mehreren vorhandenen Personen.'], fatal: true });
-            continue;
-          }
-        } else if (csvStudentKey) {
-          const compatible = findCompatibleCsvStudent(importCandidate.students, {
-            lastName: matchingLastName, firstName: matchingFirstName, birthDate: matchingBirthDate
-          });
-          if (compatible.ambiguous) {
-            errors.push({ line: lineNum, issues: ['Ungültige CSV-Schüleridentität: Die SchuelerID passt zu mehreren vorhandenen Personen.'], fatal: true });
-            continue;
-          }
-          studentId = compatible.studentId;
-        } else if (seenStudentSKey.has(studentKey)) {
-          studentId = seenStudentSKey.get(studentKey);
-          errors.push({ line: lineNum, issues: ['Duplikat in der CSV; die Zeile wird mit dem ersten Eintrag zusammengeführt.'] });
+        const identity = { lastName: matchingLastName, firstName: matchingFirstName, birthDate: matchingBirthDate };
+        const signature = identityKey(identity);
+        const known = matchesByKey.get(csvStudentKey);
+        const matches = known && (known.studentId || known.ambiguous) ? known : findCompatibleCsvStudent(
+          csvStudentKey ? createdWithoutId.filter(student => !student.importKey) : peopleByIdentity.get(signature), identity
+        );
+        if (matches.ambiguous || (!csvStudentKey && csvKeysByIdentity.get(signature)?.length > 1)) {
+          errors.push({ line: lineNum, issues: ['Ungültige CSV-Schüleridentität: Keine eindeutige Zuordnung bei mehreren Kennungen oder mehreren vorhandenen Personen.'], fatal: true });
+          continue;
+        }
+        studentId = matches.studentId;
+        const matchedStudent = studentsById.get(studentId);
+        if (matchedStudent && validateCsvStudentIdentity(matchedStudent, identity).length) {
+          errors.push({ line: lineNum, issues: ['Ungültige CSV-Schüleridentität: Die Identitätsfelder widersprechen der vorhandenen SchuelerID.'], fatal: true });
+          continue;
         }
         const rowIssues = errors.slice(errorsBeforeRow).filter(entry => entry.line === lineNum);
         const mayCreateFromConsolidatedIdentity = csvStudentKey && consolidatedIdentity.lastName && consolidatedIdentity.firstName &&
@@ -307,14 +331,19 @@ export function createCsvImportOrchestrator({ DomainModel, now = () => new Date(
             homeClass
           });
           DomainModel.addStudentToState(importCandidate, student);
+          if (csvStudentKey) student.importKey = csvStudentKey;
+          else createdWithoutId.push(student);
+          collect(peopleByIdentity, signature, student);
           studentId = student.id;
-          studentIndex.set(studentKey, studentId);
-          seenStudentSKey.set(studentKey, studentId);
-          if (csvStudentKey) csvStudentMap.set(csvStudentKey, studentId);
+          studentsById.set(studentId, student);
           createdStudents++;
           createdStudentIds.add(studentId);
         }
-        if (csvStudentKey && studentId) csvStudentMap.set(csvStudentKey, studentId);
+        if (csvStudentKey && studentId) {
+          csvStudentMap.set(csvStudentKey, studentId);
+          if (matchedStudent && !matchedStudent.importKey && matchedStudent.id !== csvStudentKey) matchedStudent.importKey = csvStudentKey;
+          if (matchedStudent) pendingCreatedStudentUpdate = { ...identity, homeClass };
+        }
       }
 
       if (courseId && studentId) {
@@ -345,22 +374,19 @@ export function createCsvImportOrchestrator({ DomainModel, now = () => new Date(
         errors.push({ line: lineNum, issues: ['Kein Kurs ermittelt oder angegeben; die Person wurde nicht eingeschrieben.'] });
       }
 
-      if (pendingCreatedStudentUpdate && errors.length === errorsBeforeRow) {
-        const studentBeforeUpdate = importCandidate.students.find(item => item.id === studentId);
-        const previousStudentKey = studentBeforeUpdate
-          ? normLower(studentBeforeUpdate.lastName) + '|' + normLower(studentBeforeUpdate.firstName) + '|' + norm(studentBeforeUpdate.birthDate)
-          : null;
-        const updatedStudent = updateStudentCreatedInCurrentCsv(importCandidate, createdStudentIds, studentId, pendingCreatedStudentUpdate);
-        if (updatedStudent) {
-          const updatedStudentKey = normLower(updatedStudent.lastName) + '|' + normLower(updatedStudent.firstName) + '|' + norm(updatedStudent.birthDate);
-          if (previousStudentKey && previousStudentKey !== updatedStudentKey && studentIndex.get(previousStudentKey) === studentId) studentIndex.delete(previousStudentKey);
-          studentIndex.set(updatedStudentKey, studentId);
-          seenStudentSKey.set(updatedStudentKey, studentId);
-          if (courseId && updatedStudent.homeClass && createdEnrollmentKeys.has(JSON.stringify([courseId, studentId]))) {
-            const course = importCandidate.courses.find(item => item.id === courseId);
-            const enrollment = course && (course.enrollments || []).find(item => item.studentId === studentId);
-            if (enrollment) enrollment.homeClassAtEnrollment = updatedStudent.homeClass;
-          }
+      if (pendingCreatedStudentUpdate && createdStudentIds.has(studentId) && errors.length === errorsBeforeRow) {
+        const student = studentsById.get(studentId);
+        const before = identityKey(student);
+        completeCreatedStudent(student, pendingCreatedStudentUpdate);
+        const after = identityKey(student);
+        if (before !== after) {
+          peopleByIdentity.set(before, peopleByIdentity.get(before).filter(item => item !== student));
+          collect(peopleByIdentity, after, student);
+        }
+        if (courseId && student.homeClass && createdEnrollmentKeys.has(JSON.stringify([courseId, studentId]))) {
+          const course = importCandidate.courses.find(item => item.id === courseId);
+          const enrollment = course && (course.enrollments || []).find(item => item.studentId === studentId);
+          if (enrollment) enrollment.homeClassAtEnrollment = student.homeClass;
         }
       }
 

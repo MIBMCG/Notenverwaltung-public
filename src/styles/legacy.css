@@ -2055,6 +2055,17 @@
       }
     }
 
+    .term-section > .collapsible-header {
+      box-sizing: border-box;
+      width: 100%;
+      margin: 0 0 0.5rem;
+      padding: 0.25rem 0.35rem;
+      border: 1px solid var(--border-soft);
+      border-radius: 6px;
+      color: inherit;
+      text-align: start;
+    }
+
     .term-section-current > .collapsible-header {
       border-left: 4px solid var(--gradesheet-current-divider) !important;
       background: color-mix(in srgb, var(--gradesheet-current-divider) 9%, var(--bg-card));
@@ -2780,6 +2791,38 @@
     .gradesheet-header > details[open] > :not(summary) {
       width: auto;
       margin-inline: 0;
+    }
+
+    .gradesheet-assessment-dialog {
+      box-sizing: border-box;
+      width: min(28rem, calc(100% - 1rem));
+      max-height: calc(100vh - 1rem);
+      max-height: calc(100dvh - 1rem);
+      overflow: auto;
+      overscroll-behavior: contain;
+      padding: clamp(0.75rem, 4vw, 1.5rem);
+      border: 1px solid var(--border-soft);
+      border-radius: 8px;
+      background: var(--bg-card, #fff);
+      color: var(--text-main, #111);
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+    }
+
+    .gradesheet-assessment-dialog::backdrop {
+      background: rgba(0, 0, 0, 0.5);
+    }
+
+    .gradesheet-assessment-dialog input,
+    .gradesheet-assessment-dialog select {
+      max-width: 100%;
+    }
+
+    .gradesheet-assessment-dialog-actions {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+      gap: 0.5rem;
+      margin-top: 1.5rem;
     }
 
     .gradesheet-assessment-management {

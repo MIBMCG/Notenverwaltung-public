@@ -10,6 +10,52 @@ const HEADER_12 = `${HEADER_8};Schema;Kursart;Qualifikationsabschnitt;3. Pruefun
 const HEADER_14 = `${HEADER_12};Stammklasse;CSV-Schutz`;
 const clone = value => JSON.parse(JSON.stringify(value));
 
+test('explicit identity fallback prefers a complete matching birth date over an incomplete namesake', () => {
+  const { modules, orchestrator } = createSubject();
+  const base = modules.DomainModel.createEmptyState();
+  for (const birthDate of [null, '2010-03-05']) {
+    base.students.push(modules.DomainModel.createStudent({ firstName: 'Mia', lastName: 'Muster', birthDate }));
+  }
+  const result = orchestrator.prepareCsvImport([HEADER_8, 'a;Kurs;;;key;Muster;Mia;2010-03-05'].join('\n'), base);
+  assert.deepEqual(clone(result.errors), []);
+  assert.equal(result.importCandidate.courses[0].enrollments[0].studentId, base.students[1].id);
+});
+
+test('ID-free rows cannot silently pick the first of two identical incoming identities', () => {
+  const { modules, orchestrator } = createSubject();
+  const unkeyed = 'a;Kurs;;;;Muster;Mia;';
+  const keyed = ['b;Kurs;;;one;Muster;Mia;', 'c;Kurs;;;two;Muster;Mia;'];
+  for (const rows of [[unkeyed, ...keyed], [keyed[0], unkeyed, keyed[1]], [...keyed, unkeyed]]) {
+    const result = orchestrator.prepareCsvImport([HEADER_8, ...rows].join('\n'), modules.DomainModel.createEmptyState());
+    assert.ok(result.errors.some(error => error.fatal && error.line === rows.indexOf(unkeyed) + 2));
+  }
+});
+
+test('distinct CSV student IDs survive identical names, repeated imports and local ID exports', () => {
+  const { modules, orchestrator } = createSubject();
+  const rows = [
+    'a;Bio;Bio;8a;one;Muster;Mia;',
+    'b;Bio;Bio;8b;two;Muster;Mia;'
+  ];
+  const prepare = (rows, state) => orchestrator.prepareCsvImport([HEADER_8, ...rows].join('\n'), state);
+  const first = prepare(rows, modules.DomainModel.createEmptyState());
+  assert.deepEqual(clone(first.errors), []);
+  assert.equal(first.createdStudents, 2);
+  const [one, two] = first.importCandidate.students;
+  assert.notEqual(one.id, two.id);
+  for (const replay of [rows.slice().reverse(), [rows[0].replace(';one;', ';' + one.id + ';'), rows[1].replace(';two;', ';' + two.id + ';')]]) {
+    const next = prepare(replay, first.importCandidate);
+    assert.deepEqual(clone(next.errors), []);
+    assert.equal(next.createdEnrollments, 0);
+    assert.equal(next.createdStudents, 0);
+  }
+  const legacy = modules.DomainModel.createEmptyState();
+  legacy.students.push(modules.DomainModel.createStudent({ lastName: 'Muster', firstName: 'Mia' }));
+  for (const order of [rows, rows.slice().reverse()]) {
+    assert.ok(prepare(order, legacy).errors.some(error => error.fatal), 'ambiguous legacy identity requires a decision');
+  }
+});
+
 function createSubject() {
   const modules = loadModules();
   const { exports: csv } = loadEsmGraph('src/transfer/csv-import-orchestrator.js');

@@ -31,6 +31,7 @@ function assertModernStateMatchesFrozenLegacy(modernValue, legacyValue, selectSt
   assert.equal(modernState.lastGradesheetCourseId, null);
   delete modernState.lastGradesheetCourseId;
   delete modernState.settings.schoolProfile;
+  delete modernState.settings.categoryRoles;
   assert.deepEqual(modernComparable, json(legacyValue));
 }
 

@@ -2062,6 +2062,17 @@
       }
     }
 
+    .term-section > .collapsible-header {
+      box-sizing: border-box;
+      width: 100%;
+      margin: 0 0 0.5rem;
+      padding: 0.25rem 0.35rem;
+      border: 1px solid var(--border-soft);
+      border-radius: 6px;
+      color: inherit;
+      text-align: start;
+    }
+
     .term-section-current > .collapsible-header {
       border-left: 4px solid var(--gradesheet-current-divider) !important;
       background: color-mix(in srgb, var(--gradesheet-current-divider) 9%, var(--bg-card));
@@ -2787,6 +2798,38 @@
     .gradesheet-header > details[open] > :not(summary) {
       width: auto;
       margin-inline: 0;
+    }
+
+    .gradesheet-assessment-dialog {
+      box-sizing: border-box;
+      width: min(28rem, calc(100% - 1rem));
+      max-height: calc(100vh - 1rem);
+      max-height: calc(100dvh - 1rem);
+      overflow: auto;
+      overscroll-behavior: contain;
+      padding: clamp(0.75rem, 4vw, 1.5rem);
+      border: 1px solid var(--border-soft);
+      border-radius: 8px;
+      background: var(--bg-card, #fff);
+      color: var(--text-main, #111);
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+    }
+
+    .gradesheet-assessment-dialog::backdrop {
+      background: rgba(0, 0, 0, 0.5);
+    }
+
+    .gradesheet-assessment-dialog input,
+    .gradesheet-assessment-dialog select {
+      max-width: 100%;
+    }
+
+    .gradesheet-assessment-dialog-actions {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+      gap: 0.5rem;
+      margin-top: 1.5rem;
     }
 
     .gradesheet-assessment-management {
@@ -3922,6 +3965,17 @@ body.theme-dark .course-color-picker__preview {
   function normalizeCategoryName(value) {
     return String(value || "").trim().toLocaleLowerCase("de").normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, " ").trim();
   }
+  var writtenCategoryAliases = [
+    "schriftlich",
+    "schriftliche leistungen",
+    "klassenarbeit",
+    "klassenarbeiten",
+    "klausur",
+    "klausuren"
+  ];
+  function isKnownWrittenCategory(category) {
+    return !!category && writtenCategoryAliases.includes(normalizeCategoryName(category.name));
+  }
   function createDefaultWeightTemplates(categories, existingTemplates = []) {
     const categoryIds = new Set(categories.map((category) => category.id));
     const catByName = new Map(
@@ -3942,14 +3996,7 @@ body.theme-dark .course-color-picker__preview {
       "mitarbeit",
       "sonstige mitarbeit"
     ]);
-    let writtenId = findByAliases([
-      "schriftlich",
-      "schriftliche leistungen",
-      "klassenarbeit",
-      "klassenarbeiten",
-      "klausur",
-      "klausuren"
-    ]);
+    let writtenId = findByAliases(writtenCategoryAliases);
     const otherId = findByAliases([
       "sonstiges",
       "sonstige",
@@ -4019,6 +4066,7 @@ body.theme-dark .course-color-picker__preview {
       schoolProfile: normalizeSchoolProfile(null),
       gradeMapping: createDefaultGradeMapping(),
       categories,
+      categoryRoles: { upperSecWrittenCategoryId: categories.find(isKnownWrittenCategory).id },
       weightTemplates,
       // Zentrale Halbjahrs-Einstellungen für Sek I und Sek II
       halfYearSettings: {
@@ -4459,10 +4507,22 @@ body.theme-dark .course-color-picker__preview {
     );
     return activeCourses.concat(archivedCourses);
   }
-  function resolveUpperSecWrittenCategoryId(settings) {
-    const snapshottedRole = settings && settings.categoryRoles && settings.categoryRoles.upperSecWrittenCategoryId;
-    if (snapshottedRole) return snapshottedRole;
+  function resolveUpperSecWrittenCategoryId(settings, course = null) {
+    const categories = Array.isArray(settings && settings.categories) ? settings.categories : [];
+    const roles = (course && course.archivedAt && course.archiveSnapshot ? course.archiveSnapshot.categoryRoles : course && course.categoryRoles) || settings && settings.categoryRoles;
+    if (roles && Object.prototype.hasOwnProperty.call(roles, "upperSecWrittenCategoryId")) {
+      return categories.some((category) => category.id === roles.upperSecWrittenCategoryId) ? roles.upperSecWrittenCategoryId : null;
+    }
+    const named = categories.filter(isKnownWrittenCategory);
     const templates = Array.isArray(settings && settings.weightTemplates) ? settings.weightTemplates : [];
+    const legacyRoles = new Set(named.map((category) => category.id));
+    const categoryIds = new Set(categories.map((category) => category.id));
+    for (const template of templates) {
+      if (!template || !(template.name === "Standard Sek I (67/33)" || String(template.name || "").startsWith("Altbestand Sek I (67/33)"))) continue;
+      const [oral, written] = Array.isArray(template.items) ? template.items : [];
+      if (oral && written && oral.categoryId !== written.categoryId && categoryIds.has(oral.categoryId) && categoryIds.has(written.categoryId)) legacyRoles.add(written.categoryId);
+    }
+    if (legacyRoles.size) return legacyRoles.size === 1 ? legacyRoles.values().next().value : null;
     const oneExam = templates.find(
       (template) => template && template.id === RECOMMENDED_WEIGHT_TEMPLATE_IDS.SEKII_ONE_EXAM
     );
@@ -4473,7 +4533,7 @@ body.theme-dark .course-color-picker__preview {
     const candidates = Array.from(new Set(oneExam.items.filter((item) => item && item.categoryId && Math.abs(Number(item.weightPercent) - 33.33) < 1e-3).filter((item) => twoExams.items.some(
       (twoExamItem) => twoExamItem && twoExamItem.categoryId === item.categoryId && Math.abs(Number(twoExamItem.weightPercent) - 50) < 1e-3
     )).map((item) => item.categoryId)));
-    return candidates.length === 1 ? candidates[0] : null;
+    return candidates.length === 1 && categories.some((category) => category.id === candidates[0]) ? candidates[0] : null;
   }
   function createArchiveSnapshot(state, course, now) {
     if (typeof now !== "function") throw new TypeError("now muss eine Funktion sein.");
@@ -4481,7 +4541,7 @@ body.theme-dark .course-color-picker__preview {
     const templates = settings.weightTemplates || [];
     const hasCourseTermCutoffs = !!(course && course.termCutoffs && typeof course.termCutoffs === "object");
     const selectedTemplate = course && course.weightTemplateId ? templates.find((t) => t.id === course.weightTemplateId) || null : null;
-    const upperSecWrittenCategoryId = resolveUpperSecWrittenCategoryId(settings);
+    const upperSecWrittenCategoryId = resolveUpperSecWrittenCategoryId(settings, course);
     return JSON.parse(JSON.stringify({
       createdAt: now().toISOString(),
       schemaMode: course && course.schemaMode,
@@ -4572,6 +4632,7 @@ body.theme-dark .course-color-picker__preview {
       importKey: null,
       upperSecContext: successorContext
     });
+    if (oldCourse.categoryRoles) successor.categoryRoles = { ...oldCourse.categoryRoles };
     successor.enrollments = (oldCourse.enrollments || []).map((enrollment) => createEnrollment({
       studentId: enrollment.studentId,
       subgroup: enrollment.subgroup || null,
@@ -4609,15 +4670,36 @@ body.theme-dark .course-color-picker__preview {
       };
     });
   }
+  function effectiveCourseYear(state, course) {
+    const level = course.schemaMode === SCHEMA_MODES.UPPERSEC ? "seckII" : "seckI";
+    const frozenYear = course.archivedAt && course.archiveSnapshot?.halfYearSettings?.[level]?.schoolYearStartYear;
+    for (const value of [course.schoolYearStartYear, frozenYear, state.settings?.halfYearSettings?.[level]?.schoolYearStartYear]) {
+      const year = Number(value);
+      if (Number.isInteger(year) && year > 0) return year;
+    }
+    return null;
+  }
+  function courseYearScope(state, course) {
+    return [course.schemaMode || "", effectiveCourseYear(state, course)].join("|");
+  }
+  function courseImportScope(state, course) {
+    return courseYearScope(state, course) + "|" + !!course.archivedAt;
+  }
+  function assertCourseIdentityAvailable(state, course, archived) {
+    if (!course.importKey) return;
+    const key = course.importKey.trim().toLowerCase();
+    const year = effectiveCourseYear(state, course);
+    const conflict = state.courses.find((other) => other.id !== course.id && !!other.archivedAt === archived && other.schemaMode === course.schemaMode && effectiveCourseYear(state, other) === year && other.importKey?.trim().toLowerCase() === key);
+    if (conflict) {
+      throw new Error("Die Kurskennung „" + course.importKey + "“ ist für dieses Schuljahr " + (archived ? "im Archiv" : "im aktiven Bestand") + " bereits an „" + conflict.name + "“ vergeben.");
+    }
+  }
   function archiveCourse(state, courseId, reason = "manual", metadata = {}, now) {
     if (typeof now !== "function") throw new TypeError("now muss eine Funktion sein.");
     const course = findCourseById(state, courseId);
     if (!course || course.archivedAt) return false;
-    if (!course.schoolYearStartYear) {
-      const level = course.schemaMode === SCHEMA_MODES.UPPERSEC ? "seckII" : "seckI";
-      const inferredYear = Number(state.settings?.halfYearSettings?.[level]?.schoolYearStartYear);
-      course.schoolYearStartYear = Number.isInteger(inferredYear) ? inferredYear : null;
-    }
+    assertCourseIdentityAvailable(state, course, true);
+    if (!course.schoolYearStartYear) course.schoolYearStartYear = effectiveCourseYear(state, course);
     course.archiveSnapshot = createArchiveSnapshot(state, course, now);
     course.archivedAt = now().toISOString();
     course.archiveReason = reason || "manual";
@@ -4629,6 +4711,31 @@ body.theme-dark .course-color-picker__preview {
   function restoreCourse(state, courseId) {
     const course = findCourseById(state, courseId);
     if (!course || !course.archivedAt) return false;
+    assertCourseIdentityAvailable(state, course, false);
+    const references = course.archiveRestoreReferences;
+    const categoryReference = (id2) => references?.categories?.find((entry) => entry.id === id2);
+    const restoredAssessments = [];
+    for (const assessment of listAssessmentsForCourse(state, courseId)) {
+      if (!assessment.categoryId && !assessment.subcategoryId) continue;
+      const reference = categoryReference(assessment.categoryId);
+      const category = state.settings.categories.find((item) => item.id === (reference?.targetId || assessment.categoryId));
+      if (!category) {
+        const archivedCategory = course.archiveSnapshot?.categories?.find((item) => item.id === assessment.categoryId);
+        throw new Error("Die Hauptkategorie „" + (archivedCategory?.name || assessment.categoryId) + "“ fehlt in den aktuellen Einstellungen. Der Kurs bleibt archiviert.");
+      }
+      const mappedSubId = reference?.subcategories?.find((entry) => entry.id === assessment.subcategoryId)?.targetId || assessment.subcategoryId;
+      const subcategoryId = mappedSubId && !category.subcategories?.some((item) => item.id === mappedSubId) ? null : mappedSubId;
+      restoredAssessments.push({ assessment, categoryId: category.id, subcategoryId });
+    }
+    if (course.schemaMode === SCHEMA_MODES.UPPERSEC) {
+      const snapshot = course.archiveSnapshot;
+      const frozenRole = resolveUpperSecWrittenCategoryId(snapshot, course);
+      const targetRole = categoryReference(frozenRole)?.targetId || frozenRole;
+      const activeRole = state.settings.categories.some((category) => category.id === targetRole) ? targetRole : null;
+      if (course.categoryRoles || activeRole !== resolveUpperSecWrittenCategoryId(state.settings)) {
+        course.categoryRoles = { upperSecWrittenCategoryId: activeRole };
+      }
+    }
     course.archiveHistory = normalizeArchiveHistory(course.archiveHistory, course.schemaMode);
     course.archiveHistory.push({
       archivedAt: course.archivedAt,
@@ -4638,11 +4745,21 @@ body.theme-dark .course-color-picker__preview {
       archiveNote: normalizeArchiveNote(course.archiveNote),
       snapshot: JSON.parse(JSON.stringify(course.archiveSnapshot))
     });
+    if (!course.schoolYearStartYear) course.schoolYearStartYear = effectiveCourseYear(state, course);
     course.archivedAt = null;
     course.archiveReason = null;
     course.archiveRetentionUntil = null;
     course.archiveNote = null;
     course.archiveSnapshot = null;
+    for (const { assessment, categoryId, subcategoryId } of restoredAssessments) {
+      assessment.categoryId = categoryId;
+      assessment.subcategoryId = subcategoryId;
+    }
+    if (references?.weightTemplateId) course.weightTemplateId = references.weightTemplateId;
+    delete course.archiveRestoreReferences;
+    if (course.weightTemplateId && !state.settings.weightTemplates.some((template) => template.id === course.weightTemplateId)) {
+      course.weightTemplateId = null;
+    }
     return true;
   }
   function addCourseToState(state, course) {
@@ -5126,16 +5243,11 @@ body.theme-dark .course-color-picker__preview {
       assessment.scores = repairedScores;
     }
     const importKeysByScope = /* @__PURE__ */ new Set();
-    const courseScope = (course) => [
-      course.schemaMode || "",
-      Number.isInteger(Number(course.schoolYearStartYear)) ? String(Number(course.schoolYearStartYear)) : "",
-      !!course.archivedAt
-    ].join("|");
     for (const course of state.courses) {
       const predecessorId = typeof course.carriedForwardFromCourseId === "string" ? course.carriedForwardFromCourseId.trim() : "";
       course.carriedForwardFromCourseId = predecessorId && predecessorId !== course.id && isUnambiguousReference(predecessorId, courses) ? predecessorId : null;
       const importKey = typeof course.importKey === "string" ? course.importKey.trim() : "";
-      const scopedKey = importKey ? importKey.toLowerCase() + "|" + courseScope(course) : "";
+      const scopedKey = importKey ? importKey.toLowerCase() + "|" + courseImportScope(state, course) : "";
       if (!importKey || importKeysByScope.has(scopedKey)) course.importKey = null;
       else {
         course.importKey = importKey;
@@ -5201,6 +5313,7 @@ body.theme-dark .course-color-picker__preview {
       }
     }
     if (!Array.isArray(raw.settings.weightTemplates)) raw.settings.weightTemplates = [];
+    raw.settings.categoryRoles = { upperSecWrittenCategoryId: resolveUpperSecWrittenCategoryId(raw.settings) };
     const legacyTemplateBaseName = "Altbestand Sek I (67/33) – Fachkonferenz prüfen";
     const occupiedTemplateNames = new Set(
       raw.settings.weightTemplates.filter((template) => template && template.name !== "Standard Sek I (67/33)").map((template) => template.name)
@@ -5760,8 +5873,8 @@ body.theme-dark .course-color-picker__preview {
     }
     return computeFlatAverage();
   }
-  function resolveSafeUpperSecTemplate(settings, templateId, expectedWrittenPercent) {
-    const writtenCategoryId = resolveUpperSecWrittenCategoryId(settings);
+  function resolveSafeUpperSecTemplate(settings, course, templateId, expectedWrittenPercent) {
+    const writtenCategoryId = resolveUpperSecWrittenCategoryId(settings, course);
     if (!writtenCategoryId) return null;
     const templates = Array.isArray(settings && settings.weightTemplates) ? settings.weightTemplates : [];
     const template = templates.find((item) => item && item.id === templateId) || null;
@@ -5860,7 +5973,7 @@ body.theme-dark .course-color-picker__preview {
       expectedExamCount = 1;
     }
     if (expectedExamCount === 0) {
-      const writtenCategoryId = resolveUpperSecWrittenCategoryId(settings);
+      const writtenCategoryId = resolveUpperSecWrittenCategoryId(settings, course);
       if (!writtenCategoryId) {
         return {
           qualificationPhase,
@@ -5868,7 +5981,7 @@ body.theme-dark .course-color-picker__preview {
           recommendedWrittenPercent: null,
           recommendedWeightTemplateId: null,
           status: "not-applicable",
-          message: "Die Klausurkategorie kann nicht sicher erkannt werden; die bestehende Gewichtung bleibt unveraendert.",
+          message: "Klausurkategorie ungeklärt. Es gilt die bestehende Kursgewichtung.",
           isWeightingDeviation: false
         };
       }
@@ -5886,6 +5999,7 @@ body.theme-dark .course-color-picker__preview {
     const candidateTemplateId = expectedExamCount === 2 ? RECOMMENDED_WEIGHT_TEMPLATE_IDS.SEKII_TWO_EXAMS : RECOMMENDED_WEIGHT_TEMPLATE_IDS.SEKII_ONE_EXAM;
     const recommendedTemplate = resolveSafeUpperSecTemplate(
       settings,
+      course,
       candidateTemplateId,
       recommendedWrittenPercent
     );
@@ -5910,7 +6024,7 @@ body.theme-dark .course-color-picker__preview {
     if (!context2 || context2.courseType !== UPPERSEC_COURSE_TYPES.ADVANCED || !["Q1", "Q2", "Q3"].includes(gradingContext.qualificationPhase)) {
       return null;
     }
-    const writtenCategoryId = resolveUpperSecWrittenCategoryId(settings);
+    const writtenCategoryId = resolveUpperSecWrittenCategoryId(settings, course);
     if (!writtenCategoryId) return null;
     const writtenAssessments = (Array.isArray(assessments) ? assessments : []).filter(
       (assessment) => assessment && assessment.categoryId === writtenCategoryId
@@ -5952,7 +6066,7 @@ body.theme-dark .course-color-picker__preview {
     }
     const context2 = resolveUpperSecGradingContext(course, studentId, term, settings);
     if (context2.status !== "general-only") return activeWeights;
-    const writtenCategoryId = resolveUpperSecWrittenCategoryId(settings);
+    const writtenCategoryId = resolveUpperSecWrittenCategoryId(settings, course);
     if (!writtenCategoryId) return activeWeights;
     return activeWeights.filter((weight) => weight.categoryId !== writtenCategoryId);
   }
@@ -6657,6 +6771,55 @@ body.theme-dark .course-color-picker__preview {
   }
 
   // src/transfer/import-validation.js
+  function supplementMissingImportPeriods(raw, currentState) {
+    if (!raw?.settings || typeof raw.settings !== "object" || Array.isArray(raw.settings)) return;
+    for (const key of ["halfYearSettings", "halfYearNames"]) {
+      if (raw.settings[key] == null) raw.settings[key] = {};
+      if (typeof raw.settings[key] !== "object" || Array.isArray(raw.settings[key])) continue;
+      for (const level of ["seckI", "seckII"]) {
+        const local = currentState.settings?.[key]?.[level];
+        if (raw.settings[key][level] == null && local) {
+          raw.settings[key][level] = JSON.parse(JSON.stringify(local));
+        }
+      }
+    }
+  }
+  function prepareSingleArchiveImport(state, legacyArchiveFile) {
+    const course = state?.courses?.length === 1 && state.courses[0];
+    if (!course?.archivedAt || !course.archiveSnapshot) return { state };
+    const predecessor = legacyArchiveFile && course.carriedForwardFromCourseId || state.archiveExport?.predecessorId;
+    if (typeof predecessor !== "string" || !predecessor.trim() || predecessor === course.id || course.carriedForwardFromCourseId != null && (!legacyArchiveFile || course.carriedForwardFromCourseId !== predecessor)) return { state };
+    const { archiveExport, ...portable } = state;
+    return { state: { ...portable, courses: [{ ...course, carriedForwardFromCourseId: null }] }, predecessor };
+  }
+  function repairLegacyWeightReferences(candidate) {
+    const categories = candidate?.settings?.categories;
+    const templates = candidate?.settings?.weightTemplates;
+    if (![categories, templates, candidate?.courses, candidate?.assessments].every(Array.isArray)) return "";
+    const activeIds = /* @__PURE__ */ new Set();
+    let templateCount = 0;
+    let subcategoryCount = 0;
+    for (const course of candidate.courses) {
+      if (!course || course.archivedAt) continue;
+      activeIds.add(course.id);
+      if (typeof course.weightTemplateId === "string" && course.weightTemplateId.trim() && !templates.some((template) => template?.id === course.weightTemplateId)) {
+        course.weightTemplateId = null;
+        templateCount++;
+      }
+    }
+    for (const assessment of candidate.assessments) {
+      if (!assessment || !activeIds.has(assessment.courseId) || typeof assessment.subcategoryId !== "string" || !assessment.subcategoryId.trim()) continue;
+      const parent = categories.find((category) => category?.id === assessment.categoryId);
+      if (parent && !categories.some((category) => category?.subcategories?.some((sub) => sub?.id === assessment.subcategoryId))) {
+        assessment.subcategoryId = null;
+        subcategoryCount++;
+      }
+    }
+    const notices = [];
+    if (templateCount) notices.push(templateCount + " Kurs(e) mit gelöschter Vorlage verwenden Gleichverteilung.");
+    if (subcategoryCount) notices.push(subcategoryCount + " Leistung(en) mit gelöschter Unterkategorie bleiben in der Hauptkategorie.");
+    return notices.length ? "\n" + notices.join("\n") : "";
+  }
   function validateImportedState(candidate) {
     if (!candidate || typeof candidate !== "object") throw new Error("Die Datei enthält keinen gültigen Datenbestand.");
     if (!Array.isArray(candidate.students) || !Array.isArray(candidate.courses) || !Array.isArray(candidate.assessments) || !candidate.settings || typeof candidate.settings !== "object") {
@@ -6687,6 +6850,17 @@ body.theme-dark .course-color-picker__preview {
       }
     }
     const categoriesById = new Map(candidate.settings.categories.map((category) => [category.id, category]));
+    const validateRestoreMappings = (entries, historicalItems) => {
+      if (!Array.isArray(entries)) throw new Error("Die Kategoriezuordnung zur Reaktivierung ist unvollständig.");
+      const seen = /* @__PURE__ */ new Set();
+      for (const entry of entries) {
+        const source = historicalItems.find((item) => item.id === entry?.id);
+        if (!source || seen.has(entry.id) || typeof entry.targetId !== "string" || !entry.targetId.trim()) {
+          throw new Error("Die Kategoriezuordnung zur Reaktivierung ist ungültig.");
+        }
+        seen.add(entry.id);
+      }
+    };
     const validateWeightItems = (items, label, allowedCategoryIds) => {
       if (!Array.isArray(items)) throw new Error(label + ": Die Gewichtung ist unvollständig.");
       for (const item of items) {
@@ -6737,11 +6911,6 @@ body.theme-dark .course-color-picker__preview {
     for (const template of candidate.settings.weightTemplates) {
       validateWeightItems(template.items, "Gewichtungsvorlage", categoryIds);
     }
-    const courseScope = (course) => [
-      course.schemaMode || "",
-      Number.isInteger(Number(course.schoolYearStartYear)) ? String(Number(course.schoolYearStartYear)) : "",
-      !!course.archivedAt
-    ].join("|");
     const importKeysByScope = /* @__PURE__ */ new Set();
     for (const course of candidate.courses) {
       if (course.carriedForwardFromCourseId !== void 0 && course.carriedForwardFromCourseId !== null) {
@@ -6759,7 +6928,7 @@ body.theme-dark .course-color-picker__preview {
         if (typeof course.importKey !== "string" || !course.importKey.trim() || course.importKey !== course.importKey.trim()) {
           throw new Error("Ein Kurs enthaelt eine ungueltige externe Kurskennung.");
         }
-        const scopedImportKey = course.importKey.toLowerCase() + "|" + courseScope(course);
+        const scopedImportKey = course.importKey.toLowerCase() + "|" + courseImportScope(candidate, course);
         if (importKeysByScope.has(scopedImportKey)) {
           throw new Error("Kurse enthalten eine doppelte externe Kurskennung im selben Gueltigkeitsbereich.");
         }
@@ -6778,6 +6947,17 @@ body.theme-dark .course-color-picker__preview {
           throw new Error("Ein archivierter Kurs besitzt keinen vollständigen Bewertungs-Snapshot.");
         }
         validateArchiveSnapshot(snapshot, "Archiv-Snapshot", course.weightTemplateId);
+        const references = course.archiveRestoreReferences;
+        if (references != null) {
+          validateRestoreMappings(references.categories, snapshot.categories);
+          for (const category of references.categories) {
+            const source = snapshot.categories.find((item) => item.id === category.id);
+            validateRestoreMappings(category.subcategories, source.subcategories || []);
+          }
+          if (references.weightTemplateId != null && (typeof references.weightTemplateId !== "string" || !references.weightTemplateId.trim())) {
+            throw new Error("Die Gewichtungsvorlage zur Reaktivierung ist ungültig.");
+          }
+        }
       }
       if (course.archiveHistory !== void 0 && !Array.isArray(course.archiveHistory)) {
         throw new Error("Archivverlauf: Der Verlauf ist ungueltig.");
@@ -6801,7 +6981,7 @@ body.theme-dark .course-color-picker__preview {
       const parentCourse = candidate.courses.find((c) => c.id === assessment.courseId);
       const assessmentCategories = parentCourse && parentCourse.archivedAt ? parentCourse.archiveSnapshot.categories : candidate.settings.categories;
       const assessmentCategory = assessmentCategories.find((category) => category.id === assessment.categoryId);
-      if (assessment.categoryId && !assessmentCategory) throw new Error("Eine Leistung verweist auf eine unbekannte Kategorie.");
+      if (!assessmentCategory) throw new Error("Eine Leistung verweist auf eine unbekannte Kategorie.");
       if (assessment.subcategoryId && (!assessmentCategory || !(assessmentCategory.subcategories || []).some((subcategory) => subcategory.id === assessment.subcategoryId))) {
         throw new Error("Eine Leistung verweist auf eine unbekannte Unterkategorie.");
       }
@@ -6817,26 +6997,21 @@ body.theme-dark .course-color-picker__preview {
     validateRawTermResults(incoming);
     validateRawUpperSecContexts(incoming);
     const norm = (value) => String(value || "").trim().toLowerCase();
-    const structuralCourseScope = (course) => [
-      course.schemaMode || "",
-      Number.isInteger(Number(course.schoolYearStartYear)) ? String(Number(course.schoolYearStartYear)) : ""
-    ].join("|");
-    const importCourseScope = (course) => [structuralCourseScope(course), !!course.archivedAt].join("|");
-    const scopedImportKey = (course) => course && course.importKey ? norm(course.importKey) + "|" + importCourseScope(course) : "";
+    const scopedImportKey = (state, course) => course && course.importKey ? norm(course.importKey) + "|" + courseImportScope(state, course) : "";
     const baseCoursesById = new Map(base.courses.map((course) => [course.id, course]));
     const baseCoursesByImportKey = /* @__PURE__ */ new Map();
     for (const course of base.courses) {
-      const key = scopedImportKey(course);
+      const key = scopedImportKey(base, course);
       if (key) baseCoursesByImportKey.set(key, course);
     }
     const courseTargetIds = /* @__PURE__ */ new Map();
     const claimedBaseTargets = /* @__PURE__ */ new Map();
     for (const course of incoming.courses) {
       const idTarget = baseCoursesById.get(course.id) || null;
-      if (idTarget && structuralCourseScope(idTarget) !== structuralCourseScope(course)) {
+      if (idTarget && courseYearScope(base, idTarget) !== courseYearScope(incoming, course)) {
         throw new Error("Die Kurs-ID " + course.id + " widerspricht dem strukturellen Kurskontext im vorhandenen Bestand.");
       }
-      const key = scopedImportKey(course);
+      const key = scopedImportKey(incoming, course);
       const importKeyTarget = key ? baseCoursesByImportKey.get(key) || null : null;
       if (idTarget && importKeyTarget && idTarget !== importKeyTarget) {
         throw new Error("Die Kursidentität " + course.id + " ist zwischen ID und externer Kurskennung widersprüchlich.");
@@ -6889,6 +7064,17 @@ body.theme-dark .course-color-picker__preview {
     return true;
   }
   function validateRawUpperSecContexts(candidate) {
+    function validateCategoryRoles(roles, categories, label) {
+      if (roles == null) return;
+      if (typeof roles !== "object" || Array.isArray(roles)) {
+        throw new Error(label + ": Die Kategorienrollen sind ungueltig.");
+      }
+      const id2 = roles.upperSecWrittenCategoryId;
+      if (id2 != null && (typeof id2 !== "string" || !Array.isArray(categories) || !categories.some((category) => category?.id === id2))) {
+        throw new Error(label + ": Die Kategorienrolle verweist auf eine unbekannte Klausurkategorie.");
+      }
+    }
+    validateCategoryRoles(candidate?.settings?.categoryRoles, candidate?.settings?.categories, "Einstellungen");
     const courseTypes = new Set(Object.values(UPPERSEC_COURSE_TYPES));
     const qualificationYears = new Set(Object.values(QUALIFICATION_YEARS));
     const validateContextAndEnrollments = (source, schemaMode, label, rejectAnyDuplicate) => {
@@ -6929,6 +7115,7 @@ body.theme-dark .course-color-picker__preview {
     };
     for (const course of candidate && candidate.courses || []) {
       if (!course || typeof course !== "object") continue;
+      if (!course.archivedAt) validateCategoryRoles(course.categoryRoles, candidate?.settings?.categories, "Kurs");
       validateContextAndEnrollments(course, course.schemaMode, "", false);
       const snapshots = [];
       if (course.archivedAt && course.archiveSnapshot && typeof course.archiveSnapshot === "object") {
@@ -6949,18 +7136,7 @@ body.theme-dark .course-color-picker__preview {
         const snapshot = archived.snapshot;
         const label = archived.label;
         validateContextAndEnrollments(snapshot, archived.schemaMode || course.schemaMode, label, true);
-        if (snapshot.categoryRoles !== void 0 && snapshot.categoryRoles !== null) {
-          if (typeof snapshot.categoryRoles !== "object" || Array.isArray(snapshot.categoryRoles)) {
-            throw new Error(label + ": Die Kategorienrollen sind ungueltig.");
-          }
-          const writtenCategoryId = snapshot.categoryRoles.upperSecWrittenCategoryId;
-          if (writtenCategoryId !== void 0 && writtenCategoryId !== null) {
-            const categoryIds = new Set((Array.isArray(snapshot.categories) ? snapshot.categories : []).filter((category) => category && category.id).map((category) => category.id));
-            if (typeof writtenCategoryId !== "string" || !categoryIds.has(writtenCategoryId)) {
-              throw new Error(label + ": Die Kategorienrolle verweist auf eine unbekannte Klausurkategorie.");
-            }
-          }
-        }
+        validateCategoryRoles(snapshot.categoryRoles, snapshot.categories, label);
       }
     }
     return true;
@@ -7513,14 +7689,14 @@ body.theme-dark .course-color-picker__preview {
       };
       return JSON.stringify(out, null, 2);
     }
-    async function importStateEncryptedFromText(text, password) {
+    async function importStateEncryptedFromText(text, password, legacyArchiveFile = false) {
       let obj;
       try {
         obj = JSON.parse(text);
       } catch (err2) {
         throw new Error("Ungültiges JSON");
       }
-      if (obj && obj.format === "notenverwaltung_envelope") return _importV2(text, { kind: "password", value: password });
+      if (obj && obj.format === "notenverwaltung_envelope") return _importV2(text, { kind: "password", value: password }, legacyArchiveFile);
       if (!obj || obj.format !== "notenverwaltung_enc_v1" || !obj.salt || !obj.payload) {
         throw new Error("Unbekanntes verschlüsseltes Format");
       }
@@ -7847,9 +8023,10 @@ body.theme-dark .course-color-picker__preview {
       error.code = code;
       return error;
     }
-    function _parseRecoveryState(json) {
+    function _parseRecoveryState(json, legacyArchiveFile = false) {
       try {
-        const raw = JSON.parse(json);
+        const parsed = JSON.parse(json);
+        const raw = legacyArchiveFile ? prepareSingleArchiveImport(parsed, true).state : parsed;
         if (!raw || typeof raw !== "object" || Array.isArray(raw)) throw new Error("root");
         validateRawTermResults(raw);
         validateRawUpperSecContexts(raw);
@@ -7918,14 +8095,14 @@ body.theme-dark .course-color-picker__preview {
       if (entry.session) disposeEnvelopeSession(entry.session);
       entry.session = entry.password = entry.code = entry.json = null;
     }
-    async function _openChecked(text, access, preparation) {
+    async function _openChecked(text, access, preparation, legacyArchiveFile = false) {
       const opened = await unlockEnvelope(text, access).catch((error) => {
         _assertPreparation(preparation);
         throw error;
       });
       try {
         _assertPreparation(preparation);
-        _parseRecoveryState(opened.stateJson);
+        _parseRecoveryState(opened.stateJson, legacyArchiveFile);
         return opened;
       } catch (error) {
         disposeEnvelopeSession(opened.session);
@@ -8143,9 +8320,9 @@ body.theme-dark .course-color-picker__preview {
         cancelPreparedProtection(result.sourceToken);
       }
     }
-    async function _importV2(text, access) {
+    async function _importV2(text, access, legacyArchiveFile = false) {
       const context2 = _capturePreparation();
-      const opened = await _openChecked(text, access, context2);
+      const opened = await _openChecked(text, access, context2, legacyArchiveFile);
       try {
         _assertPreparation(context2);
         return JSON.parse(opened.stateJson);
@@ -8153,8 +8330,8 @@ body.theme-dark .course-color-picker__preview {
         disposeEnvelopeSession(opened.session);
       }
     }
-    function importStateEncryptedWithRecovery(text, code) {
-      return _importV2(text, { kind: "recovery", value: code });
+    function importStateEncryptedWithRecovery(text, code, legacyArchiveFile = false) {
+      return _importV2(text, { kind: "recovery", value: code }, legacyArchiveFile);
     }
     function isEncrypted() {
       return _isEncryptedFlagSet() || localStorage.getItem(STORAGE_KEY_JOURNAL) !== null;
@@ -8623,15 +8800,11 @@ body.theme-dark .course-color-picker__preview {
   }
 
   // src/transfer/csv-import-orchestrator.js
-  function updateStudentCreatedInCurrentCsv(candidate, createdStudentIds, studentId, values) {
-    if (!createdStudentIds || !createdStudentIds.has(studentId)) return null;
-    const student = (candidate.students || []).find((item) => item.id === studentId);
-    if (!student) return null;
+  function completeCreatedStudent(student, values) {
     if (!student.lastName && values.lastName) student.lastName = values.lastName;
     if (!student.firstName && values.firstName) student.firstName = values.firstName;
     if (!student.birthDate && values.birthDate) student.birthDate = values.birthDate;
     if (!student.homeClass && values.homeClass) student.homeClass = values.homeClass;
-    return student;
   }
   function createCsvImportOrchestrator({ DomainModel: DomainModel2, now = () => /* @__PURE__ */ new Date() }) {
     function prepareCsvImport(csvText, baseState, { excludeStartLines = [] } = {}) {
@@ -8706,11 +8879,39 @@ body.theme-dark .course-color-picker__preview {
         }
         csvStudentIdentities.set(csvStudentKey, consolidated);
       }
-      const studentIndex = /* @__PURE__ */ new Map();
-      for (const student of importCandidate.students) {
-        const key = normLower(student.lastName) + "|" + normLower(student.firstName) + "|" + norm(student.birthDate);
-        if (!studentIndex.has(key)) studentIndex.set(key, student.id);
-        else if (studentIndex.get(key) !== student.id) studentIndex.set(key, null);
+      const initialStudents = importCandidate.students.slice();
+      const studentsById = new Map(initialStudents.map((student) => [student.id, student]));
+      const legacyStudents = initialStudents.filter((student) => !student.importKey && !csvStudentIdentities.has(student.id));
+      const identityKey = (student) => JSON.stringify([normLower(student.lastName), normLower(student.firstName), norm(student.birthDate)]);
+      const collect = (map, key, item) => {
+        if (!map.has(key)) map.set(key, []);
+        map.get(key).push(item);
+      };
+      const byExplicitId = /* @__PURE__ */ new Map();
+      const legacyExact = /* @__PURE__ */ new Map();
+      const csvKeysByIdentity = /* @__PURE__ */ new Map();
+      const peopleByIdentity = /* @__PURE__ */ new Map();
+      for (const student of initialStudents) {
+        collect(byExplicitId, student.id, student);
+        if (student.importKey && student.importKey !== student.id) collect(byExplicitId, student.importKey, student);
+        collect(peopleByIdentity, identityKey(student), student);
+      }
+      for (const student of legacyStudents) collect(legacyExact, identityKey(student), student);
+      const matchesByKey = /* @__PURE__ */ new Map();
+      const claimedIds = /* @__PURE__ */ new Map();
+      for (const [key, identity] of csvStudentIdentities) {
+        const signature = identityKey(identity);
+        collect(csvKeysByIdentity, signature, key);
+        const exact2 = byExplicitId.get(key) || legacyExact.get(signature);
+        const match = exact2 ? { studentId: exact2[0].id, ambiguous: exact2.length > 1 } : findCompatibleCsvStudent(legacyStudents, identity);
+        matchesByKey.set(key, match);
+        if (!match.studentId) continue;
+        const previous = claimedIds.get(match.studentId);
+        if (previous) {
+          previous.ambiguous = true;
+          match.ambiguous = true;
+        }
+        claimedIds.set(match.studentId, match);
       }
       const explicitCourseIndex = /* @__PURE__ */ new Map();
       const registerUniqueCourseKey = (index, key, courseId) => {
@@ -8729,10 +8930,10 @@ body.theme-dark .course-color-picker__preview {
       let createdStudents = 0;
       let createdEnrollments = 0;
       const createdStudentIds = /* @__PURE__ */ new Set();
+      const createdWithoutId = [];
       const createdEnrollmentKeys = /* @__PURE__ */ new Set();
       const csvCourseContexts = /* @__PURE__ */ new Map();
       const csvEnrollmentWrittenFlags = /* @__PURE__ */ new Map();
-      const seenStudentSKey = /* @__PURE__ */ new Map();
       for (const row of dataLines) {
         const lineNum = row.line;
         const rawParts = Array.isArray(row.fields) ? row.fields : [];
@@ -8849,7 +9050,7 @@ body.theme-dark .course-color-picker__preview {
           studentId = csvStudentMap.get(csvStudentKey);
           if (!lastName || !firstName) errors.push({ line: lineNum, issues: ["Vorname oder Nachname fehlt."] });
           pendingCreatedStudentUpdate = { lastName, firstName, birthDate: birthDate || "", homeClass };
-          const mappedStudent = importCandidate.students.find((item) => item.id === studentId);
+          const mappedStudent = studentsById.get(studentId);
           const identityConflicts = validateCsvStudentIdentity(mappedStudent, pendingCreatedStudentUpdate);
           if (identityConflicts.length > 0) {
             errors.push({
@@ -8865,27 +9066,22 @@ body.theme-dark .course-color-picker__preview {
           const matchingLastName = consolidatedIdentity.lastName || lastName;
           const matchingFirstName = consolidatedIdentity.firstName || firstName;
           const matchingBirthDate = consolidatedIdentity.birthDate || birthDate || "";
-          const studentKey = normLower(matchingLastName) + "|" + normLower(matchingFirstName) + "|" + matchingBirthDate;
-          if (studentIndex.has(studentKey)) {
-            studentId = studentIndex.get(studentKey);
-            if (!studentId) {
-              errors.push({ line: lineNum, issues: ["Ungültige CSV-Schüleridentität: Die SchuelerID passt zu mehreren vorhandenen Personen."], fatal: true });
-              continue;
-            }
-          } else if (csvStudentKey) {
-            const compatible = findCompatibleCsvStudent(importCandidate.students, {
-              lastName: matchingLastName,
-              firstName: matchingFirstName,
-              birthDate: matchingBirthDate
-            });
-            if (compatible.ambiguous) {
-              errors.push({ line: lineNum, issues: ["Ungültige CSV-Schüleridentität: Die SchuelerID passt zu mehreren vorhandenen Personen."], fatal: true });
-              continue;
-            }
-            studentId = compatible.studentId;
-          } else if (seenStudentSKey.has(studentKey)) {
-            studentId = seenStudentSKey.get(studentKey);
-            errors.push({ line: lineNum, issues: ["Duplikat in der CSV; die Zeile wird mit dem ersten Eintrag zusammengeführt."] });
+          const identity = { lastName: matchingLastName, firstName: matchingFirstName, birthDate: matchingBirthDate };
+          const signature = identityKey(identity);
+          const known = matchesByKey.get(csvStudentKey);
+          const matches = known && (known.studentId || known.ambiguous) ? known : findCompatibleCsvStudent(
+            csvStudentKey ? createdWithoutId.filter((student) => !student.importKey) : peopleByIdentity.get(signature),
+            identity
+          );
+          if (matches.ambiguous || !csvStudentKey && csvKeysByIdentity.get(signature)?.length > 1) {
+            errors.push({ line: lineNum, issues: ["Ungültige CSV-Schüleridentität: Keine eindeutige Zuordnung bei mehreren Kennungen oder mehreren vorhandenen Personen."], fatal: true });
+            continue;
+          }
+          studentId = matches.studentId;
+          const matchedStudent = studentsById.get(studentId);
+          if (matchedStudent && validateCsvStudentIdentity(matchedStudent, identity).length) {
+            errors.push({ line: lineNum, issues: ["Ungültige CSV-Schüleridentität: Die Identitätsfelder widersprechen der vorhandenen SchuelerID."], fatal: true });
+            continue;
           }
           const rowIssues = errors.slice(errorsBeforeRow).filter((entry) => entry.line === lineNum);
           const mayCreateFromConsolidatedIdentity = csvStudentKey && consolidatedIdentity.lastName && consolidatedIdentity.firstName && rowIssues.length > 0 && rowIssues.every((entry) => entry.fatal !== true && (entry.issues || []).every((issue) => issue === "Vorname oder Nachname fehlt."));
@@ -8897,14 +9093,19 @@ body.theme-dark .course-color-picker__preview {
               homeClass
             });
             DomainModel2.addStudentToState(importCandidate, student);
+            if (csvStudentKey) student.importKey = csvStudentKey;
+            else createdWithoutId.push(student);
+            collect(peopleByIdentity, signature, student);
             studentId = student.id;
-            studentIndex.set(studentKey, studentId);
-            seenStudentSKey.set(studentKey, studentId);
-            if (csvStudentKey) csvStudentMap.set(csvStudentKey, studentId);
+            studentsById.set(studentId, student);
             createdStudents++;
             createdStudentIds.add(studentId);
           }
-          if (csvStudentKey && studentId) csvStudentMap.set(csvStudentKey, studentId);
+          if (csvStudentKey && studentId) {
+            csvStudentMap.set(csvStudentKey, studentId);
+            if (matchedStudent && !matchedStudent.importKey && matchedStudent.id !== csvStudentKey) matchedStudent.importKey = csvStudentKey;
+            if (matchedStudent) pendingCreatedStudentUpdate = { ...identity, homeClass };
+          }
         }
         if (courseId && studentId) {
           const enrollmentKey = JSON.stringify([courseId, studentId]);
@@ -8933,20 +9134,19 @@ body.theme-dark .course-color-picker__preview {
         } else if (studentId && !courseId) {
           errors.push({ line: lineNum, issues: ["Kein Kurs ermittelt oder angegeben; die Person wurde nicht eingeschrieben."] });
         }
-        if (pendingCreatedStudentUpdate && errors.length === errorsBeforeRow) {
-          const studentBeforeUpdate = importCandidate.students.find((item) => item.id === studentId);
-          const previousStudentKey = studentBeforeUpdate ? normLower(studentBeforeUpdate.lastName) + "|" + normLower(studentBeforeUpdate.firstName) + "|" + norm(studentBeforeUpdate.birthDate) : null;
-          const updatedStudent = updateStudentCreatedInCurrentCsv(importCandidate, createdStudentIds, studentId, pendingCreatedStudentUpdate);
-          if (updatedStudent) {
-            const updatedStudentKey = normLower(updatedStudent.lastName) + "|" + normLower(updatedStudent.firstName) + "|" + norm(updatedStudent.birthDate);
-            if (previousStudentKey && previousStudentKey !== updatedStudentKey && studentIndex.get(previousStudentKey) === studentId) studentIndex.delete(previousStudentKey);
-            studentIndex.set(updatedStudentKey, studentId);
-            seenStudentSKey.set(updatedStudentKey, studentId);
-            if (courseId && updatedStudent.homeClass && createdEnrollmentKeys.has(JSON.stringify([courseId, studentId]))) {
-              const course = importCandidate.courses.find((item) => item.id === courseId);
-              const enrollment = course && (course.enrollments || []).find((item) => item.studentId === studentId);
-              if (enrollment) enrollment.homeClassAtEnrollment = updatedStudent.homeClass;
-            }
+        if (pendingCreatedStudentUpdate && createdStudentIds.has(studentId) && errors.length === errorsBeforeRow) {
+          const student = studentsById.get(studentId);
+          const before = identityKey(student);
+          completeCreatedStudent(student, pendingCreatedStudentUpdate);
+          const after = identityKey(student);
+          if (before !== after) {
+            peopleByIdentity.set(before, peopleByIdentity.get(before).filter((item) => item !== student));
+            collect(peopleByIdentity, after, student);
+          }
+          if (courseId && student.homeClass && createdEnrollmentKeys.has(JSON.stringify([courseId, studentId]))) {
+            const course = importCandidate.courses.find((item) => item.id === courseId);
+            const enrollment = course && (course.enrollments || []).find((item) => item.studentId === studentId);
+            if (enrollment) enrollment.homeClassAtEnrollment = student.homeClass;
           }
         }
       }
@@ -12953,10 +13153,11 @@ body.theme-dark .course-color-picker__preview {
 
   // src/transfer/import-merge.js
   function createImportMerge({ ensureStateShape: ensureStateShape2, createEmptyState: createEmptyState2, generateId: generateId2 }) {
-    function mergeImportedStateIntoCurrent2(base, incoming) {
+    function mergeImportedStateIntoCurrent2(base, incoming, singleArchivePredecessor) {
       const clone = (value) => JSON.parse(JSON.stringify(value));
       const rawBase = clone(base || createEmptyState2());
       const rawIncoming = clone(incoming);
+      supplementMissingImportPeriods(rawIncoming, rawBase);
       const identityPreflight = validateMergeIdentityPreflight(rawBase, rawIncoming);
       const result = ensureStateShape2(rawBase);
       incoming = ensureStateShape2(rawIncoming);
@@ -13067,20 +13268,49 @@ body.theme-dark .course-color-picker__preview {
         snapshot: remapSnapshotEnrollments(entry.snapshot)
       }));
       const courseIdMap = /* @__PURE__ */ new Map();
+      function mapArchiveRestoreReferences(course) {
+        const previous = course.archiveRestoreReferences || {};
+        const categories = [];
+        for (const category of course.archiveSnapshot.categories) {
+          const prior = previous.categories?.find((entry) => entry.id === category.id);
+          const sourceId = prior?.targetId || category.id;
+          const targetId = categoryIdMap.get(sourceId) || sourceId;
+          const subcategories = [];
+          for (const sub of category.subcategories || []) {
+            const sourceSubId = prior?.subcategories?.find((entry) => entry.id === sub.id)?.targetId || sub.id;
+            const targetSubId = subcategoryIdMap.get(sourceId + "|" + sourceSubId) || sourceSubId;
+            if (targetSubId !== sub.id) subcategories.push({ id: sub.id, targetId: targetSubId });
+          }
+          if (category.id !== targetId || subcategories.length) categories.push({ id: category.id, targetId, subcategories });
+        }
+        const sourceTemplateId = previous.weightTemplateId || course.weightTemplateId;
+        const weightTemplateId = weightTemplateIdMap.get(sourceTemplateId) || sourceTemplateId;
+        return categories.length || weightTemplateId !== course.weightTemplateId ? { categories, weightTemplateId } : null;
+      }
       const coursesAddedByThisMerge = /* @__PURE__ */ new Set();
       const coursesById = new Map((result.courses || []).map((c) => [c.id, c]));
       const isExistingLocalArchive = (course) => !!(course && course.archivedAt && !coursesAddedByThisMerge.has(course.id));
-      const courseMergeScope = (c) => [
-        c.schemaMode || "",
-        Number.isInteger(Number(c.schoolYearStartYear)) ? String(Number(c.schoolYearStartYear)) : "",
-        !!c.archivedAt
-      ].join("|");
+      const courseMergeScope = (course) => courseImportScope(result, course);
       const coursesByImportKey = new Map((result.courses || []).filter((c) => c.importKey).map((c) => [norm(c.importKey) + "|" + courseMergeScope(c), c]));
       for (const course of incoming.courses || []) {
         const plannedTargetId = identityPreflight.courseTargetIds.get(course.id);
         let target = coursesById.get(plannedTargetId) || null;
+        const isActiveUpperSec = !course.archivedAt && course.schemaMode === SCHEMA_MODES.UPPERSEC;
+        const mappedWrittenRole = isActiveUpperSec ? categoryIdMap.get(resolveUpperSecWrittenCategoryId(incoming.settings, course)) || null : null;
         if (!target) {
           target = clone(course);
+          const sourceYear = effectiveCourseYear(incoming, course);
+          if (!target.schoolYearStartYear && sourceYear !== effectiveCourseYear(result, target)) {
+            target.schoolYearStartYear = sourceYear;
+          }
+          if (course.archivedAt) {
+            const restoreReferences = mapArchiveRestoreReferences(course);
+            if (restoreReferences) target.archiveRestoreReferences = restoreReferences;
+            else delete target.archiveRestoreReferences;
+          }
+          if (isActiveUpperSec && (course.categoryRoles || mappedWrittenRole !== resolveUpperSecWrittenCategoryId(result.settings))) {
+            target.categoryRoles = { upperSecWrittenCategoryId: mappedWrittenRole };
+          }
           target.carriedForwardFromCourseId = null;
           target.enrollments = [];
           target.termResults = [];
@@ -13089,7 +13319,7 @@ body.theme-dark .course-color-picker__preview {
           coursesById.set(target.id, target);
           coursesAddedByThisMerge.add(target.id);
           summary.coursesAdded++;
-        } else if (JSON.stringify(target.upperSecContext || null) !== JSON.stringify(course.upperSecContext || null)) {
+        } else if (JSON.stringify(target.upperSecContext || null) !== JSON.stringify(course.upperSecContext || null) || isActiveUpperSec && mappedWrittenRole !== resolveUpperSecWrittenCategoryId(result.settings, target)) {
           summary.upperSecContextConflicts++;
         }
         const incomingImportKey = course.importKey ? norm(course.importKey) + "|" + courseMergeScope(target) : "";
@@ -13170,6 +13400,9 @@ body.theme-dark .course-color-picker__preview {
       }
       for (const incomingCourse of incoming.courses || []) {
         const targetCourse = coursesById.get(courseIdMap.get(incomingCourse.id));
+        if (singleArchivePredecessor && targetCourse?.archivedAt && coursesAddedByThisMerge.has(targetCourse.id) && coursesById.has(singleArchivePredecessor) && singleArchivePredecessor !== targetCourse.id) {
+          targetCourse.carriedForwardFromCourseId = singleArchivePredecessor;
+        }
         if (!targetCourse || !incomingCourse.carriedForwardFromCourseId) continue;
         const mappedPredecessorId = courseIdMap.get(incomingCourse.carriedForwardFromCourseId);
         if (!mappedPredecessorId) continue;
@@ -13244,6 +13477,10 @@ body.theme-dark .course-color-picker__preview {
         const mappedCategoryId = isNewImportedArchive ? assessment.categoryId : categoryIdMap.get(assessment.categoryId) || assessment.categoryId;
         const mappedSubcategoryId = isNewImportedArchive ? assessment.subcategoryId || null : assessment.subcategoryId ? subcategoryIdMap.get(assessment.categoryId + "|" + assessment.subcategoryId) || assessment.subcategoryId : null;
         const probe = { ...assessment, courseId: mappedCourseId, categoryId: mappedCategoryId, subcategoryId: mappedSubcategoryId };
+        if (!mappedCourse.archivedAt && probe.termAssignment === "auto" && probe.date) {
+          const date = parseAssessmentDateValue(probe.date);
+          if (date) probe.term = resolveAssessmentTermFromDateValue(date, mappedCourse, result.settings);
+        }
         let target = assessmentsById.get(assessment.id);
         if (!target) {
           target = clone(probe);
@@ -14386,9 +14623,9 @@ body.theme-dark .course-color-picker__preview {
   var DISPLAY_LOCALE = "de-DE";
   var DISPLAY_TIME_ZONE = Intl.DateTimeFormat().resolvedOptions().timeZone;
   var APP_RELEASE = Object.freeze({
-    version: "1.7.2",
-    dateIso: "2026-11-04",
-    dateLabel: "04.11.2026"
+    version: "1.7.3",
+    dateIso: "2026-11-20",
+    dateLabel: "20.11.2026"
   });
   window.promptText = function(opts) {
     opts = opts || {};
@@ -15164,6 +15401,14 @@ body.theme-dark .course-color-picker__preview {
       if (nextSchemaMode === DomainModel.SCHEMA_MODES.UPPERSEC && (!nextContext || !nextContext.courseType || !nextContext.qualificationYear)) {
         throw new Error("Bitte Kursart und Qualifikationsabschnitt vollständig auswählen.");
       }
+      if (currentCourse.schemaMode !== nextSchemaMode) {
+        const hasScores = DomainModel.listAssessmentsForCourse(candidate, courseId).some((assessment) => Object.values(assessment.scores || {}).some((score) => score && (Number.isFinite(score.valueNumeric) || String(score.valueRaw ?? "").trim() !== "")));
+        if (currentCourse.termResults?.length || hasScores) {
+          const error = new Error("Der Kurs enthält Einzelbewertungen oder festgesetzte Halbjahresergebnisse. Das Bewertungsschema muss erhalten bleiben.");
+          error.code = "COURSE_SCHEMA_HAS_RESULTS";
+          throw error;
+        }
+      }
       currentCourse.schemaMode = nextSchemaMode;
       currentCourse.upperSecContext = nextContext;
       currentCourse.includePrevTermGrades = nextSchemaMode === DomainModel.SCHEMA_MODES.GRADES;
@@ -15347,6 +15592,10 @@ body.theme-dark .course-color-picker__preview {
           const confirmedState = typeof readState === "function" ? readState() : null;
           const confirmedCourse = confirmedState && DomainModel.findCourseById(confirmedState, courseId);
           pendingSchemaMode = confirmedCourse ? confirmedCourse.schemaMode : pendingSchemaMode;
+          if (error.code === "COURSE_SCHEMA_HAS_RESULTS" && confirmedCourse) {
+            schemaSelect.value = confirmedCourse.schemaMode;
+            clearContextEditor();
+          }
           showError(error);
           return null;
         });
@@ -15465,8 +15714,9 @@ body.theme-dark .course-color-picker__preview {
     }
     function findNextGradesheetInput(inputs, currentInput, key) {
       const list = Array.from(inputs || []).filter(function(input) {
+        if (input.disabled) return false;
         for (let node = input; node; node = node.parentNode) {
-          if (node.hidden) return false;
+          if (node.hidden || node.classList?.contains("hidden")) return false;
         }
         return true;
       });
@@ -15615,11 +15865,11 @@ body.theme-dark .course-color-picker__preview {
     function recalcAssessmentTermsForCurrentState(state, courseId = null) {
       if (!state || !Array.isArray(state.assessments)) return;
       for (const asm of state.assessments) {
-        if (!asm || asm.termAssignment !== "auto") continue;
+        if (!asm || asm.termAssignment !== "auto" || !asm.date) continue;
         if (courseId && asm.courseId !== courseId) continue;
         const course = state.courses.find((c) => c.id === asm.courseId);
         if (!course || course.archivedAt) continue;
-        const sourceDate = asm.date ? parseHalfYearDateValue(asm.date) : /* @__PURE__ */ new Date();
+        const sourceDate = parseHalfYearDateValue(asm.date);
         if (!sourceDate) continue;
         const termVal = resolveAssessmentTermFromDateValue2(sourceDate, course, state.settings);
         if (termVal && termVal !== asm.term) {
@@ -19129,7 +19379,8 @@ body.theme-dark .course-color-picker__preview {
                 const archiveState = {
                   version: state.version,
                   students: (state.students || []).filter((s) => studentIds.has(s.id)),
-                  courses: [archived],
+                  courses: [{ ...archived, carriedForwardFromCourseId: null }],
+                  ...archived.carriedForwardFromCourseId ? { archiveExport: { predecessorId: archived.carriedForwardFromCourseId } } : {},
                   assessments: archivedAssessments,
                   settings: state.settings
                 };
@@ -19513,33 +19764,11 @@ body.theme-dark .course-color-picker__preview {
         return null;
       }
       function filterPdfAssessments(allAssessments, course, selectedTerm = null, currentTermForCourse = null, deriveTermForDate = null) {
-        const assessments = Array.isArray(allAssessments) ? allAssessments : [];
-        return assessments.filter((assessment) => {
-          if (!assessment || assessment.courseId !== course.id) return false;
-          if (assessment.visible === false) return false;
-          if (!selectedTerm) return true;
-          const assessmentTerm = getAssessmentTerm(assessment, course, deriveTermForDate) || currentTermForCourse;
-          return assessmentTerm === selectedTerm;
-        });
+        return filterPdfOverallAssessments(allAssessments, course, null).filter((assessment) => assessment.visible !== false && (!selectedTerm || (getAssessmentTerm(assessment, course, deriveTermForDate) || currentTermForCourse) === selectedTerm));
       }
       function filterPdfOverallAssessments(allAssessments, course, selectedTerm = null, currentTermForCourse = null, deriveTermForDate = null) {
-        const selectedAssessments = filterPdfAssessments(
-          allAssessments,
-          course,
-          selectedTerm,
-          currentTermForCourse,
-          deriveTermForDate
-        );
-        if (!selectedTerm) return selectedAssessments;
-        const resultTerms = GradingLogic.resolveAssessmentTermsForResult(course, selectedTerm);
-        if (resultTerms.length <= 1) return selectedAssessments;
-        return resultTerms.flatMap((term) => filterPdfAssessments(
-          allAssessments,
-          course,
-          term,
-          currentTermForCourse,
-          deriveTermForDate
-        ));
+        const resultTerms = selectedTerm && GradingLogic.resolveAssessmentTermsForResult(course, selectedTerm);
+        return (Array.isArray(allAssessments) ? allAssessments : []).filter((assessment) => assessment && assessment.courseId === course.id && (!resultTerms || resultTerms.includes(getAssessmentTerm(assessment, course, deriveTermForDate) || currentTermForCourse)));
       }
       function buildUpperSecResultPresentation(course, studentId, term, calculatedValue) {
         const calculatedText = formatLegacyFixed(calculatedValue, 2) ?? "–";
@@ -19597,7 +19826,7 @@ body.theme-dark .course-color-picker__preview {
         return {
           courseTypeLabel: courseTypeLabels[(evaluationCourse.upperSecContext || {}).courseType] || "Kontext unvollständig",
           qualificationPhase: gradingContext.qualificationPhase || "–",
-          examRequirementLabel: gradingContext.expectedExamCount === 0 ? "nur allgemeiner Teil" : gradingContext.expectedExamCount === null ? "Klausurzahl prüfen" : "Klausur vorgesehen",
+          examRequirementLabel: gradingContext.expectedExamCount === 0 ? gradingContext.status === "general-only" ? "nur allgemeiner Teil" : gradingContext.message : gradingContext.expectedExamCount === null ? "Klausurzahl prüfen" : "Klausur vorgesehen",
           manualDecisionWarning: assessmentWarning ? assessmentWarning.message : null,
           ...resultPresentation
         };
@@ -19648,22 +19877,10 @@ body.theme-dark .course-color-picker__preview {
                   const evaluationSettings = getEvaluationSettingsForCourse(course);
                   const currentTermForCourse = deriveTermFromDateValue(/* @__PURE__ */ new Date(), course) || null;
                   const allAssessments = state.assessments || [];
-                  const asms = filterPdfAssessments(
-                    allAssessments,
-                    course,
-                    selectedTerm,
-                    currentTermForCourse,
-                    deriveTermFromDateValue
-                  );
                   if (!selectedTerm) {
                     const termAssessmentsMap = /* @__PURE__ */ new Map();
-                    for (const asm of asms) {
-                      let termValue = asm.term || null;
-                      if (!termValue && asm.date) {
-                        const d = new Date(asm.date);
-                        if (!isNaN(d)) termValue = deriveTermFromDateValue(d, course);
-                      }
-                      if (!termValue) termValue = "no-term";
+                    for (const asm of filterPdfOverallAssessments(allAssessments, course)) {
+                      const termValue = getAssessmentTerm(asm, course, deriveTermFromDateValue) || "no-term";
                       if (!termAssessmentsMap.has(termValue)) termAssessmentsMap.set(termValue, []);
                       termAssessmentsMap.get(termValue).push(asm);
                     }
@@ -19681,7 +19898,7 @@ body.theme-dark .course-color-picker__preview {
                     const sortedTerms = Array.from(termAssessmentsMap.keys()).sort().reverse();
                     for (const termKey of sortedTerms) {
                       const termsAssms = termAssessmentsMap.get(termKey);
-                      const assessmentsData = termsAssms.map((asm) => {
+                      const assessmentsData = termsAssms.filter((asm) => asm.visible !== false).map((asm) => {
                         let catName = "–";
                         if (asm.categoryId) {
                           const cat = (evaluationSettings.categories || []).find((c) => c.id === asm.categoryId);
@@ -19741,21 +19958,9 @@ body.theme-dark .course-color-picker__preview {
                       assessmentsByTerm
                     });
                   } else {
-                    let overall = null;
-                    let termOverall = null;
-                    try {
-                      const overallAssessments = filterPdfOverallAssessments(
-                        state.assessments || [],
-                        course,
-                        selectedTerm,
-                        currentTermForCourse,
-                        deriveTermFromDateValue
-                      );
-                      overall = computeReportOverallForAssessments(overallAssessments, course, student.id, evaluationSettings, selectedTerm);
-                      termOverall = computeReportOverallForAssessments(asms, course, student.id, evaluationSettings, selectedTerm);
-                    } catch (e) {
-                    }
-                    const schoolYearResult = GradingLogic.isSchoolYearResultTerm(course, selectedTerm);
+                    const asms = filterPdfAssessments(allAssessments, course, selectedTerm, currentTermForCourse, deriveTermFromDateValue);
+                    const overallAssessments = filterPdfOverallAssessments(allAssessments, course, selectedTerm, currentTermForCourse, deriveTermFromDateValue);
+                    const overall = computeReportOverallForAssessments(overallAssessments, course, student.id, evaluationSettings, selectedTerm);
                     const assessmentsData = asms.map((asm) => {
                       let catName = "–";
                       if (asm.categoryId) {
@@ -19788,12 +19993,10 @@ body.theme-dark .course-color-picker__preview {
                       name: course.name || "Kurs",
                       classLabel: course.classLabel || "",
                       assessments: assessmentsData,
-                      overall: schoolYearResult ? overall : termOverall,
-                      overallIsPoor: (schoolYearResult ? overall : termOverall) != null && isPoorValue(course, schoolYearResult ? overall : termOverall),
+                      overall,
+                      overallIsPoor: overall != null && isPoorValue(course, overall),
                       overallLabel: getStudentDetailOverallLabel(course, selectedTerm),
-                      presentation: course.schemaMode === DomainModel.SCHEMA_MODES.UPPERSEC ? buildUpperSecContextPresentation(course, student.id, selectedTerm, state) : null,
-                      combinedOverall: null,
-                      combinedOverallIsPoor: overall != null && isPoorValue(course, overall)
+                      presentation: course.schemaMode === DomainModel.SCHEMA_MODES.UPPERSEC ? buildUpperSecContextPresentation(course, student.id, selectedTerm, state) : null
                     });
                   }
                 }
@@ -19815,7 +20018,7 @@ body.theme-dark .course-color-picker__preview {
                       sectionHtml += `<h3>${escapeHtml(termData.termLabel)}</h3>
 `;
                       if (termData.assessments.length === 0) {
-                        sectionHtml += '<p style="font-size:10pt; color:#666;">Keine Noten in diesem Halbjahr.</p>\n';
+                        sectionHtml += '<p style="font-size:10pt; color:#666;">Keine Einzelnoten zur Anzeige.</p>\n';
                       } else {
                         sectionHtml += "<table>\n";
                         sectionHtml += "<thead><tr>";
@@ -19852,7 +20055,7 @@ body.theme-dark .course-color-picker__preview {
                     }
                   } else {
                     if (courseData.assessments.length === 0) {
-                      sectionHtml += '<p style="font-size:10pt; color:#666;">Noch keine Noten eingetragen.</p>\n';
+                      sectionHtml += '<p style="font-size:10pt; color:#666;">Keine Einzelnoten zur Anzeige.</p>\n';
                     } else {
                       sectionHtml += "<table>\n";
                       sectionHtml += "<thead><tr>";
@@ -19877,7 +20080,7 @@ body.theme-dark .course-color-picker__preview {
                     const overallClass = courseData.overallIsPoor ? ' class="poor-grade"' : "";
                     sectionHtml += `<div class="overall-grade"${overallClass}>`;
                     if (courseData.presentation) {
-                      sectionHtml += `${courseData.presentation.calculatedLabel}: ${courseData.presentation.calculatedText}`;
+                      sectionHtml += `${courseData.presentation.qualificationPhase}, ${courseData.presentation.courseTypeLabel}, ${courseData.presentation.examRequirementLabel}: ${courseData.presentation.calculatedLabel}: ${courseData.presentation.calculatedText}`;
                     } else if (courseData.overall != null && Number.isFinite(courseData.overall)) {
                       sectionHtml += `${escapeHtml(courseData.overallLabel || "Gesamtnote/-punkte")}: ${formatLegacyFixed(courseData.overall, 2)}`;
                     } else {
@@ -19886,11 +20089,6 @@ body.theme-dark .course-color-picker__preview {
                     sectionHtml += "</div>\n";
                     if (courseData.presentation && Number.isInteger(courseData.presentation.finalizedPoints)) {
                       sectionHtml += `<div class="overall-grade">${courseData.presentation.finalizedLabel}: ${courseData.presentation.finalizedPoints}</div>
-`;
-                    }
-                    if (courseData.presentation && courseData.combinedOverall != null && Number.isFinite(courseData.combinedOverall)) {
-                      const combinedClass = courseData.combinedOverallIsPoor ? ' class="poor-grade overall-grade"' : ' class="overall-grade"';
-                      sectionHtml += `<div${combinedClass}>Rechenwert inkl. Vorhalbjahr: ${formatLegacyFixed(courseData.combinedOverall, 2)}</div>
 `;
                     }
                   }
@@ -20473,7 +20671,7 @@ ${buildPrintHeaderCss()}
             detailPrintScope.appendChild(detailPrintFilterHint);
             const detailPrintVisibilityHint = document.createElement("p");
             detailPrintVisibilityHint.className = "students-print-scope-hint";
-            detailPrintVisibilityHint.textContent = "Nur für PDF-Berichte freigegebene Leistungen werden ausgegeben.";
+            detailPrintVisibilityHint.textContent = "Nur für PDF-Berichte freigegebene Leistungen werden einzeln aufgeführt. Ausgeblendete Einzelleistungen zählen zum ausgewiesenen Leistungsstand.";
             detailPrintScope.appendChild(detailPrintVisibilityHint);
             function updateDetailPrintScope() {
               detailPrintPerson.textContent = "Person: " + (student.lastName || "") + (student.lastName && student.firstName ? ", " : "") + (student.firstName || "");
@@ -20655,17 +20853,22 @@ ${buildPrintHeaderCss()}
                   saveBtn.textContent = "Speichern";
                   saveBtn.addEventListener("click", async function() {
                     if (saveBtn.disabled) return;
+                    const values = {
+                      lastName: (lastInput.value || "").trim(),
+                      firstName: (firstInput.value || "").trim(),
+                      birthDate: (birthInput.value || "").trim() || null,
+                      homeClass: (classInputInline.value || "").trim()
+                    };
+                    if (!values.lastName && !values.firstName) {
+                      window.alert("Bitte mindestens Nachname oder Vorname angeben.");
+                      lastInput.focus();
+                      return;
+                    }
                     saveBtn.disabled = true;
                     cancelBtn.disabled = true;
                     existingDelete.disabled = true;
                     try {
                       const studentId = stu.id;
-                      const values = {
-                        lastName: (lastInput.value || "").trim(),
-                        firstName: (firstInput.value || "").trim(),
-                        birthDate: (birthInput.value || "").trim() || null,
-                        homeClass: (classInputInline.value || "").trim()
-                      };
                       await commitStateChange(function(candidate) {
                         const candidateStudent = requireStudent(candidate, studentId);
                         Object.assign(candidateStudent, values);
@@ -20895,7 +21098,7 @@ ${buildPrintHeaderCss()}
           massPrintScope.appendChild(massPrintTerm);
           const massPrintHint = document.createElement("p");
           massPrintHint.className = "students-print-scope-hint";
-          massPrintHint.textContent = "Nur für PDF-Berichte freigegebene Leistungen werden ausgegeben.";
+          massPrintHint.textContent = "Nur für PDF-Berichte freigegebene Leistungen werden einzeln aufgeführt. Ausgeblendete Einzelleistungen zählen zum ausgewiesenen Leistungsstand.";
           massPrintScope.appendChild(massPrintHint);
           massPrintBody.appendChild(massPrintScope);
           const massPrintBtn = document.createElement("button");
@@ -20924,27 +21127,19 @@ ${buildPrintHeaderCss()}
                   const evaluationSettings = getEvaluationSettingsForCourse(course);
                   const currentTermForCourse = deriveTermFromDateValue(/* @__PURE__ */ new Date(), course) || null;
                   const allAssessments = state.assessments || [];
-                  const asms = filterPdfAssessments(
+                  const termAssessmentsMap = /* @__PURE__ */ new Map();
+                  const resultAssessments = filterPdfOverallAssessments(
                     allAssessments,
                     course,
                     selectedTerm,
                     currentTermForCourse,
                     deriveTermFromDateValue
                   );
-                  const termAssessmentsMap = /* @__PURE__ */ new Map();
-                  for (const asm of asms) {
-                    let termValue = asm.term || null;
-                    if (!termValue && asm.date) {
-                      const d = new Date(asm.date);
-                      if (!isNaN(d)) {
-                        termValue = deriveTermFromDateValue(d, course);
-                      }
-                    }
-                    if (!termValue) termValue = "no-term";
-                    if (!termAssessmentsMap.has(termValue)) {
-                      termAssessmentsMap.set(termValue, []);
-                    }
-                    termAssessmentsMap.get(termValue).push(asm);
+                  for (const asm of resultAssessments) {
+                    const termValue = getAssessmentTerm(asm, course, deriveTermFromDateValue) || selectedTerm && currentTermForCourse || "no-term";
+                    const reportTerm = selectedTerm || termValue;
+                    if (!termAssessmentsMap.has(reportTerm)) termAssessmentsMap.set(reportTerm, []);
+                    if (termValue === reportTerm) termAssessmentsMap.get(reportTerm).push(asm);
                   }
                   if (course.schemaMode === DomainModel.SCHEMA_MODES.UPPERSEC) {
                     const reportedTerms = listReportedTermsForStudent(
@@ -20960,7 +21155,7 @@ ${buildPrintHeaderCss()}
                   const sortedTerms = Array.from(termAssessmentsMap.keys()).sort().reverse();
                   for (const termKey of sortedTerms) {
                     const termsAssms = termAssessmentsMap.get(termKey);
-                    const assessmentsData = termsAssms.map((asm) => {
+                    const assessmentsData = termsAssms.filter((asm) => asm.visible !== false).map((asm) => {
                       let catName = "–";
                       if (asm.categoryId) {
                         const cat = (evaluationSettings.categories || []).find((c) => c.id === asm.categoryId);
@@ -21000,7 +21195,7 @@ ${buildPrintHeaderCss()}
                     });
                     let termOverall = null;
                     try {
-                      const resultAssessments = termKey !== "no-term" ? filterPdfOverallAssessments(
+                      const resultAssessments2 = termKey !== "no-term" ? filterPdfOverallAssessments(
                         allAssessments,
                         course,
                         termKey,
@@ -21008,7 +21203,7 @@ ${buildPrintHeaderCss()}
                         deriveTermFromDateValue
                       ) : termsAssms;
                       termOverall = computeReportOverallForAssessments(
-                        resultAssessments,
+                        resultAssessments2,
                         course,
                         student.id,
                         evaluationSettings,
@@ -21030,37 +21225,12 @@ ${buildPrintHeaderCss()}
                       presentation: course.schemaMode === DomainModel.SCHEMA_MODES.UPPERSEC ? buildUpperSecContextPresentation(course, student.id, termKey !== "no-term" ? termKey : null, state) : null
                     });
                   }
-                  let combinedOverall = null;
-                  if (selectedTerm && GradingLogic.isSchoolYearResultTerm(course, selectedTerm)) {
-                    try {
-                      const overallAssessments = filterPdfOverallAssessments(
-                        allAssessments,
-                        course,
-                        selectedTerm,
-                        currentTermForCourse,
-                        deriveTermFromDateValue
-                      );
-                      combinedOverall = computeReportOverallForAssessments(
-                        overallAssessments,
-                        course,
-                        student.id,
-                        evaluationSettings,
-                        selectedTerm
-                      );
-                    } catch (e) {
-                    }
-                  }
-                  if (assessmentsByTerm.length > 0 || course.archivedAt) {
-                    coursesData.push({
-                      name: course.name || "Kurs",
-                      classLabel: course.classLabel || "",
-                      isArchived: !!course.archivedAt,
-                      assessmentsByTerm,
-                      combinedOverall,
-                      combinedOverallIsPoor: combinedOverall != null && isPoorValue(course, combinedOverall),
-                      upperSec: course.schemaMode === DomainModel.SCHEMA_MODES.UPPERSEC
-                    });
-                  }
+                  coursesData.push({
+                    name: course.name || "Kurs",
+                    classLabel: course.classLabel || "",
+                    isArchived: !!course.archivedAt,
+                    assessmentsByTerm
+                  });
                 }
                 allStudentsData.push({
                   lastName: student.lastName || "",
@@ -21179,13 +21349,13 @@ ${buildPrintHeaderCss()}
                     html += `</h2>
 `;
                     if (courseData.assessmentsByTerm.length === 0) {
-                      html += '<p style="font-size:10pt; color:#666;">Keine gespeicherten Leistungen; Archivzuordnung ist vorhanden.</p>\n';
+                      html += '<p style="font-size:10pt; color:#666;">Keine Einzelnoten zur Anzeige.</p>\n';
                     }
                     for (const termData of courseData.assessmentsByTerm) {
                       html += `<h3>${escapeHtml(termData.termLabel)}</h3>
 `;
                       if (termData.assessments.length === 0) {
-                        html += '<p style="font-size:10pt; color:#666;">Keine Noten für dieses Halbjahr.</p>\n';
+                        html += '<p style="font-size:10pt; color:#666;">Keine Einzelnoten zur Anzeige.</p>\n';
                       } else {
                         html += "<table>\n";
                         html += "<thead><tr>";
@@ -21219,12 +21389,6 @@ ${buildPrintHeaderCss()}
                         html += `<div class="term-average">${termData.presentation.finalizedLabel}: ${termData.presentation.finalizedPoints}</div>
 `;
                       }
-                    }
-                    if (courseData.combinedOverall != null && Number.isFinite(courseData.combinedOverall)) {
-                      const combinedAvgClass = courseData.combinedOverallIsPoor ? ' class="poor-grade term-average"' : ' class="term-average"';
-                      const combinedLabel = courseData.upperSec ? "Rechenwert inkl. Vorhalbjahr" : "Jahresgesamtnote (H1 + H2)";
-                      html += `<div${combinedAvgClass}>${combinedLabel}: ${formatLegacyFixed(courseData.combinedOverall, 2)}</div>
-`;
                     }
                   }
                 }
@@ -21678,10 +21842,15 @@ ${buildPrintHeaderCss()}
             await saveTermResultInput();
           });
           input.addEventListener("keydown", async function(event) {
-            if (event.key !== "Enter" && event.key !== "Tab") return;
+            if (event.key === "Tab") {
+              await saveTermResultInput();
+              return;
+            }
+            if (event.key !== "Enter") return;
             event.preventDefault();
+            const focusAtKeydown = document.activeElement;
             const saved = await saveTermResultInput();
-            if (!saved) return;
+            if (!saved || document.activeElement !== focusAtKeydown) return;
             const inputs = Array.from(document.querySelectorAll(
               ".gradesheet-input, .gradesheet-term-result-input:not([disabled])"
             ));
@@ -22139,28 +22308,15 @@ ${buildPrintHeaderCss()}
           }
         }
         let allowedTerms = [];
-        function editAssessment(assessment) {
+        function editAssessment(assessment, triggerButton) {
           assessment = DomainModel.findAssessmentById(state, assessment.id);
           if (!isAssessmentInManagementScope(assessment)) return;
-          const overlay = document.createElement("div");
-          overlay.style.position = "fixed";
-          overlay.style.top = "0";
-          overlay.style.left = "0";
-          overlay.style.width = "100%";
-          overlay.style.height = "100%";
-          overlay.style.background = "rgba(0,0,0,0.5)";
-          overlay.style.display = "flex";
-          overlay.style.alignItems = "center";
-          overlay.style.justifyContent = "center";
-          overlay.style.zIndex = "10000";
-          const dialog = document.createElement("div");
-          dialog.style.background = "var(--bg-card, #fff)";
-          dialog.style.padding = "1.5rem";
-          dialog.style.borderRadius = "8px";
-          dialog.style.minWidth = "400px";
-          dialog.style.maxWidth = "90%";
-          dialog.style.boxShadow = "0 4px 20px rgba(0,0,0,0.3)";
+          const dialog = document.createElement("dialog");
+          dialog.className = "gradesheet-assessment-dialog";
+          dialog.setAttribute("data-session-sensitive-overlay", "true");
+          dialog.setAttribute("aria-labelledby", "gradesheet-assessment-dialog-title");
           const title = document.createElement("h3");
+          title.id = "gradesheet-assessment-dialog-title";
           title.textContent = "Leistung bearbeiten";
           title.style.marginTop = "0";
           dialog.appendChild(title);
@@ -22171,6 +22327,8 @@ ${buildPrintHeaderCss()}
           catLabel.style.fontWeight = "600";
           dialog.appendChild(catLabel);
           const catSelect2 = document.createElement("select");
+          catSelect2.id = "gradesheet-edit-category";
+          catLabel.htmlFor = catSelect2.id;
           catSelect2.style.width = "100%";
           catSelect2.style.boxSizing = "border-box";
           catSelect2.style.marginTop = "0.3rem";
@@ -22191,6 +22349,8 @@ ${buildPrintHeaderCss()}
           subcatLabel.style.fontWeight = "600";
           dialog.appendChild(subcatLabel);
           const subcatSelect2 = document.createElement("select");
+          subcatSelect2.id = "gradesheet-edit-subcategory";
+          subcatLabel.htmlFor = subcatSelect2.id;
           subcatSelect2.style.width = "100%";
           subcatSelect2.style.boxSizing = "border-box";
           subcatSelect2.style.marginTop = "0.3rem";
@@ -22229,6 +22389,9 @@ ${buildPrintHeaderCss()}
           titleLabel.style.fontWeight = "600";
           dialog.appendChild(titleLabel);
           const titleInput2 = document.createElement("input");
+          titleInput2.id = "gradesheet-edit-title";
+          titleLabel.htmlFor = titleInput2.id;
+          titleInput2.autofocus = true;
           titleInput2.type = "text";
           titleInput2.value = assessment.title || "";
           titleInput2.style.width = "100%";
@@ -22242,6 +22405,8 @@ ${buildPrintHeaderCss()}
           dateLabel.style.fontWeight = "600";
           dialog.appendChild(dateLabel);
           const dateInput2 = document.createElement("input");
+          dateInput2.id = "gradesheet-edit-date";
+          dateLabel.htmlFor = dateInput2.id;
           dateInput2.type = "date";
           dateInput2.value = assessment.date || "";
           dateInput2.style.marginTop = "0.3rem";
@@ -22253,6 +22418,8 @@ ${buildPrintHeaderCss()}
           termLabel.style.fontWeight = "600";
           dialog.appendChild(termLabel);
           const termSelect2 = document.createElement("select");
+          termSelect2.id = "gradesheet-edit-term";
+          termLabel.htmlFor = termSelect2.id;
           termSelect2.style.width = "100%";
           termSelect2.style.boxSizing = "border-box";
           termSelect2.style.marginTop = "0.3rem";
@@ -22301,6 +22468,8 @@ ${buildPrintHeaderCss()}
           weightLabel2.style.fontWeight = "600";
           dialog.appendChild(weightLabel2);
           const weightInput2 = document.createElement("input");
+          weightInput2.id = "gradesheet-edit-weight";
+          weightLabel2.htmlFor = weightInput2.id;
           weightInput2.type = "number";
           weightInput2.step = "0.1";
           weightInput2.min = "0";
@@ -22320,21 +22489,19 @@ ${buildPrintHeaderCss()}
           visibleCheckbox2.id = "edit-visible-checkbox";
           const visibleText = document.createElement("span");
           visibleText.textContent = "In PDF-Berichten anzeigen";
+          visibleLabel2.title = "Ausgeblendete Einzelleistungen zählen zum ausgewiesenen Leistungsstand.";
           visibleText.style.fontWeight = "600";
           visibleLabel2.appendChild(visibleCheckbox2);
           visibleLabel2.appendChild(visibleText);
           dialog.appendChild(visibleLabel2);
           const visibleHint = document.createElement("div");
-          visibleHint.textContent = "Deaktivierte Leistungen bleiben in Notentabelle, Statistik und Berechnung enthalten, werden aber in Einzel- und Sammel-PDFs ausgeblendet.";
+          visibleHint.textContent = "Ausgeblendete Einzelleistungen zählen zum ausgewiesenen Leistungsstand. Ihre Einzelzeilen entfallen in Einzel- und Sammelberichten.";
           visibleHint.style.fontSize = "0.8rem";
           visibleHint.style.marginTop = "0.3rem";
           visibleHint.style.color = "var(--text-muted, #777)";
           dialog.appendChild(visibleHint);
           const btnRow = document.createElement("div");
-          btnRow.style.display = "flex";
-          btnRow.style.gap = "0.5rem";
-          btnRow.style.marginTop = "1.5rem";
-          btnRow.style.justifyContent = "flex-end";
+          btnRow.className = "gradesheet-assessment-dialog-actions";
           const saveBtn = document.createElement("button");
           saveBtn.textContent = "Speichern";
           saveBtn.type = "button";
@@ -22364,12 +22531,6 @@ ${buildPrintHeaderCss()}
               window.alert("Bitte eine gültige Vorauswahl wählen.");
               return;
             }
-            const assignmentDate = dateInput2.value ? parseHalfYearDateValue(dateInput2.value) : /* @__PURE__ */ new Date();
-            const resolvedTerm = automaticAssignment ? deriveTermFromDateValue(assignmentDate, course) : selTerm;
-            if (!resolvedTerm) {
-              window.alert("Das Halbjahr konnte nicht automatisch bestimmt werden.");
-              return;
-            }
             const newWeight = parseFloat(weightInput2.value.replace(",", "."));
             if (!Number.isFinite(newWeight) || newWeight < 0) {
               window.alert("Das Gewicht muss eine Zahl größer oder gleich 0 sein.");
@@ -22387,6 +22548,7 @@ ${buildPrintHeaderCss()}
               visible: visibleCheckbox2.checked
             };
             saveBtn.disabled = true;
+            cancelBtn.disabled = true;
             saveStatus.textContent = "";
             try {
               await commitStateChange(function(candidate) {
@@ -22401,8 +22563,10 @@ ${buildPrintHeaderCss()}
                 })) {
                   throw new Error("Die ausgewählte Unterkategorie ist nicht mehr verfügbar.");
                 }
-                const candidateDate = input.date ? parseHalfYearDateValue(input.date) : /* @__PURE__ */ new Date();
-                const candidateTerm = input.automaticAssignment ? GradingLogic.resolveAssessmentTermFromDateValue(candidateDate, candidateCourse, candidate.settings) : input.selectedTerm;
+                let candidateTerm = input.selectedTerm;
+                if (input.automaticAssignment) {
+                  candidateTerm = input.date ? GradingLogic.resolveAssessmentTermFromDateValue(parseHalfYearDateValue(input.date), candidateCourse, candidate.settings) : candidateAssessment.term;
+                }
                 if (!candidateTerm) throw new Error("Das Halbjahr konnte nicht bestimmt werden.");
                 candidateAssessment.categoryId = input.categoryId;
                 candidateAssessment.subcategoryId = input.subcategoryId;
@@ -22413,32 +22577,40 @@ ${buildPrintHeaderCss()}
                 candidateAssessment.weight = input.weight;
                 candidateAssessment.visible = input.visible;
               }, { render: false });
-              try {
-                document.body.removeChild(overlay);
-              } catch (e) {
-              }
               render();
+              const replacement = Array.from(document.querySelectorAll(".gradesheet-assessment-action")).find((button) => button.dataset.editAssessmentId === assessmentId);
+              const management = replacement?.closest("details") || document.querySelector(".gradesheet-assessment-management");
+              if (replacement && management) management.open = true;
+              closeDialog(replacement || management?.querySelector("summary"));
             } catch (error) {
               saveStatus.textContent = "Die Leistung wurde nicht gespeichert. Bitte prüfen und erneut versuchen. " + error.message;
             } finally {
               saveBtn.disabled = false;
+              cancelBtn.disabled = false;
             }
           });
           const cancelBtn = document.createElement("button");
           cancelBtn.textContent = "Abbrechen";
           cancelBtn.type = "button";
+          function closeDialog(focusTarget = triggerButton) {
+            if (!dialog.parentNode) return;
+            dialog.parentNode.removeChild(dialog);
+            focusTarget?.focus();
+          }
           cancelBtn.addEventListener("click", function() {
-            try {
-              document.body.removeChild(overlay);
-            } catch (e) {
-            }
+            closeDialog();
+          });
+          dialog.addEventListener("cancel", function(event) {
+            event.preventDefault();
+            if (!saveBtn.disabled) closeDialog();
           });
           btnRow.appendChild(cancelBtn);
           btnRow.appendChild(saveBtn);
           dialog.appendChild(btnRow);
           dialog.appendChild(saveStatus);
-          overlay.appendChild(dialog);
-          document.body.appendChild(overlay);
+          document.body.appendChild(dialog);
+          dialog.showModal();
+          titleInput2.focus();
         }
         if (!currentCourseId) {
           const p = document.createElement("p");
@@ -23181,6 +23353,7 @@ ${buildPrintHeaderCss()}
         const visibleLabel = document.createElement("label");
         visibleLabel.htmlFor = "visible-checkbox-new";
         visibleLabel.textContent = "In PDF-Berichten anzeigen";
+        visibleLabel.title = "Ausgeblendete Einzelleistungen zählen zum ausgewiesenen Leistungsstand.";
         visibleLabel.style.fontSize = "0.9rem";
         visibleLabel.style.display = "flex";
         visibleLabel.style.alignItems = "center";
@@ -23576,12 +23749,13 @@ ${buildPrintHeaderCss()}
           const editBtn = document.createElement("button");
           editBtn.type = "button";
           editBtn.className = "gradesheet-assessment-action";
+          editBtn.dataset.editAssessmentId = assessment.id;
           editBtn.textContent = "Bearbeiten";
           editBtn.title = "Leistung bearbeiten";
           editBtn.setAttribute("aria-label", `Leistung „${displayTitle}“ bearbeiten`);
           editBtn.addEventListener("click", function(ev) {
             ev.stopPropagation();
-            editAssessment(assessment);
+            editAssessment(assessment, editBtn);
           });
           actions.appendChild(editBtn);
           const delBtn = document.createElement("button");
@@ -23601,28 +23775,30 @@ ${buildPrintHeaderCss()}
           const termSection = document.createElement("div");
           termSection.className = "term-section " + (isPrev ? "prev-term term-section-archive" : "term-section-current");
           const isUpperSecGradesheet2 = course.schemaMode === DomainModel.SCHEMA_MODES.UPPERSEC;
-          const header = document.createElement("div");
+          const header = document.createElement("button");
+          header.type = "button";
           const collapsedFlag = persistCollapse ? isPrev ? !!course._prevCollapsed : !!course._currCollapsed : false;
           const isOpen = !collapsedFlag;
           header.className = "collapsible-header" + (isOpen ? "" : " collapsed");
-          header.style.padding = "0.25rem 0.35rem";
-          header.style.border = "1px solid var(--border-soft)";
-          header.style.borderRadius = "6px";
-          header.style.display = "flex";
-          header.style.justifyContent = "space-between";
-          header.style.alignItems = "center";
-          header.style.marginBottom = "0.5rem";
+          header.setAttribute("aria-expanded", String(isOpen));
           const title = document.createElement("strong");
           title.textContent = isPrev ? `Archiv: ${termLabel}` : `Halbjahr: ${termLabel}`;
           header.appendChild(title);
           const content = document.createElement("div");
+          content.id = "gradesheet-term-" + termKeyRaw;
+          header.setAttribute("aria-controls", content.id);
           content.className = "collapsible-content" + (isOpen ? "" : " hidden");
           content.style.marginTop = "0.5rem";
           content.style.overflowX = "auto";
           content.style.maxWidth = "100%";
+          function setTermSectionExpanded(expanded) {
+            content.classList.toggle("hidden", !expanded);
+            header.classList.toggle("collapsed", !expanded);
+            header.setAttribute("aria-expanded", String(expanded));
+          }
           header.addEventListener("click", async function() {
-            const nowHidden = content.classList.toggle("hidden");
-            header.classList.toggle("collapsed");
+            const nowHidden = !content.classList.contains("hidden");
+            setTermSectionExpanded(!nowHidden);
             if (persistCollapse) {
               const courseId = course.id;
               const key = isPrev ? "_prevCollapsed" : "_currCollapsed";
@@ -23633,8 +23809,7 @@ ${buildPrintHeaderCss()}
               } catch (error) {
                 const confirmed = DomainModel.findCourseById(state, courseId);
                 const hidden = confirmed ? !!confirmed[key] : !nowHidden;
-                content.classList.toggle("hidden", hidden);
-                header.classList.toggle("collapsed", hidden);
+                setTermSectionExpanded(!hidden);
                 if (!isStateCommitAborted(error)) console.error("Der Ansichtsstatus konnte nicht gespeichert werden:", error);
               }
             }
@@ -23975,8 +24150,7 @@ ${buildPrintHeaderCss()}
                   finish: finishCurrentTermScoreEditor,
                   isClean: currentTermScoreEditorIsClean,
                   focus: function() {
-                    content.classList.remove("hidden");
-                    header.classList.remove("collapsed");
+                    setTermSectionExpanded(true);
                     input.focus();
                   }
                 });
@@ -23994,17 +24168,23 @@ ${buildPrintHeaderCss()}
                   await saveCurrentTermScoreEditor();
                 });
                 input.addEventListener("keydown", async function(event) {
-                  if (!["Enter", "Tab", "ArrowDown", "ArrowUp"].includes(event.key)) return;
+                  if (event.key === "Tab") {
+                    await saveCurrentTermScoreEditor();
+                    return;
+                  }
+                  if (!["Enter", "ArrowDown", "ArrowUp"].includes(event.key)) return;
+                  const focusAtKeydown = document.activeElement;
                   const allInputs = Array.from(document.querySelectorAll(".gradesheet-input"));
                   const target = findNextGradesheetInput(allInputs, input, event.key);
-                  const shouldSave = event.key === "Enter" || event.key === "Tab";
+                  const shouldSave = event.key === "Enter";
                   if (!target && !shouldSave) return;
-                  if (target || event.key === "Enter") event.preventDefault();
+                  event.preventDefault();
                   if (shouldSave) {
                     const saved = await saveCurrentTermScoreEditor();
                     if (!saved) return false;
                   }
                   if (target) setTimeout(function() {
+                    if (document.activeElement !== focusAtKeydown) return;
                     target.focus();
                     target.select();
                   }, 0);
@@ -24616,8 +24796,14 @@ ${buildPrintHeaderCss()}
                 iconSpan.innerHTML = svg;
                 entryState.textContent = statusVal === DomainModel.SCORE_STATUS.MISSING ? "fehlt" : statusVal === DomainModel.SCORE_STATUS.EXCUSED ? "entschuldigt" : "";
                 entryState.hidden = entryState.textContent === "";
+              }, beginScoreEdit = function() {
+                draftRevision++;
+                cancelledSignature = null;
+                suppressedChangeSignature = null;
               }, scoreChangeSignature = function(raw, scoreStatus) {
                 return JSON.stringify([String(raw || "").trim(), scoreStatus]);
+              }, editorSignature = function() {
+                return scoreChangeSignature(input.value, statusSelect.value);
               }, updateCurrentRowAverages = function() {
                 const currentRow = input.closest("tr");
                 if (currentRow) {
@@ -24652,19 +24838,21 @@ ${buildPrintHeaderCss()}
                   next.valueNumeric = null;
                 }
                 return next;
-              }, restoreCellAfterSaveFailure = function(message) {
+              }, restoreConfirmedScore = function(message = "") {
                 const assessment = DomainModel.findAssessmentById(state, asm.id);
                 const restored = assessment && assessment.scores ? assessment.scores[stu.id] : null;
                 input.value = restored && restored.valueRaw != null ? String(restored.valueRaw) : "";
-                statusSelect.value = restored ? restored.status : status;
+                statusSelect.value = restored ? restored.status : DomainModel.SCORE_STATUS.VALID;
                 lastStatus = statusSelect.value;
                 updateStatusIconFor(lastStatus, input.value);
                 updateCurrentCellPresentation();
                 updateCurrentRowAverages();
+                input.classList.remove("gradesheet-input-invalid");
+                input.title = "";
                 input.setAttribute("aria-invalid", "false");
                 errorEl.textContent = message;
-                errorEl.style.display = "block";
-                lastSavedSignature = scoreChangeSignature(input.value, statusSelect.value);
+                errorEl.style.display = message ? "block" : "none";
+                lastSavedSignature = editorSignature();
               }, validateCurrentGradesheetScore = function(newRaw, newStatus, statusError) {
                 if (isAcceptableScoreEditorDraft(newRaw, newStatus)) return true;
                 input.classList.add("gradesheet-input-invalid");
@@ -24674,11 +24862,13 @@ ${buildPrintHeaderCss()}
                 errorEl.style.display = "block";
                 return false;
               }, saveCurrentGradesheetEditor = function() {
+                const revision = draftRevision;
                 if (pendingSavePromise) {
-                  const requestedSignature = scoreChangeSignature(input.value, statusSelect.value);
+                  const requestedSignature = editorSignature();
                   return pendingSavePromise.then(function(saved) {
-                    const requestIsStillCurrent = scoreChangeSignature(input.value, statusSelect.value) === requestedSignature;
-                    return saved || requestIsStillCurrent ? saveCurrentGradesheetEditor() : false;
+                    if (!saved && failedSaveBlocksNextFinish) return false;
+                    if (revision !== draftRevision || editorSignature() !== requestedSignature) return saved;
+                    return saveCurrentGradesheetEditor();
                   });
                 }
                 const newRaw = String(input.value || "").trim();
@@ -24693,30 +24883,35 @@ ${buildPrintHeaderCss()}
                   errorEl.style.display = "none";
                   return true;
                 }
-                const isLatestInteraction = beginScoreInteraction();
                 const operation = (async function() {
                   try {
                     await persistCurrentGradesheetScore(newRaw, currentStatus);
                     lastSavedSignature = signature;
-                    if (!isLatestInteraction() || scoreChangeSignature(input.value, statusSelect.value) !== signature) return true;
+                    lastStatus = currentStatus;
+                    if (cancelledSignature === editorSignature()) {
+                      restoreConfirmedScore();
+                      return true;
+                    }
+                    updateStatusIconFor(currentStatus, newRaw);
+                    updateCurrentCellPresentation();
+                    updateCurrentRowAverages();
+                    if (revision !== draftRevision || editorSignature() !== signature) return true;
                     input.classList.remove("gradesheet-input-invalid");
                     input.title = "";
                     input.setAttribute("aria-invalid", "false");
                     errorEl.textContent = "";
                     errorEl.style.display = "none";
-                    lastStatus = currentStatus;
-                    updateStatusIconFor(currentStatus, input.value);
-                    updateCurrentCellPresentation();
-                    updateCurrentRowAverages();
                     return true;
                   } catch (error) {
-                    if (!isLatestInteraction() || scoreChangeSignature(input.value, statusSelect.value) !== signature) return false;
-                    restoreCellAfterSaveFailure("Speichern fehlgeschlagen. Die vorherige Eingabe bleibt erhalten.");
+                    const visible = editorSignature();
+                    if (visible !== cancelledSignature && (revision !== draftRevision || visible !== signature)) return false;
+                    restoreConfirmedScore("Speichern fehlgeschlagen. Die vorherige Eingabe bleibt erhalten.");
                     failedSaveBlocksNextFinish = true;
                     return false;
                   } finally {
                     if (pendingSavePromise === operation) {
                       pendingSavePromise = null;
+                      cancelledSignature = null;
                     }
                   }
                 })();
@@ -24840,12 +25035,13 @@ ${buildPrintHeaderCss()}
                 }
               }
               let lastStatus = status;
-              const beginScoreInteraction = createLatestInteractionGuard();
               let suppressedChangeSignature = null;
               let lastSavedSignature = null;
               let pendingSavePromise = null;
               let failedSaveBlocksNextFinish = false;
-              lastSavedSignature = scoreChangeSignature(input.value, statusSelect.value);
+              let draftRevision = 0;
+              let cancelledSignature = null;
+              lastSavedSignature = editorSignature();
               async function persistCurrentGradesheetScore(newRaw, newStatus) {
                 return persistScoreEntryWithRollback(
                   asm.id,
@@ -24864,25 +25060,27 @@ ${buildPrintHeaderCss()}
                 }
               });
               input.addEventListener("keydown", async function(e) {
-                if (e.key === "Enter" || e.key === "Tab" || e.key === "ArrowDown" || e.key === "ArrowUp") {
+                if (e.key === "Tab") {
+                  await saveCurrentGradesheetEditor();
+                  return;
+                }
+                if (e.key === "Enter" || e.key === "ArrowDown" || e.key === "ArrowUp") {
+                  const navigationRevision = draftRevision;
+                  const focusAtKeydown = document.activeElement;
                   e.preventDefault();
                   e.stopPropagation();
                   e.stopImmediatePropagation();
                   const allInputsNav = Array.from(document.querySelectorAll(".gradesheet-input"));
                   const targetInput = findNextGradesheetInput(allInputsNav, input, e.key);
-                  let shouldSave = false;
                   if (e.key === "Enter") {
-                    shouldSave = true;
-                  } else if (e.key === "Tab") {
-                    shouldSave = true;
-                  }
-                  if (shouldSave) {
+                    const submittedSignature = editorSignature();
                     const saved = await saveCurrentGradesheetEditor();
-                    if (!saved) return false;
-                    suppressedChangeSignature = scoreChangeSignature(input.value, statusSelect.value);
+                    if (!saved || draftRevision !== navigationRevision || editorSignature() !== submittedSignature) return false;
+                    suppressedChangeSignature = submittedSignature;
                   }
                   if (targetInput) {
                     setTimeout(function() {
+                      if (draftRevision !== navigationRevision || document.activeElement !== focusAtKeydown) return;
                       targetInput.focus();
                       targetInput.select();
                     }, 0);
@@ -24890,12 +25088,15 @@ ${buildPrintHeaderCss()}
                   return false;
                 } else if (e.key === "Escape") {
                   e.preventDefault();
-                  const entry2 = asm.scores ? asm.scores[stu.id] : void 0;
-                  const originalValue = entry2 && entry2.valueRaw != null ? String(entry2.valueRaw) : "";
-                  input.value = originalValue;
+                  beginScoreEdit();
+                  failedSaveBlocksNextFinish = false;
+                  restoreConfirmedScore();
+                  if (pendingSavePromise) cancelledSignature = lastSavedSignature;
+                  suppressedChangeSignature = lastSavedSignature;
                   input.blur();
                 }
               }, true);
+              input.addEventListener("input", beginScoreEdit);
               input.addEventListener("change", async function() {
                 const newRaw = String(this.value || "").trim();
                 const currentStatus = statusSelect.value;
@@ -24908,6 +25109,7 @@ ${buildPrintHeaderCss()}
                 await saveCurrentGradesheetEditor();
               });
               statusSelect.addEventListener("change", async function() {
+                beginScoreEdit();
                 const newVal = this.value;
                 if (newVal === DomainModel.SCORE_STATUS.VALID) {
                   if (!validateCurrentGradesheetScore(String(input.value || "").trim(), newVal, true)) {
@@ -25845,6 +26047,7 @@ ${buildPrintHeaderCss()}
             delBtn.style.fontSize = "0.85rem";
             delBtn.addEventListener("click", async function() {
               const subcategoryId = subcat.id;
+              if (!window.confirm("Unterkategorie „" + subcat.name + "“ löschen? Zugeordnete Leistungen aktiver Kurse bleiben mit ihren Bewertungen in der Hauptkategorie „" + category.name + "“.")) return;
               try {
                 await commitStateChange(function(candidate) {
                   const candidateCategory = (candidate.settings.categories || []).find(function(item) {
@@ -25856,6 +26059,12 @@ ${buildPrintHeaderCss()}
                     return item.id !== subcategoryId;
                   });
                   if (candidateCategory.subcategories.length === before) throw new Error("Die Unterkategorie ist nicht mehr verfügbar.");
+                  const activeIds = new Set(DomainModel.listActiveCourses(candidate).map((course) => course.id));
+                  for (const assessment of candidate.assessments) {
+                    if (activeIds.has(assessment.courseId) && assessment.categoryId === categoryId && assessment.subcategoryId === subcategoryId) {
+                      assessment.subcategoryId = null;
+                    }
+                  }
                 }, { render: false });
                 renderTable();
               } catch (error) {
@@ -26719,6 +26928,9 @@ ${buildPrintHeaderCss()}
                       return template.id !== wt.id;
                     }
                   );
+                  for (const course of DomainModel.listActiveCourses(candidate)) {
+                    if (course.weightTemplateId === wt.id) course.weightTemplateId = null;
+                  }
                 });
               } catch (error) {
                 try {
@@ -27198,7 +27410,7 @@ ${buildPrintHeaderCss()}
               c.name || "",
               c.subject || "",
               classLabel,
-              s ? s.id : "",
+              s ? s.importKey || s.id : "",
               s ? s.lastName : "",
               s ? s.firstName : "",
               s ? s.birthDate : ""
@@ -27711,28 +27923,29 @@ ${buildPrintHeaderCss()}
         mergeRow.appendChild(mergeCheckbox);
         mergeRow.appendChild(mergeLabel);
         importWrapper.appendChild(mergeRow);
+        const archiveLabel = document.createElement("label");
+        archiveLabel.className = "transfer-merge-option";
+        const archiveCheckbox = document.createElement("input");
+        archiveCheckbox.id = "json-import-single-archive";
+        archiveCheckbox.type = "checkbox";
+        archiveLabel.appendChild(archiveCheckbox);
+        const archiveHint = document.createElement("span");
+        archiveHint.textContent = " Umbenanntes Einzelarchiv einer älteren Version importieren";
+        archiveLabel.appendChild(archiveHint);
+        importWrapper.appendChild(archiveLabel);
         const fileInputJson = document.createElement("input");
         fileInputJson.id = "json-import-file";
         fileInputJson.type = "file";
         fileInputJson.accept = "application/json";
-        async function commitImportedState(parsedState, sourceLabel, mergeMode) {
+        async function commitImportedState(parsedState, sourceLabel, mergeMode, repairNotice = "", legacyArchiveFile = false) {
+          const archiveImport = prepareSingleArchiveImport(parsedState, legacyArchiveFile);
+          parsedState = archiveImport.state;
           validateRawTermResults(parsedState);
           validateRawUpperSecContexts(parsedState);
           validateImportedState(parsedState);
           function prepareIncomingState(currentState) {
             const raw = JSON.parse(JSON.stringify(parsedState));
-            if (!mergeMode) {
-              for (const key of ["halfYearSettings", "halfYearNames"]) {
-                if (raw.settings[key] == null) raw.settings[key] = {};
-                if (typeof raw.settings[key] !== "object" || Array.isArray(raw.settings[key])) continue;
-                for (const level of ["seckI", "seckII"]) {
-                  const local = currentState.settings?.[key]?.[level];
-                  if (raw.settings[key][level] == null && local) {
-                    raw.settings[key][level] = JSON.parse(JSON.stringify(local));
-                  }
-                }
-              }
-            }
+            supplementMissingImportPeriods(raw, currentState);
             return DomainModel.ensureStateShape(raw);
           }
           const incoming = prepareIncomingState(state);
@@ -27740,7 +27953,7 @@ ${buildPrintHeaderCss()}
           let candidate;
           let mergeSummary = null;
           if (mergeMode) {
-            const merged = mergeImportedStateIntoCurrent(state, incoming);
+            const merged = mergeImportedStateIntoCurrent(state, incoming, archiveImport.predecessor);
             candidate = merged.state;
             mergeSummary = merged.summary;
           } else {
@@ -27748,13 +27961,13 @@ ${buildPrintHeaderCss()}
           }
           validateImportedState(candidate);
           const modeText = mergeMode ? "zusammenführen" : "vollständig ersetzen";
-          const details = candidate.students.length + " Schüler:innen, " + candidate.courses.length + " Kurse, " + candidate.assessments.length + " Leistungen";
+          const details = candidate.students.length + " Schüler:innen, " + candidate.courses.length + " Kurse, " + candidate.assessments.length + " Leistungen" + repairNotice;
           if (!window.confirm(sourceLabel + " wurde geprüft.\n\nZiel: " + modeText + "\nErgebnis: " + details + (mergeSummary ? "\nLeistungsmetadaten-Konflikte (lokale Werte bleiben): " + mergeSummary.assessmentMetadataConflicts + "\nScore-Konflikte (vorhandener Wert bleibt): " + mergeSummary.scoreConflicts + "\nFestsetzungs-Konflikte (lokaler Wert bleibt): " + mergeSummary.termResultConflicts + "\nSek-II-Kontextkonflikte (lokaler Wert bleibt): " + mergeSummary.upperSecContextConflicts + "\nQ4-Prüfungsfach-Konflikte (lokaler Wert bleibt): " + mergeSummary.writtenExamSubjectConflicts + "\nÜbersprungene Archivänderungen: " + mergeSummary.archiveConflicts : "") + "\n\nJetzt übernehmen?")) return false;
           if (!mergeMode && !window.confirm("Der aktuelle Datenbestand wird ersetzt. Diese Aktion kann nur mit einem vorhandenen Backup rückgängig gemacht werden. Wirklich ersetzen?")) return false;
           if (mergeMode) {
             let actualSummary = null;
             await commitStateChange(function(currentCandidate) {
-              const actualMerge = mergeImportedStateIntoCurrent(currentCandidate, incoming);
+              const actualMerge = mergeImportedStateIntoCurrent(currentCandidate, incoming, archiveImport.predecessor);
               validateImportedState(actualMerge.state);
               actualSummary = actualMerge.summary;
               overwriteStateObject(currentCandidate, actualMerge.state);
@@ -27770,6 +27983,7 @@ ${buildPrintHeaderCss()}
                 await Storage.replaceState(replacement);
                 if (uiStateEpoch !== importEpoch) throw createStateCommitAbortedError();
                 state = replacement;
+                if (!applyStoredSessionTimeout(state)) Storage.setSessionTimeoutMinutes(15);
               } catch (error) {
                 await reconcileExclusiveState(importEpoch);
                 throw error;
@@ -27787,10 +28001,12 @@ ${buildPrintHeaderCss()}
           const readId = ++jsonFileReadId;
           const selectionEpoch = uiStateEpoch;
           const mergeMode = mergeCheckbox.checked;
+          const selectedArchiveMode = archiveCheckbox.checked;
           const file = this.files && this.files[0];
           if (!file) {
             return;
           }
+          archiveCheckbox.checked = false;
           const reader = new FileReader();
           let readEventHandled = false;
           reader.onload = async function(ev) {
@@ -27806,6 +28022,7 @@ ${buildPrintHeaderCss()}
               }
               let parsedState;
               let sourceLabel = "JSON-Datei";
+              const legacyArchiveFile = selectedArchiveMode || /^notenverwaltung_archiv_\d{4}-\d{2}-\d{2}T\d{2}-\d{2}-\d{2}\.enc\.json$/i.test(file.name);
               if (maybe && maybe.format === "notenverwaltung_envelope") {
                 if (maybe.version !== 2) throw new Error("Unbekanntes verschlüsseltes Backupformat.");
                 const pw = await window.promptPassword({
@@ -27814,13 +28031,13 @@ ${buildPrintHeaderCss()}
                   onRecovery: async function() {
                     const code = await window.promptPassword({ message: "Vollständigen Wiederherstellungscode dieser Sicherungsdatei eingeben:", secretKind: "recovery-code" });
                     if (!code || readId !== jsonFileReadId || uiStateEpoch !== selectionEpoch) return false;
-                    parsedState = await Storage.importStateEncryptedWithRecovery(text, code);
+                    parsedState = await Storage.importStateEncryptedWithRecovery(text, code, legacyArchiveFile);
                     return readId === jsonFileReadId && uiStateEpoch === selectionEpoch;
                   }
                 });
                 if (!parsedState) {
                   if (!pw) return;
-                  parsedState = await Storage.importStateEncryptedFromText(text, pw);
+                  parsedState = await Storage.importStateEncryptedFromText(text, pw, legacyArchiveFile);
                 }
                 sourceLabel = "Verschlüsseltes Backup";
               } else if (maybe && maybe.format === "notenverwaltung_enc_v1") {
@@ -27838,7 +28055,9 @@ ${buildPrintHeaderCss()}
                 parsedState = maybe || JSON.parse(text);
               }
               if (readId !== jsonFileReadId || uiStateEpoch !== selectionEpoch) return;
-              await commitImportedState(parsedState, sourceLabel, mergeMode);
+              const legacyBackup = maybe?.format === "notenverwaltung_enc_v1" || !maybe && text.includes(":");
+              const repairNotice = legacyBackup ? repairLegacyWeightReferences(parsedState) : "";
+              await commitImportedState(parsedState, sourceLabel, mergeMode, repairNotice, legacyArchiveFile);
             } catch (err2) {
               console.error("Fehler beim JSON-Import:", err2);
               window.alert("Import fehlgeschlagen. Der bisherige Datenbestand bleibt erhalten. " + err2.message);
@@ -29975,14 +30194,14 @@ ${buildPrintHeaderCss()}
           wave7State.settings
         );
         const wave7PdfOverall = GradingLogic.computeWeightedOverallForAssessments(
-          wave7PdfAssessments,
+          filterPdfOverallAssessments(wave7Assessments, wave7Course, "2025-H1", "2025-H1"),
           wave7Course,
           wave7StudentId,
           wave7State.settings
         );
         record(
           "Wave 7 H11: PDF-Sichtbarkeit verändert interne Berechnung nicht",
-          wave7InternalOverall === 3 && wave7PdfOverall === 1,
+          wave7InternalOverall === 3 && wave7PdfOverall === 3,
           { internal: wave7InternalOverall, pdf: wave7PdfOverall }
         );
         const wave7DateOnlyAssessment = DomainModel.createAssessment({
@@ -30038,8 +30257,8 @@ ${buildPrintHeaderCss()}
           "2025-H2"
         );
         record(
-          "Wave 7 H11: PDF-Gesamtnote bezieht nur sichtbares Vorhalbjahr ein",
-          wave7OverallPdf.length === 2 && wave7OverallPdf[0].id === wave7CurrentAssessment.id && wave7OverallPdf[1].id === wave7PreviousAssessment.id,
+          "Wave 7 H11: PDF-Gesamtnote berücksichtigt alle Leistungen beider Halbjahre",
+          wave7OverallPdf.length === 3 && wave7OverallPdf[0].id === wave7CurrentAssessment.id && wave7OverallPdf[1].id === wave7PreviousAssessment.id && wave7OverallPdf[2].id === wave7HiddenPreviousAssessment.id,
           wave7OverallPdf.map((assessment) => assessment.id).join(",")
         );
         const wave5ArchiveState = DomainModel.createEmptyState();

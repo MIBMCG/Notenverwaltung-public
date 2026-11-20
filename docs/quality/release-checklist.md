@@ -1,10 +1,10 @@
-# Freigabecheckliste für Notenverwaltung 1.7.2
+# Freigabecheckliste für Notenverwaltung 1.7.3
 
-Stand: 04.11.2026. Veröffentlichung durch den Nutzer beauftragt. Diese Liste
+Stand: 20.11.2026. Veröffentlichung durch den Nutzer beauftragt. Diese Liste
 beschreibt die erforderlichen Nachweise; sie nimmt ihr Ergebnis nicht vorweg.
 Prüfprotokolle, CI-Läufe und GitHub-Release ordnen Ergebnisse dem Commit zu.
 
-- Produktversion 1.7.2, Datum 04.11.2026 und aktuelle Dokumentation abgleichen.
+- Produktversion 1.7.3, Datum 20.11.2026 und aktuelle Dokumentation abgleichen.
 - Vollständige Testsuite, Syntax, Build-Identität, Befundregister und Dokumentlinks
   prüfen. Keine Dateisystem-Schutzprüfung zur Umgehung lokaler Umgebungsfehler ändern.
 - Alle vier GitHub-CI-Kombinationen auf dem endgültigen Quellstand abwarten:
@@ -18,12 +18,12 @@ Prüfprotokolle, CI-Läufe und GitHub-Release ordnen Ergebnisse dem Commit zu.
   Ergänzung fehlender Legacy-Gruppen oder -Stufen vor der Migration, V1 mit
   Passwort sowie V2 mit Passwort oder passendem Code. Abbruch und Speicherfehler
   dürfen keinen unbestätigten Zustand veröffentlichen.
-- Die 1.513 bestandenen Tests des versionierten Releasequellstands vom
-  04.11.2026 den commitbezogenen CI- und Paketnachweisen zuordnen.
+- Die 1.573 bestandenen Tests am Korrekturstand bd4a1f9 vom
+  20.11.2026 den commitbezogenen CI- und Paketnachweisen zuordnen.
   Historische Nutzer- und Browsernachweise nicht als neue Abnahme ausgeben;
   Grenzen stehen in [ABNAHME.md](../ABNAHME.md).
 - Änderung über Pull Request in das bestehende öffentliche Repository integrieren;
-  geprüften Branch- und Merge-Stand vergleichen. Tag `v1.7.2` erst auf den
+  geprüften Branch- und Merge-Stand vergleichen. Tag `v1.7.3` erst auf den
   endgültigen geprüften Commit setzen; bestehende Tags einschließlich `v1.7.1`
   nicht verschieben.
 - Aktives privates Vulnerability Reporting prüfen. ZIP, Prüfsumme und Hinweise als
