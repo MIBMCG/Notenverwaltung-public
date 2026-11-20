@@ -18,7 +18,7 @@ Prüfprotokolle, CI-Läufe und GitHub-Release ordnen Ergebnisse dem Commit zu.
   Ergänzung fehlender Legacy-Gruppen oder -Stufen vor der Migration, V1 mit
   Passwort sowie V2 mit Passwort oder passendem Code. Abbruch und Speicherfehler
   dürfen keinen unbestätigten Zustand veröffentlichen.
-- Die 1.513 bestandenen Tests des versionierten Releasequellstands vom
+- Die 1.573 bestandenen Tests am Korrekturstand bd4a1f9 vom
   20.11.2026 den commitbezogenen CI- und Paketnachweisen zuordnen.
   Historische Nutzer- und Browsernachweise nicht als neue Abnahme ausgeben;
   Grenzen stehen in [ABNAHME.md](../ABNAHME.md).

@@ -66,7 +66,7 @@ enthält die Veröffentlichung und ihre Paketprüfsummen. Diese externen Links
 benötigen eine Internetverbindung.
 
 Paket, Prüfsummen und Tag der aktuellen Fassung werden der
-[Release-Seite für 1.7.2](https://github.com/MIBMCG/Notenverwaltung-public/releases/tag/v1.7.2)
+[Release-Seite für 1.7.3](https://github.com/MIBMCG/Notenverwaltung-public/releases/tag/v1.7.3)
 zugeordnet;
 die [GitHub-Actions-Läufe](https://github.com/MIBMCG/Notenverwaltung-public/actions)
 ordnen CI-Ergebnisse dem jeweiligen Commit zu.
